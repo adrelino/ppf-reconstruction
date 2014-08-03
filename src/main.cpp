@@ -58,7 +58,7 @@ int main(int argc, char * argv[])
     
     Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
     
-    Projective3d Pest=ppfs->clusterPoses(Pests);
+    //Projective3d Pest=ppfs->clusterPoses(Pests);
 
     cout<<"groundtruth:"<<endl;
     cout<<P.matrix()<<endl;
