@@ -19,3 +19,8 @@
 *.exe
 *.out
 *.app
+
+CMakeCache.txt
+Makefile
+ppfs_test
+CMakeFiles/
