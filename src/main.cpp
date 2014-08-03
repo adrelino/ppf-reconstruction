@@ -56,7 +56,7 @@ int main(int argc, char * argv[])
     
     //cout<<accVec[0]<<endl;
     
-    vector<pair<Projective3d,int>> Pests = ppfs->computePoses(accVec, mSmall, sSmall);
+    Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
     
     Projective3d Pest=ppfs->clusterPoses(Pests);
 

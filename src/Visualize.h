@@ -80,7 +80,7 @@ private:
     
 public:
     
-    vector<pair<MatrixXd, RowVector3f>> ms;
+    vector< pair<MatrixXd, RowVector3f> > ms;
 
     KeyBucketPairList b;
     int bucketIndex=0;

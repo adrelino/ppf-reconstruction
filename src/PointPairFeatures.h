@@ -34,8 +34,8 @@ class PointPairFeatures{
     Matches matchSceneAgainstModel(MatrixXd m, GlobalModelDescription model);
     vector<MatrixXi> voting(Matches matches);
     
-    vector<pair<Projective3d,int>> computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
-    Projective3d clusterPoses(vector<pair<Projective3d,int>>); //todo: several poses can be returned if severel instances of object in scene
+    Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
+    Projective3d clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
 
 
     
