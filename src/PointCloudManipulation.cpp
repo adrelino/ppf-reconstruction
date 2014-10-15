@@ -258,3 +258,31 @@ MatrixXd PointCloudManipulation::downSample(MatrixXd C, bool useCenter){
     return reestimateNormals(C2);
 }
 
+MatrixXd PointCloudManipulation::translateCentroidToOrigin(MatrixXd C){
+    double x=0;
+    double y=0;
+    double z=0;
+
+    for (int i=0; i<C.rows(); i++) {
+        x+=C(i,0);
+        y+=C(i,1);
+        z+=C(i,2);
+    }
+    x/=C.rows();
+    y/=C.rows();
+    z/=C.rows();
+
+    cout<<"Centroid at: "<< x <<" "<< y <<" "<< z <<endl;
+
+    MatrixXd C2(C.rows(),6); // contains Cmean,Nmean,Ccenter,Ncenter
+
+    for (int i=0; i<C2.rows(); i++) {
+        C2(i,0)=C(i,0)-x;
+        C2(i,1)=C(i,1)-y;
+        C2(i,2)=C(i,2)-z;
+        C2.block(i,3,1,3)=C.block(i,3,1,3); //normal is unchanged by pure translation
+    }
+
+    return C2;
+}
+
