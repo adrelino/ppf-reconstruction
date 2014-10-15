@@ -36,4 +36,8 @@ add_executable(
 	src/Visualize.h
 )
 
+add_custom_command(TARGET ppfs_test PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:ppfs_test>)
+
 target_link_libraries(ppfs_test ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES}) 
