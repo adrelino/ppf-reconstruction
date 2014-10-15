@@ -28,6 +28,8 @@ public:
     static MatrixXd projectPointsAndNormals(Transform<double,3,Projective> P, MatrixXd C);
     static MatrixXd reestimateNormals(MatrixXd C);
     static MatrixXd downSample(MatrixXd C, bool useCenter);
+    static MatrixXd translateCentroidToOrigin(MatrixXd C);
+
 };
 
 #endif /* defined(__PointPairFeatures__PointCloudManipulation__) */

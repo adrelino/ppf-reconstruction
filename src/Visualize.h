@@ -12,6 +12,7 @@
 #include <iostream>
 #include <math.h>
 #include <vector>
+#include <thread>
 
 //WINDOWS
 //#include <Windows.h>
@@ -19,12 +20,15 @@
 //#include "GL\glut.h"
 
 //MAC
-#include <OpenGL/gl.h>
-#include <GLUT/GLUT.h>
-
-//LINUX
-//#include "GL/freeglut.h"
-//#include "GL/gl.h"
+#if defined (__APPLE__) || defined(MACOSX)
+ #include <OpenGL/gl.h>
+ #include <GLUT/GLUT.h>
+ #define glutLeaveMainLoop() exit(0)
+#else
+ //LINUX
+ #include "GL/freeglut.h"
+ #include "GL/gl.h"
+#endif
 
 #include <eigen3/Eigen/Dense>
 #include "Constants.h"
@@ -33,107 +37,112 @@
 
 
 using namespace Eigen;
-
 using namespace std;
 
-
-#endif /* defined(__PointPairFeatures__Visualize__) */
-
-
 class Visualize {
-    // global variable
-    // pi value can be accessed using the built-in M_PI
-    bool m_Smooth = false;
-    bool m_Highlight = false;
-    bool m_ColorMaterial = true;
-    bool m_Emission = false;
-    bool m_Ambient = true; //use white as ambient color, not the one set by colorMaterial
-    bool m_Origin = false;
-    bool m_Normals = false;
-    bool m_Buckets = false;
-    bool m_Voxels = false;
 
-    int modifier = -1;
+public:
+    static void start();       //starts the visualisation async
+    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
+    static void waitKeyQuit(); //waits till q is pressed, joins the threads
+
+    static void visualize();  //blocks
+
+
+    //TODO: mimic opencv's Viz
+    //static void spin();
+    //static void spinOnce(int millis);
+
+    //TODO make private, make better interface
+    static Visualize* getInstance();
+
+    KeyBucketPairList b;
+    MatrixXd model,scene,modelT;
+    Matches matches;
+    vector< pair<MatrixXd, RowVector3f> > ms;
+
+
+private:
+    Visualize(); // singleton, acces via factory
+
+    bool m_Smooth;
+    bool m_Highlight;
+    bool m_ColorMaterial;
+    bool m_Emission;
+    bool m_Ambient; //use white as ambient color, not the one set by colorMaterial
+    bool m_Origin;
+    bool m_Normals;
+    bool m_Buckets;
+    bool m_Voxels;
+
+    int modifier;
     
-    GLfloat angle = 0;   /* in degrees */
-    GLfloat angle2 = 0;   /* in degrees */
-    GLfloat angle3 = 0;   /* in degrees */
-    GLfloat zoom = 15.0;
-    int mouseButton = 0;
+    GLfloat angle;   /* in degrees */
+    GLfloat angle2;   /* in degrees */
+    GLfloat angle3;   /* in degrees */
+    GLfloat zoom;
+    int mouseButton;
     int moving, startx, starty;
     
-    GLfloat offsetY = -0.075f, offsetX = 0;
+    GLfloat offsetY,offsetX;
     
     const static int WINDOW_SIZE = 1024;
-    int current_object = 0;
-    
-private:
-    Visualize(){};
-    
-    
+    int current_object;
     
     void bucketInfo();
+
     static Visualize *instance;
     
     MatrixXd m;
-    
-    
-public:
-    
-    vector< pair<MatrixXd, RowVector3f> > ms;
 
-    KeyBucketPairList b;
-    int bucketIndex=0;
-    
-    MatrixXd model,scene,modelT;
-    Matches matches;
-    int matchIndex=0;
+    unsigned char lastKey;
 
+    std::thread* visThread;
 
+    void waitKeyInst(unsigned char key);
 
-    
-    static void visualize();
-    static Visualize* getInstance();
-    
-    
-    
+    int bucketIndex;
+    int matchIndex;
+
     void glColorHex(int rgbHex);
-    
-    
+
+
     void drawCylinderAdvanced(double r, double l, bool coverback, bool coverfront, bool normalInwards);
     void drawCylinder(double r, double l);
     void drawOrigin();
-    
+
     void drawNormals(MatrixXd m,RowVector3f color);
-    void drawPointCloud(MatrixXd m, RowVector3f color);
+    void drawPointCloud(MatrixXd m, RowVector3f color, float pointSize = 4.0f);
     void drawPPF(int i, int j, MatrixXd m);
     void drawPPfs(Bucket, MatrixXd m);
     void drawCubes(MatrixXd C, double size);
     void drawMatches(Matches matches);
     void printMatches(Matches matches);
 
-    
+
     void drawAll(MatrixXd m, RowVector3f color, RowVector3f colorNormals);
 
 
-    
+
     void drawEllipticParaboloid(double max, double a, double b, double c, bool backSideNormal);
     void drawHyperbolicParaboloid(double maxx, double maxy, double a, double b, double c, bool backSideNormal);
-    
+
     double getRotationAngleApprox(double xdiff, double ydiff, double x, double y);
 
-    
+
     void display(void);
     void keyboard (unsigned char key, int x, int y);
     void mouse(int button, int state, int x, int y);
     void motion(int x, int y);
-    
+
     static void displayW(void);
     static void keyboardW (unsigned char key, int x, int y);
     static void mouseW(int button, int state, int x, int y);
     static void motionW(int x, int y);
-    
-    
+
+
     int mainVisualize(int argc, char **argv);
-  
 };
+
+#endif /* defined(__PointPairFeatures__Visualize__) */
+

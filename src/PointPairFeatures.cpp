@@ -8,6 +8,9 @@
 
 #include "PointPairFeatures.h"
 
+#include <iostream>     // std::cout, std::fixed
+#include <iomanip>      // std::setprecision
+
 void PointPairFeatures::printBucket(Bucket v){
     cout<<v.size()<< "::::";
     for(auto i : v){
@@ -158,14 +161,14 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     
     for (auto it : matches){
         int sr=it.scenePPF.index;
-        if(isnan(it.scenePPF.alpha)){
+        if(std::isnan(it.scenePPF.alpha)){
             cout<<sr<<" sr isnan"<<endl;
             continue;
         }
         //MatrixXi acc=accVec[sr];
         for (auto it1:it.modelPPFs){
             long mr=it1.i;
-            if(isnan(it1.alpha)){
+            if(std::isnan(it1.alpha)){
                 cout<<mr<<" mr isnan"<<endl;
                 continue;
             }
@@ -184,70 +187,146 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     return accVec;
 }
 
-vector<pair<Projective3d,int>> PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
-    vector<pair<Projective3d,int>> vec;
-    for (int index=0; index<numberOfSceneRefPts; index++) {
-    MatrixXi acc=accVec[index];
-    
-    int sr=sceneIndexToI[index];
-    int mr;
-    int alphaD;
-    int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
-    
-    
-    double alpha=alphaD*dangle;
-    
-    RowVector3d m1=m.block(mr, 0, 1, 3);
-    RowVector3d s1=s.block(sr, 0, 1, 3);
+Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
+    Poses vec;
 
-    Translation3d Tgs(s1);
-    AngleAxisd Rx(alpha, Vector3d::UnitX());
-    
-    Translation3d Tmg(-m1);
-    
-    Projective3d P(Tgs*Rx*Tmg);
-    
-    cout<<"Pose: "<<index<<" score:"<<score<<" alpha:"<<alpha<<endl;
-    cout<<"computed:"<<endl;
-    cout<<P.matrix()<<endl;
-        
-        vec.push_back({P,score});
+    for (int index=0; index<numberOfSceneRefPts; index++) {
+        MatrixXi acc=accVec[index];
+
+        int sr=sceneIndexToI[index];
+        int mr;
+        int alphaD;
+        int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
+
+
+        double alpha=alphaD*dangle;
+
+        RowVector3d m1=m.block(mr, 0, 1, 3);
+        RowVector3d s1=s.block(sr, 0, 1, 3);
+
+        Translation3d Tgs(s1);
+        AngleAxisd Rx(alpha, Vector3d::UnitX());
+
+        Translation3d Tmg(-m1);
+
+        Projective3d P(Tgs*Rx*Tmg);
+
+        cout<<"Pose: "<<index<<" score:"<<score<<" alpha:"<<alpha<<endl;
+        cout<<"computed:"<<endl;
+        cout<<P.matrix()<<endl;
+
+        vec.push_back(std::make_pair(P,score));
     }
     
     return vec;
 }
 
-Projective3d PointPairFeatures::clusterPoses(vector<pair<Projective3d, int>> vec){
-    double thresh_tra=0.02; //2cm
+//returns true if farthest neighbors in cluster fit within threshold
+//http://en.wikipedia.org/wiki/Complete-linkage_clustering
+bool PointPairFeatures::isClusterSimilar(Poses cluster1, Poses cluster2){
+    for(auto pose2 : cluster2){
+        bool isSimilar = std::all_of(cluster1.begin(), cluster1.end(), [&](Pose pose1){return isPoseSimilar(pose1.first, pose2.first);});
+        if(!isSimilar) return false;
+    }
+
+    return true;
+}
+
+bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
+    Vector3d    tra1 = P1.translation();
+    Quaterniond rot1(P1.rotation());
+
+    Vector3d    tra2 = P2.translation();
+    Quaterniond rot2(P2.rotation());
+
+
+    //Translation
+    double diff_tra=(tra1-tra2).norm();
+    double model_diameter = 0.15; //cm
+    double thresh_tra = 0.05 * model_diameter; //double thresh_tra=0.02; //2cm
+
+
+
+    //Rotation
+    double d = rot1.dot(rot2);
+    double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+
+    double thresh_rot_degrees = 10;
     //http://math.stackexchange.com/questions/90081/quaternion-distance
     double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
-    
-    int i=0;
-    for(auto it : vec){
-        Vector3d tra1=it.first.translation();
-        Quaterniond rot1(it.first.rotation());
-        cout<<" + "<<i<<":"<<tra1.transpose()<<" rot:"<<rot1.coeffs().transpose()<<endl;
-        int j=0;
-        for (auto it2 : vec ) {
-            Vector3d tra2=it2.first.translation();
-            Quaterniond rot2(it.first.rotation());
+    double diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
-            
-            double diff_tra=(tra1-tra2).norm();
-            
-            double d = rot1.dot(rot2);
-            double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
-            
-            cout<<"    - "<<j<<" tra:"<<tra2.transpose()<<" : "<<diff_tra<<endl;
-            cout<<"    - "<<j<<" rot:"<<rot2.coeffs().transpose()<<" : "<<diff_rot<<endl;
+    double diff_rot_degrees = degrees(acos(2*d - 1));
 
-            if(diff_tra<thresh_tra && diff_rot < thresh_rot){
-                
-            }
-            j++;
-        }
-        i++;
+    //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
+    //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
+
+    cout<<std::fixed<<std::setprecision(3);
+
+    cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
+
+    if(diff_rot_degrees <= thresh_rot_degrees && diff_tra <= thresh_tra){
+        cout<<"yes"<<endl;
+        return true;
     }
-    
-    return Projective3d(Translation3d(0,0,0));
+    cout<<"no"<<endl;
+    return false;
 }
+
+void PointPairFeatures::printPoses(Poses vec){
+    for(auto pose : vec){
+        cout<<"score="<<pose.second<<"mat=\n"<<pose.first.matrix()<<endl;
+    }
+    cout<<endl;
+}
+
+Pose PointPairFeatures::clusterPoses (Poses vec){
+    //cout<<"clusterPoses"<<endl;
+    //printPoses(vec);
+    std::sort(vec.begin(), vec.end(), [](const Pose & a, const Pose & b) -> bool{ return a.second > b.second; });
+    //cout<<"sorted"<<endl;
+    //printPoses(vec);
+
+
+   vector< Poses > clusters;
+    
+    for(auto pose : vec){
+        Poses cluster;
+        cluster.push_back(pose); //initially, each cluster contains just one pose;
+        clusters.push_back(cluster);
+    }
+
+    int i=0;
+    int n=clusters.size();
+
+    for(int i=0; i<n; n=clusters.size(),i++){
+        for(int j=0; j<n; n=clusters.size(),j++){
+            if(i==j) continue;
+            cout<<"Cluster1 "<<i<<"\\"<<n-1<<endl;
+            Poses cluster1=clusters[i];
+            cout<<"Cluster2 "<<j<<"\\"<<n-1<<endl;
+            Poses cluster2=clusters[j];
+            cout<<"size before merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
+
+            if(isClusterSimilar(cluster1,cluster2)){
+                cluster1.insert(cluster1.end(),cluster2.begin(),cluster2.end());
+                clusters.erase(clusters.begin() + j);
+            }
+            cout<<"size after merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
+            clusters[i]=cluster1;
+        }
+    }
+
+    cout<<"Produced "<<clusters.size()<<" clusters with each #poses:"<<endl;
+    for(auto cluster : clusters){
+        cout<<cluster.size()<<endl;
+        printPoses(cluster);
+    }
+
+    
+    return clusters[0][0];
+}
+
+//Poses reduceCluster(vector<Poses> clusters){
+
+//}

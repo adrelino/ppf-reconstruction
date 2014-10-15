@@ -6,6 +6,11 @@
 //  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
 //
 #include "Visualize.h"
+#include <thread>
+
+#include <iostream>
+
+using namespace std;
 
 
 Visualize* Visualize::instance = 0;
@@ -15,6 +20,29 @@ Visualize* Visualize::getInstance(){
         instance = new Visualize();
     }
     return instance;
+}
+
+Visualize::Visualize()
+    : m_Smooth(false)
+    , m_Highlight(false)
+    , m_ColorMaterial(true)
+    , m_Emission(false)
+    , m_Ambient(true)
+    , m_Origin(true)
+    , m_Normals(false)
+    , m_Buckets(false)
+    , m_Voxels(false)
+    , modifier(-1)
+    , angle(0.0)
+    , angle2(0.0)
+    , angle3(0.0)
+    , mouseButton(0)
+    , zoom(15)
+    , offsetY(-0.075f)
+    , offsetX(0)
+    , current_object(0)
+{
+    std::cout<<"Visualize construct"<<std::endl;
 }
 
 //draws cylinder towards z direction
@@ -109,8 +137,8 @@ void Visualize::drawNormals(MatrixXd m, RowVector3f color){
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPointCloud(MatrixXd m, RowVector3f color){
-    glPointSize(3.0f);
+void Visualize::drawPointCloud(MatrixXd m, RowVector3f color, float pointSize){
+    glPointSize(pointSize);
     glColor3f(color(0),color(1),color(2));
     glBegin(GL_POINTS);
     for (int i=0; i<m.rows(); i++) {
@@ -222,7 +250,7 @@ void Visualize::display(void)
 		case 0:
 			drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
             drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
-            if(modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0.5,0.5));
+            if(modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
             if(matches.size()>0) drawMatches(matches);
 			break;
 		case 1:
@@ -252,6 +280,9 @@ void Visualize::bucketInfo(){
 
 void Visualize::keyboard (unsigned char key, int x, int y)
 {
+    std::cout<<"keyboard: "<<key<< " at " << x << y <<std::endl;
+    lastKey=key;
+
 	switch (key) {
         case 'p':
         case 'P':
@@ -315,7 +346,8 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             
         case 'Q':
         case 'q':
-            exit(0);
+           glutLeaveMainLoop();
+            //exit(0);
             break;
         case '+':
             bucketIndex++;
@@ -446,7 +478,33 @@ int Visualize::mainVisualize(int argc, char **argv)
 	return 0;
 }
 
+void Visualize::start(){
+    getInstance()->visThread = new std::thread(visualize);
+}
+
+void Visualize::waitKeyQuit(){
+    getInstance()->visThread->join();
+}
+
 
 void Visualize::visualize(){
     getInstance()->mainVisualize(0,0);
+}
+
+void Visualize::waitKeyInst(unsigned char key){
+    cout<<"waiting for "<<key<<endl;
+    while(true){
+        sleep(1);
+        cout<<"lastKey = "<<lastKey<<endl;
+        if(lastKey==key){
+            lastKey=-1;
+            break;
+            cout<<"ok, exit waiting = "<<endl;
+
+        }
+    }
+}
+
+void Visualize::waitKey(unsigned char key){
+    getInstance()->waitKeyInst(key);
 }
