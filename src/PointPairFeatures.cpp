@@ -158,14 +158,14 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     
     for (auto it : matches){
         int sr=it.scenePPF.index;
-        if(isnan(it.scenePPF.alpha)){
+        if(std::isnan(it.scenePPF.alpha)){
             cout<<sr<<" sr isnan"<<endl;
             continue;
         }
         //MatrixXi acc=accVec[sr];
         for (auto it1:it.modelPPFs){
             long mr=it1.i;
-            if(isnan(it1.alpha)){
+            if(std::isnan(it1.alpha)){
                 cout<<mr<<" mr isnan"<<endl;
                 continue;
             }
@@ -184,8 +184,8 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     return accVec;
 }
 
-vector<pair<Projective3d,int>> PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
-    vector<pair<Projective3d,int>> vec;
+vector< pair<Projective3d,int> > PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
+    vector< pair<Projective3d,int> > vec;
     for (int index=0; index<numberOfSceneRefPts; index++) {
     MatrixXi acc=accVec[index];
     
@@ -211,13 +211,13 @@ vector<pair<Projective3d,int>> PointPairFeatures::computePoses(vector<MatrixXi> 
     cout<<"computed:"<<endl;
     cout<<P.matrix()<<endl;
         
-        vec.push_back({P,score});
+    vec.push_back(std::make_pair(P,score));
     }
     
     return vec;
 }
 
-Projective3d PointPairFeatures::clusterPoses(vector<pair<Projective3d, int>> vec){
+Projective3d PointPairFeatures::clusterPoses (vector< pair<Projective3d, int> > vec){
     double thresh_tra=0.02; //2cm
     //http://math.stackexchange.com/questions/90081/quaternion-distance
     double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
@@ -230,7 +230,7 @@ Projective3d PointPairFeatures::clusterPoses(vector<pair<Projective3d, int>> vec
         int j=0;
         for (auto it2 : vec ) {
             Vector3d tra2=it2.first.translation();
-            Quaterniond rot2(it.first.rotation());
+            Quaterniond rot2(it2.first.rotation());
 
             
             double diff_tra=(tra1-tra2).norm();

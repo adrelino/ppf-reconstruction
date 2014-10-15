@@ -3,6 +3,10 @@ project(point-pair-features)
 cmake_minimum_required(VERSION 2.8)
 
 include(CheckCXXCompilerFlag)
+
+#set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall")
+
+
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
 CHECK_CXX_COMPILER_FLAG("-std=c++0x" COMPILER_SUPPORTS_CXX0X)
 if(COMPILER_SUPPORTS_CXX11)
@@ -17,7 +21,8 @@ find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 
 include_directories(EIGEN3_INCLUDE_DIR)
-include_directories(GLUT_INCLUDE_DIR)
+include_directories(${OPENGL_INCLUDE_DIRS} ${GLUT_INCLUDE_DIRS})
+
 
 add_executable(
 	ppfs_test
@@ -36,4 +41,23 @@ add_executable(
 	src/Visualize.h
 )
 
+add_executable(
+        poseDiffTest
+        src/mainPoseDiff.cpp
+        src/Constants.h
+        src/LoadingSaving.cpp
+        src/LoadingSaving.h
+        src/PPF.cpp
+        src/PPF.h
+        src/Params.h
+        src/PointCloudManipulation.cpp
+        src/PointCloudManipulation.h
+        src/PointPairFeatures.cpp
+        src/PointPairFeatures.h
+        src/Visualize.cpp
+        src/Visualize.h
+)
+
 target_link_libraries(ppfs_test ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES}) 
+target_link_libraries(poseDiffTest ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+

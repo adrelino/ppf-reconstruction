@@ -9,9 +9,9 @@
 #include "LoadingSaving.h"
 #include "PointPairFeatures.h"
 #include "PointCloudManipulation.h"
+#include <iostream>
 
-
-
+using namespace std;
 
 int main(int argc, char * argv[])
 {
@@ -20,8 +20,6 @@ int main(int argc, char * argv[])
     //MatrixXd m = MatrixXd::Random(200,6);
     
     MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz");//.block(0, 0, 1000, 6);
-    
-    
     MatrixXd mSmall=PointCloudManipulation::downSample(m,false);
     
     //double diamM=PointCloudManipulation::getPointCloudDiameter(mSmall);
@@ -39,9 +37,27 @@ int main(int argc, char * argv[])
     MatrixXd sSmall=PointCloudManipulation::downSample(s,false);
     //LoadingSaving::saveXYZ("bunny/scene_downSampled.xyz", sSmall);
     
-    Projective3d P= Translation3d(0.1, 0, 0)*AngleAxisd(0.2, Vector3d(1,0,0));// * Scaling(s);
+    Projective3d P(Translation3d(0.3, 0, 0));//*AngleAxisd(M_PI_2, Vector3d(1,1,1));// * Scaling(s);
+
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
-    
+
+    Visualize* inst = Visualize::getInstance();
+
+    inst->model=mSmall;
+
+    MatrixXd mSmallCentroidAtOrigin=PointCloudManipulation::translateCentroidToOrigin(mSmall);
+
+    inst->scene=mSmallCentroidAtOrigin;
+    //inst->scene=sSmall;
+
+    cout<<"start vis Thread"<<endl;
+
+    Visualize::start();
+
+
+    cout<<"after start vis Thread"<<endl;
+
+
     PointPairFeatures* ppfs=new PointPairFeatures();
 
 
@@ -54,30 +70,36 @@ int main(int argc, char * argv[])
     
     vector<MatrixXi> accVec=ppfs->voting(matches);
     
-    //cout<<accVec[0]<<endl;
+    cout<<accVec[0]<<endl;
     
     Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
-    
-    //Projective3d Pest=ppfs->clusterPoses(Pests);
+    Projective3d Pest=ppfs->clusterPoses(Pests);
 
     cout<<"groundtruth:"<<endl;
     cout<<P.matrix()<<endl;
+
+    cout<<"estimated:"<<endl;
+    cout<<Pest.matrix()<<endl;
+
+
     
     
-    //MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest, m);
+    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest, m);
 
 
     //printMap(map);
     //KeyBucketPairList best10=PointPairFeatures::print10(map);
     
     //Visualize::getInstance()->b=best10;
-    
-    Visualize* inst=Visualize::getInstance();
-    inst->model=mSmall;
-    inst->scene=sSmall;
-    //inst->modelT=modelPoseEst;
-    inst->matches=matches;
-    Visualize::visualize();
 
+    Visualize::waitKey('g');
+
+    cout<<"after waitKey"<<endl;
+    
+
+    inst->modelT=modelPoseEst;
+    inst->matches=matches;
+
+    Visualize::waitKeyQuit();
 
 }
