@@ -27,7 +27,7 @@ Visualize::Visualize()
     : m_Smooth(false)
     , m_Highlight(false)
     , m_ColorMaterial(true)
-    , m_Emission(false)
+    , m_Estimate(true)
     , m_Ambient(true)
     , m_Origin(true)
     , m_Normals(false)
@@ -154,6 +154,7 @@ void Visualize::drawAll(MatrixXd m, RowVector3f color, RowVector3f colorNormals)
     if(m_Normals) drawNormals(m,colorNormals);
     if(m_Buckets) drawPPfs(b[bucketIndex].second, m);
     if(m_Voxels)  drawCubes(m,ddist);
+    if(m_Estimate && modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
 }
 
 
@@ -251,7 +252,6 @@ void Visualize::display(void)
 		case 0:
 			drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
             drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
-            if(modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
             if(matches.size()>0) drawMatches(matches);
 			break;
 		case 1:
@@ -311,7 +311,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             break;
         case 'e':
         case 'E':
-            m_Emission = !m_Emission;
+            m_Estimate = !m_Estimate;
             break;
         case 'a':
         case 'A':

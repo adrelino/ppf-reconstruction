@@ -39,6 +39,8 @@ add_executable(
 	src/PointPairFeatures.h
 	src/Visualize.cpp
 	src/Visualize.h
+        src/RandomN.h
+
 )
 
 add_custom_command(TARGET ppfs_test PRE_BUILD
@@ -53,6 +55,7 @@ add_executable(
         src/LoadingSaving.h
         src/PPF.cpp
         src/PPF.h
+        src/RandomN.h
         src/Params.h
         src/PointCloudManipulation.cpp
         src/PointCloudManipulation.h

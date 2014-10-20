@@ -17,9 +17,6 @@
 #include "PPF.h"
 #include "Constants.h"
 
-#define degrees(r) (180*(r)/M_PI)
-#define radians(d) (M_PI*(d)/180)
-
 
 using namespace Eigen;
 using namespace std;
@@ -44,12 +41,16 @@ class PointPairFeatures{
     vector<MatrixXi> voting(Matches matches);
     
     Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
-    static Pose clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+    static vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+
+    static Pose averagePosesInCluster(Poses);
+    static Poses averagePosesInClusters(vector<Poses>);
 
     static void printPoses(Poses vec);
 
+    static void err(Projective3d P, Pose Pest);
+    static void err(Projective3d P, Projective3d Pest);
 
-    
 };
 
 #endif /* defined(__PointPairFeatures__PointPairFeatures__) */

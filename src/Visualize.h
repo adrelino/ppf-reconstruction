@@ -68,7 +68,7 @@ private:
     bool m_Smooth;
     bool m_Highlight;
     bool m_ColorMaterial;
-    bool m_Emission;
+    bool m_Estimate;
     bool m_Ambient; //use white as ambient color, not the one set by colorMaterial
     bool m_Origin;
     bool m_Normals;

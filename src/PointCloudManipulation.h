@@ -25,10 +25,12 @@ class PointCloudManipulation {
     
 public:
     static double getPointCloudDiameter(MatrixXd m);
-    static MatrixXd projectPointsAndNormals(Transform<double,3,Projective> P, MatrixXd C);
+    static MatrixXd projectPointsAndNormals(Projective3d P, MatrixXd C);
     static MatrixXd reestimateNormals(MatrixXd C);
     static MatrixXd downSample(MatrixXd C, bool useCenter);
     static MatrixXd translateCentroidToOrigin(MatrixXd C);
+
+    static Translation3d getTranslationToCentroid(MatrixXd C);
 
 };
 
