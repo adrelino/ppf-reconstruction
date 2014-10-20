@@ -23,7 +23,7 @@
  //MAC
  #include <OpenGL/gl.h>
  #include <GLUT/GLUT.h>
- #define glutLeaveMainLoop() //exit(0)
+ #define glutLeaveMainLoop() exit(0)
 #else
  //LINUX
  #include "GL/freeglut.h"
@@ -45,6 +45,9 @@ public:
     static void start();       //starts the visualisation async
     static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
     static void waitKeyQuit(); //waits till q is pressed, joins the threads
+
+    static void visualize();  //blocks
+
 
     //TODO: mimic opencv's Viz
     //static void spin();
@@ -96,7 +99,6 @@ private:
 
     std::thread* visThread;
 
-    static void visualize();
     void waitKeyInst(unsigned char key);
 
     int bucketIndex;
@@ -110,7 +112,7 @@ private:
     void drawOrigin();
 
     void drawNormals(MatrixXd m,RowVector3f color);
-    void drawPointCloud(MatrixXd m, RowVector3f color);
+    void drawPointCloud(MatrixXd m, RowVector3f color, float pointSize = 4.0f);
     void drawPPF(int i, int j, MatrixXd m);
     void drawPPfs(Bucket, MatrixXd m);
     void drawCubes(MatrixXd C, double size);

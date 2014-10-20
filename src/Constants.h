@@ -23,7 +23,8 @@ struct Match {PPF scenePPF; Bucket modelPPFs;};
 typedef std::pair<PPF, Bucket> KeyBucketPair;
 typedef vector<KeyBucketPair> KeyBucketPairList;
 typedef vector<Match> Matches;
-typedef vector< pair<Projective3d,int> > Poses;
+typedef pair<Projective3d,int> Pose;
+typedef vector<Pose> Poses;
 
 static const double diamM=0.20; //stanford bunny
 static const double tau_d=0.075; //sampling rate, set like in paper. ddist=tau_d*diam(M);

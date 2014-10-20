@@ -21,6 +21,7 @@ int main(int argc, char * argv[])
     
     MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz");//.block(0, 0, 1000, 6);
     MatrixXd mSmall=PointCloudManipulation::downSample(m,false);
+    mSmall=PointCloudManipulation::translateCentroidToOrigin(mSmall);
     
     //double diamM=PointCloudManipulation::getPointCloudDiameter(mSmall);
 
@@ -36,29 +37,21 @@ int main(int argc, char * argv[])
     MatrixXd s=LoadingSaving::loadXYZ("bunny/scene.xyz");
     MatrixXd sSmall=PointCloudManipulation::downSample(s,false);
     //LoadingSaving::saveXYZ("bunny/scene_downSampled.xyz", sSmall);
-    
-    Projective3d P(Translation3d(0.3, 0, 0));//*AngleAxisd(M_PI_2, Vector3d(1,1,1));// * Scaling(s);
 
+    Projective3d P(Translation3d(0.1, 0.0, 0));//*AngleAxisd(M_PI_2, Vector3d(1,1,1));// * Scaling(s);
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
     Visualize* inst = Visualize::getInstance();
 
     inst->model=mSmall;
-
-    MatrixXd mSmallCentroidAtOrigin=PointCloudManipulation::translateCentroidToOrigin(mSmall);
-
-    inst->scene=mSmallCentroidAtOrigin;
-    //inst->scene=sSmall;
-
-    cout<<"start vis Thread"<<endl;
-
-    Visualize::start();
-
-    Visualize::waitKeyQuit();
+    inst->scene=sSmall;
 
 
+//    cout<<"start vis Thread"<<endl;
 
-    cout<<"after start vis Thread"<<endl;
+//    Visualize::start();
+
+//    cout<<"after start vis Thread"<<endl;
 
 
     PointPairFeatures* ppfs=new PointPairFeatures();
@@ -76,18 +69,18 @@ int main(int argc, char * argv[])
     cout<<accVec[0]<<endl;
     
     Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
-    Projective3d Pest=ppfs->clusterPoses(Pests);
+    Pose Pest=ppfs->clusterPoses(Pests);
 
     cout<<"groundtruth:"<<endl;
     cout<<P.matrix()<<endl;
 
-    cout<<"estimated:"<<endl;
-    cout<<Pest.matrix()<<endl;
+    cout<<"estimated: with score of "<<Pest.second<<endl;
+    cout<<Pest.first.matrix()<<endl;
 
 
     
     
-    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest, m);
+    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest.first, mSmall);
 
 
     //printMap(map);
@@ -103,6 +96,7 @@ int main(int argc, char * argv[])
     inst->modelT=modelPoseEst;
     inst->matches=matches;
 
-    Visualize::waitKeyQuit();
+    Visualize::visualize();
+    //Visualize::waitKeyQuit();
 
 }

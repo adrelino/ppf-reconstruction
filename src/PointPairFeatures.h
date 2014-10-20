@@ -17,8 +17,13 @@
 #include "PPF.h"
 #include "Constants.h"
 
+#define degrees(r) (180*(r)/M_PI)
+#define radians(d) (M_PI*(d)/180)
+
+
 using namespace Eigen;
 using namespace std;
+
 
 class PointPairFeatures{
     public:
@@ -29,13 +34,19 @@ class PointPairFeatures{
     static void printBucket(Bucket v);
     static void printMap(GlobalModelDescription m);
     static KeyBucketPairList print10(GlobalModelDescription &mymap);
+
+    static bool isPoseSimilar(Projective3d P1, Projective3d P2);
+    static bool isClusterSimilar(Poses cluster1, Poses cluster2);
+
     
     GlobalModelDescription buildGlobalModelDescription(MatrixXd m);
     Matches matchSceneAgainstModel(MatrixXd m, GlobalModelDescription model);
     vector<MatrixXi> voting(Matches matches);
     
     Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
-    Projective3d clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+    static Pose clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+
+    static void printPoses(Poses vec);
 
 
     

@@ -29,7 +29,7 @@ Visualize::Visualize()
     , m_ColorMaterial(true)
     , m_Emission(false)
     , m_Ambient(true)
-    , m_Origin(false)
+    , m_Origin(true)
     , m_Normals(false)
     , m_Buckets(false)
     , m_Voxels(false)
@@ -138,8 +138,8 @@ void Visualize::drawNormals(MatrixXd m, RowVector3f color){
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPointCloud(MatrixXd m, RowVector3f color){
-    glPointSize(3.0f);
+void Visualize::drawPointCloud(MatrixXd m, RowVector3f color, float pointSize){
+    glPointSize(pointSize);
     glColor3f(color(0),color(1),color(2));
     glBegin(GL_POINTS);
     for (int i=0; i<m.rows(); i++) {
@@ -251,7 +251,7 @@ void Visualize::display(void)
 		case 0:
 			drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
             drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
-            if(modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0.5,0.5));
+            if(modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
             if(matches.size()>0) drawMatches(matches);
 			break;
 		case 1:
