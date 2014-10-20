@@ -34,5 +34,8 @@ static const int ndist=1/tau_d;
 static const int nangle=30;
 static const double dangle = M_PI/nangle; //normal or. uf up to 12* like in paper (360/30=12)
 
+#define degrees(r) (180*(r)/M_PI)
+#define radians(d) (M_PI*(d)/180)
+
 
 #endif

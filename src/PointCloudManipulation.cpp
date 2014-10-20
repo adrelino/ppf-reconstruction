@@ -55,7 +55,7 @@ double PointCloudManipulation::getPointCloudDiameter(MatrixXd m){
 
 
 
-MatrixXd PointCloudManipulation::projectPointsAndNormals(Transform<double,3,Projective> P, MatrixXd CandN){
+MatrixXd PointCloudManipulation::projectPointsAndNormals(Projective3d P, MatrixXd CandN){
     int r=CandN.rows();
     int c=CandN.cols();
     MatrixXd C=CandN.block(0, 0, r, 3);
@@ -257,6 +257,26 @@ MatrixXd PointCloudManipulation::downSample(MatrixXd C, bool useCenter){
     
     return reestimateNormals(C2);
 }
+
+Translation3d PointCloudManipulation::getTranslationToCentroid(MatrixXd C){
+    double x=0;
+    double y=0;
+    double z=0;
+
+    for (int i=0; i<C.rows(); i++) {
+        x+=C(i,0);
+        y+=C(i,1);
+        z+=C(i,2);
+    }
+    x/=C.rows();
+    y/=C.rows();
+    z/=C.rows();
+
+    cout<<"Centroid at: "<< x <<" "<< y <<" "<< z <<endl;
+
+    return Translation3d(-x,-y,-z);
+}
+
 
 MatrixXd PointCloudManipulation::translateCentroidToOrigin(MatrixXd C){
     double x=0;

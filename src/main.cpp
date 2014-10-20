@@ -10,6 +10,7 @@
 #include "PointPairFeatures.h"
 #include "PointCloudManipulation.h"
 #include <iostream>
+#include "Constants.h"
 
 using namespace std;
 
@@ -21,7 +22,10 @@ int main(int argc, char * argv[])
     
     MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz");//.block(0, 0, 1000, 6);
     MatrixXd mSmall=PointCloudManipulation::downSample(m,false);
-    mSmall=PointCloudManipulation::translateCentroidToOrigin(mSmall);
+
+    Translation3d traCentroid=PointCloudManipulation::getTranslationToCentroid(mSmall);
+
+    mSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),mSmall);
     
     //double diamM=PointCloudManipulation::getPointCloudDiameter(mSmall);
 
@@ -38,7 +42,18 @@ int main(int argc, char * argv[])
     MatrixXd sSmall=PointCloudManipulation::downSample(s,false);
     //LoadingSaving::saveXYZ("bunny/scene_downSampled.xyz", sSmall);
 
-    Projective3d P(Translation3d(0.1, 0.0, 0));//*AngleAxisd(M_PI_2, Vector3d(1,1,1));// * Scaling(s);
+    sSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),sSmall);
+
+
+    Quaterniond q(AngleAxisd(radians(45), Vector3d::UnitX()));
+    q = q * AngleAxisd(radians(45),Vector3d::UnitY());
+
+    Vector4d rot(q.x(),q.y(),q.z(),q.w());
+    Vector3d tra(0.1,0,0);
+
+    Projective3d P = Translation3d(tra)*Quaterniond(rot);
+
+
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
     Visualize* inst = Visualize::getInstance();
@@ -73,7 +88,10 @@ int main(int argc, char * argv[])
     cout<<accVec[0]<<endl;
     
     Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
-    Pose Pest=ppfs->clusterPoses(Pests);
+    vector<Poses> clusters = ppfs->clusterPoses(Pests);
+    Pests = ppfs->averagePosesInClusters(clusters);
+
+    Pose Pest=Pests[0];
 
     cout<<"groundtruth:"<<endl;
     cout<<P.matrix()<<endl;

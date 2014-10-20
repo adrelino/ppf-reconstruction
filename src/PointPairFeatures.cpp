@@ -245,8 +245,6 @@ bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
     double model_diameter = 0.15; //cm
     double thresh_tra = 0.05 * model_diameter; //double thresh_tra=0.02; //2cm
 
-
-
     //Rotation
     double d = rot1.dot(rot2);
     double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
@@ -275,12 +273,12 @@ bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
 
 void PointPairFeatures::printPoses(Poses vec){
     for(auto pose : vec){
-        cout<<"score="<<pose.second<<"mat=\n"<<pose.first.matrix()<<endl;
+        cout<<"score : "<<pose.second<<endl;
+        cout<<pose.first.matrix()<<endl;
     }
-    cout<<endl;
 }
 
-Pose PointPairFeatures::clusterPoses (Poses vec){
+vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
     //cout<<"clusterPoses"<<endl;
     //printPoses(vec);
     std::sort(vec.begin(), vec.end(), [](const Pose & a, const Pose & b) -> bool{ return a.second > b.second; });
@@ -324,9 +322,80 @@ Pose PointPairFeatures::clusterPoses (Poses vec){
     }
 
     
-    return clusters[0][0];
+    return clusters;
 }
 
-//Poses reduceCluster(vector<Poses> clusters){
+Pose PointPairFeatures::averagePosesInCluster(Poses cluster){
+    cout<<cluster.size()<<endl;
+    Vector3d tra(0,0,0);
+    Vector4d rot(0,0,0,0); //w,x,y,z
+    int votes=0;
+    for(Pose pose : cluster){
+        tra += pose.first.translation(); //TODO: maybe weight using number of votes?
+        Quaterniond q = Quaterniond(pose.first.rotation());
+        rot += Vector4d(q.x(),q.y(),q.z(),q.w());  //w last http://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html#ad90ae48f7378bb94dfbc6436e3a66aa2
+        votes += pose.second;
+    }
+    tra /= cluster.size();
+    //my stackexchange posts:
+    //http://stackoverflow.com/questions/12374087/average-of-multiple-quaternions/
+    //http://math.stackexchange.com/questions/61146/averaging-quaternions/
 
-//}
+    //mean is a good approx of quaternion interpolation:
+    // http://www.mathworks.com/matlabcentral/fileexchange/40098-averaging-quaternions
+    // http://ntrs.nasa.gov/archive/nasa/casi.ntrs.nasa.gov/20070017872.pdf
+    // http://www.soest.hawaii.edu/wessel/courses/gg711/pdf/Gramkow_2001_JMIV.pdf
+    // http://objectmix.com/graphics/132645-averaging-quaternions-2.html
+    rot /= cluster.size();
+
+    Projective3d P = Translation3d(tra)*Quaterniond(rot);
+
+    return std::make_pair(P,votes);
+
+}
+
+
+Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
+    Poses vec;
+
+    for(auto cluster : clusters){
+        vec.push_back(averagePosesInCluster(cluster));
+    }
+
+    return vec;
+}
+
+void PointPairFeatures::err(Projective3d P, Pose PoseEst){
+    cout<<"---- Error between P_gold and P_est with "<<PoseEst.second<<" votes ----"<<endl;
+    Projective3d Pest=PoseEst.first;
+    err(P,Pest);
+}
+
+void PointPairFeatures::err(Projective3d P, Projective3d Pest){
+    Vector3d tra(P.translation());
+    Quaterniond q(P.rotation());
+    Vector4d rot(q.x(),q.y(),q.z(),q.w());
+
+    Vector3d tra_est(Pest.translation());
+    Quaterniond qest(Pest.rotation());
+    Vector4d rot_est(qest.x(),qest.y(),qest.z(),qest.w());
+
+    Vector3d tra_diff = (tra - tra_est);
+    double tra_error=tra_diff.array().cwiseAbs().sum();
+
+    Vector4d rot_diff = (rot - rot_est);
+    double rot_error=rot_diff.array().cwiseAbs().sum();
+
+
+    cout<<setprecision(3);
+    cout<<"tra_ori: "<<tra.transpose()<<endl;
+    cout<<"tra_est: "<<tra_est.transpose()<<endl;
+    cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
+
+    cout<<"rot_ori: "<<rot.transpose()<<endl;
+    cout<<"rot_est: "<<rot_est.transpose()<<endl;
+    cout<<"rot_dif: "<<rot_diff.transpose()<<"\n --->rot_error: "<<rot_error<<endl;
+
+    //cout<<"P: "<<endl<<P.matrix()<<endl;
+    //cout<<"P_est: "<<endl<<Pest.matrix()<<endl;
+}
