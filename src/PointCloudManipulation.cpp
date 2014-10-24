@@ -105,7 +105,7 @@ MatrixXd PointCloudManipulation::projectPointsAndNormals(Projective3d P, MatrixX
     //cout<<C2<<endl;
     //cout<<N2<<endl;
     
-    cout<<"Projected "<<r<< "pts with transform:"<<endl<<m<<endl;
+    //cout<<"Projected "<<r<< "pts with transform:"<<endl<<m<<endl;
     
     return CandN2;
 }

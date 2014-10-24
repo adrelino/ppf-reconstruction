@@ -18,7 +18,7 @@ typedef std::pair<PPF, Bucket> KeyBucketPair;
 typedef vector<KeyBucketPair> KeyBucketPairList;
 typedef vector<Match> Matches;
 
-static constexpr double diamM=0.20; //stanford bunny
+static constexpr double diamM=0.15; //stanford bunny
 static constexpr double tau_d=0.05; //sampling rate, set like in paper. ddist=tau_d*diam(M);
 static constexpr double ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075 // max dist is diagonal
 
