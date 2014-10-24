@@ -16,7 +16,6 @@
 #endif
 
 
-
 #include <iostream>
 
 using namespace std;
@@ -355,8 +354,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             
         case 'Q':
         case 'q':
-            //glutLeaveMainLoop();
-            exit(0);
+           glutLeaveMainLoop();
             break;
         case '+':
             bucketIndex++;
@@ -487,10 +485,10 @@ int Visualize::mainVisualize(int argc, char **argv)
 	return 0;
 }
 
+
 void Visualize::visualize(){
     getInstance()->mainVisualize(0,0);
 }
-
 /*
 
 void Visualize::start(){
@@ -512,7 +510,6 @@ void Visualize::waitKeyInst(unsigned char key){
 //            lastKey=-1;
 //            break;
 //            cout<<"ok, exit waiting = "<<endl;
-
 //        }
 //    }
 }
@@ -520,4 +517,5 @@ void Visualize::waitKeyInst(unsigned char key){
 void Visualize::waitKey(unsigned char key){
     getInstance()->waitKeyInst(key);
 }
+
 */

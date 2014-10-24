@@ -54,7 +54,6 @@ int main(int argc, char * argv[])
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
-
     PointPairFeatures* ppfs=new PointPairFeatures();
 
 

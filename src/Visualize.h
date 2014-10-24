@@ -23,7 +23,7 @@
  //MAC
  #include <OpenGL/gl.h>
  #include <GLUT/GLUT.h>
- //#define glutLeaveMainLoop() exit(0)
+ #define glutLeaveMainLoop() exit(0)
 #else
  //LINUX
  #include "GL/freeglut.h"
