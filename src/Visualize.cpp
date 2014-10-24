@@ -8,6 +8,15 @@
 #include "Visualize.h"
 #include <thread>
 
+#if defined (__APPLE__) || defined(MACOSX)
+ //MAC
+#else
+ //LINUX
+ #include <chrono>
+#endif
+
+
+
 #include <iostream>
 
 using namespace std;
@@ -26,7 +35,7 @@ Visualize::Visualize()
     : m_Smooth(false)
     , m_Highlight(false)
     , m_ColorMaterial(true)
-    , m_Estimate(true)
+    , m_Estimate(false)
     , m_Ambient(true)
     , m_Origin(true)
     , m_Normals(false)
@@ -346,8 +355,8 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             
         case 'Q':
         case 'q':
-           glutLeaveMainLoop();
-            //exit(0);
+            //glutLeaveMainLoop();
+            exit(0);
             break;
         case '+':
             bucketIndex++;
@@ -478,7 +487,14 @@ int Visualize::mainVisualize(int argc, char **argv)
 	return 0;
 }
 
+void Visualize::visualize(){
+    getInstance()->mainVisualize(0,0);
+}
+
+/*
+
 void Visualize::start(){
+    cout<<"start Visualize thread "<<endl;
     getInstance()->visThread = new std::thread(visualize);
 }
 
@@ -486,25 +502,22 @@ void Visualize::waitKeyQuit(){
     getInstance()->visThread->join();
 }
 
-
-void Visualize::visualize(){
-    getInstance()->mainVisualize(0,0);
-}
-
 void Visualize::waitKeyInst(unsigned char key){
     cout<<"waiting for "<<key<<endl;
-    while(true){
-        sleep(1);
-        cout<<"lastKey = "<<lastKey<<endl;
-        if(lastKey==key){
-            lastKey=-1;
-            break;
-            cout<<"ok, exit waiting = "<<endl;
+//    std::chrono::milliseconds dura( 1000 );
+//    while(true){
+//        std::this_thread::sleep_for( dura );
+//        sleep(1);
+//        if(lastKey==key){
+//            lastKey=-1;
+//            break;
+//            cout<<"ok, exit waiting = "<<endl;
 
-        }
-    }
+//        }
+//    }
 }
 
 void Visualize::waitKey(unsigned char key){
     getInstance()->waitKeyInst(key);
 }
+*/

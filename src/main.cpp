@@ -16,10 +16,9 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    
-    
-    //MatrixXd m = MatrixXd::Random(200,6);
-    
+
+    Visualize* inst = Visualize::getInstance();
+
     MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz");//.block(0, 0, 1000, 6);
     MatrixXd mSmall=PointCloudManipulation::downSample(m,false);
 
@@ -28,7 +27,6 @@ int main(int argc, char * argv[])
     mSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),mSmall);
     
     //double diamM=PointCloudManipulation::getPointCloudDiameter(mSmall);
-
     
     //LoadingSaving::saveXYZ("bunny/model_downSampled.xyz", mSmall);
     //MatrixXd mSmallVoxelCenter=PointPairFeatures::downSample(m,true);
@@ -37,22 +35,18 @@ int main(int argc, char * argv[])
     //Visualize::getInstance()->ms.push_back({mSmall,RowVector3f(1,0.5,0)});
     //Visualize::getInstance()->ms.push_back({mSmallVoxelCenter,RowVector3f(1,0.9,0)});
 
-    
     MatrixXd s=LoadingSaving::loadXYZ("bunny/scene.xyz");
     MatrixXd sSmall=PointCloudManipulation::downSample(s,false);
     //LoadingSaving::saveXYZ("bunny/scene_downSampled.xyz", sSmall);
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),sSmall);
 
-
-    Quaterniond q(AngleAxisd(radians(45), Vector3d::UnitX()));
+    Quaterniond q(AngleAxisd(radians(90), Vector3d::UnitX()));
     //q = q * AngleAxisd(radians(45),Vector3d::UnitY());
-
-    q=q.normalize();
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
     //Vector4d rot(.2,.2,.2,.4);
-    Vector3d tra(.0,0.1,0);
+    Vector3d tra(.1,0,0);
 
     Projective3d P = Translation3d(tra)*Quaterniond(rot);
     PointPairFeatures::printPose(P,"P_original:");
@@ -60,27 +54,10 @@ int main(int argc, char * argv[])
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
-    Visualize* inst = Visualize::getInstance();
-
-    inst->model=mSmall;
-    inst->scene=sSmall;
-
-    MatrixXd mSmallCentroidAtOrigin=PointCloudManipulation::translateCentroidToOrigin(mSmall);
-
-    inst->scene=mSmallCentroidAtOrigin;
-    //inst->scene=sSmall;
-
-//    cout<<"start vis Thread"<<endl;
-
-//    Visualize::start();
-
-//    cout<<"after start vis Thread"<<endl;
-
 
     PointPairFeatures* ppfs=new PointPairFeatures();
 
 
-    
     //Visualize::getInstance()->ms.push_back({sSmall,RowVector3f(0.5,1,0)});
     
     GlobalModelDescription map =  ppfs->buildGlobalModelDescription(mSmall);
@@ -104,24 +81,16 @@ int main(int argc, char * argv[])
     PointPairFeatures::printPose(P,"P_original:");
     PointPairFeatures::printPose(Pests[0],"P_est:");
 
-
-
-
-
     //printMap(map);
     //KeyBucketPairList best10=PointPairFeatures::print10(map);
     
     //Visualize::getInstance()->b=best10;
 
-    Visualize::waitKey('g');
 
-    cout<<"after waitKey"<<endl;
-    
-
+    inst->model=mSmall;
+    inst->scene=sSmall;
     inst->modelT=modelPoseEst;
     inst->matches=matches;
 
     Visualize::visualize();
-    //Visualize::waitKeyQuit();
-
 }

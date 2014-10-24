@@ -19,11 +19,11 @@
 //#define M_PI 3.141592654
 //#include "GL\glut.h"
 
-//MAC
 #if defined (__APPLE__) || defined(MACOSX)
+ //MAC
  #include <OpenGL/gl.h>
  #include <GLUT/GLUT.h>
- #define glutLeaveMainLoop() exit(0)
+ //#define glutLeaveMainLoop() exit(0)
 #else
  //LINUX
  #include "GL/freeglut.h"
@@ -42,9 +42,9 @@ using namespace std;
 class Visualize {
 
 public:
-    static void start();       //starts the visualisation async
-    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
-    static void waitKeyQuit(); //waits till q is pressed, joins the threads
+//    static void start();       //starts the visualisation async
+//    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
+//    static void waitKeyQuit(); //waits till q is pressed, joins the threads
 
     static void visualize();  //blocks
 
