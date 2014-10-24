@@ -46,12 +46,16 @@ int main(int argc, char * argv[])
 
 
     Quaterniond q(AngleAxisd(radians(45), Vector3d::UnitX()));
-    q = q * AngleAxisd(radians(45),Vector3d::UnitY());
+    //q = q * AngleAxisd(radians(45),Vector3d::UnitY());
+
+    q=q.normalize();
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
-    Vector3d tra(0.1,0,0);
+    //Vector4d rot(.2,.2,.2,.4);
+    Vector3d tra(.0,0.1,0);
 
     Projective3d P = Translation3d(tra)*Quaterniond(rot);
+    PointPairFeatures::printPose(P,"P_original:");
 
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
@@ -81,24 +85,23 @@ int main(int argc, char * argv[])
     
     vector<MatrixXi> accVec=ppfs->voting(matches);
     
-    cout<<accVec[0]<<endl;
+    //cout<<accVec[0]<<endl;
     
     Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
     vector<Poses> clusters = ppfs->clusterPoses(Pests);
     Pests = ppfs->averagePosesInClusters(clusters);
 
-    Pose Pest=Pests[0];
-
-    cout<<"groundtruth:"<<endl;
-    cout<<P.matrix()<<endl;
-
-    cout<<"estimated: with score of "<<Pest.second<<endl;
-    cout<<Pest.first.matrix()<<endl;
-
-
+    for(Pose PoseEst : Pests){
+        ppfs->err(P,PoseEst);
+    }
     
-    
-    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest.first, mSmall);
+    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pests[0].first, mSmall);
+
+    PointPairFeatures::printPose(P,"P_original:");
+    PointPairFeatures::printPose(Pests[0],"P_est:");
+
+
+
 
 
     //printMap(map);

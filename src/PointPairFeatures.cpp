@@ -102,7 +102,7 @@ Matches PointPairFeatures::matchSceneAgainstModel(MatrixXd m, GlobalModelDescrip
     
     long Sm=m.rows(); //number of model sample points
     
-    numberOfSceneRefPts=0.2*Sm;
+    numberOfSceneRefPts=0.4*Sm;
     //numberOfSceneRefPts=1;
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
@@ -156,7 +156,7 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     }
 
     
-    cout<<"Voting for ACC"<<numberOfSceneRefPts<<"*"<<accVec[0].rows()<<"*"<<accVec[0].cols()<<endl;
+    cout<<"Voting for ACC of "<<numberOfSceneRefPts<<" sceneRefPts * "<<accVec[0].rows()<<" * "<<accVec[0].cols()<<endl;
     
     
     for (auto it : matches){
@@ -205,15 +205,15 @@ Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, Matri
         RowVector3d s1=s.block(sr, 0, 1, 3);
 
         Translation3d Tgs(s1);
-        AngleAxisd Rx(alpha, Vector3d::UnitX());
+        AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
 
         Translation3d Tmg(-m1);
 
         Projective3d P(Tgs*Rx*Tmg);
 
-        cout<<"Pose: "<<index<<" score:"<<score<<" alpha:"<<alpha<<endl;
-        cout<<"computed:"<<endl;
-        cout<<P.matrix()<<endl;
+        //cout<<"Pose: "<<index<<" score:"<<score<<" alpha:"<<alpha<<endl;
+        //cout<<"computed:"<<endl;
+        //cout<<P.matrix()<<endl;
 
         vec.push_back(std::make_pair(P,score));
     }
@@ -242,49 +242,62 @@ bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
 
     //Translation
     double diff_tra=(tra1-tra2).norm();
-    double model_diameter = 0.15; //cm
+    double model_diameter = 0.20; //cm
     double thresh_tra = 0.05 * model_diameter; //double thresh_tra=0.02; //2cm
 
     //Rotation
     double d = rot1.dot(rot2);
-    double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+    //double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
-    double thresh_rot_degrees = 10;
+    double thresh_rot_degrees = 30;
     //http://math.stackexchange.com/questions/90081/quaternion-distance
-    double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
-    double diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
+    //double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
+    //double diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
     double diff_rot_degrees = degrees(acos(2*d - 1));
 
     //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
     //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
 
-    cout<<std::fixed<<std::setprecision(3);
+    //cout<<std::fixed<<std::setprecision(3);
 
-    cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
+    //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
 
     if(diff_rot_degrees <= thresh_rot_degrees && diff_tra <= thresh_tra){
-        cout<<"yes"<<endl;
+      //  cout<<"yes"<<endl;
         return true;
     }
-    cout<<"no"<<endl;
+    //cout<<"no"<<endl;
     return false;
+}
+
+void PointPairFeatures::printPose(Pose pose,string title){
+    if(title!="") title+=" ";
+    cout<< title <<"score : "<<pose.second<<endl;
+    printPose(pose.first);
+}
+
+
+void PointPairFeatures::printPose(Projective3d P,string title){
+    //cout<<P.matrix()<<endl;
+    Vector3d tra(P.translation());
+    Quaterniond q(P.rotation());
+    Vector4d rot(q.x(),q.y(),q.z(),q.w());
+    //cout<<setprecision(3);
+    if(title!="") cout<<title<<endl;
+    cout<<"tra: "<<tra.transpose()<<endl;
+    cout<<"rot: "<<rot.transpose()<<endl;
 }
 
 void PointPairFeatures::printPoses(Poses vec){
     for(auto pose : vec){
-        cout<<"score : "<<pose.second<<endl;
-        cout<<pose.first.matrix()<<endl;
+        printPose(pose);
     }
 }
 
 vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
-    //cout<<"clusterPoses"<<endl;
-    //printPoses(vec);
-    std::sort(vec.begin(), vec.end(), [](const Pose & a, const Pose & b) -> bool{ return a.second > b.second; });
-    //cout<<"sorted"<<endl;
-    //printPoses(vec);
 
+   vec=sortPoses(vec);
 
    vector< Poses > clusters;
     
@@ -300,17 +313,17 @@ vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
     for(int i=0; i<n; n=clusters.size(),i++){
         for(int j=0; j<n; n=clusters.size(),j++){
             if(i==j) continue;
-            cout<<"Cluster1 "<<i<<"\\"<<n-1<<endl;
+            //cout<<"Cluster1 "<<i<<"\\"<<n-1<<endl;
             Poses cluster1=clusters[i];
-            cout<<"Cluster2 "<<j<<"\\"<<n-1<<endl;
+            //cout<<"Cluster2 "<<j<<"\\"<<n-1<<endl;
             Poses cluster2=clusters[j];
-            cout<<"size before merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
+            //cout<<"size before merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
 
             if(isClusterSimilar(cluster1,cluster2)){
                 cluster1.insert(cluster1.end(),cluster2.begin(),cluster2.end());
                 clusters.erase(clusters.begin() + j);
             }
-            cout<<"size after merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
+            //cout<<"size after merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
             clusters[i]=cluster1;
         }
     }
@@ -326,7 +339,7 @@ vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
 }
 
 Pose PointPairFeatures::averagePosesInCluster(Poses cluster){
-    cout<<cluster.size()<<endl;
+    //cout<<cluster.size()<<endl;
     Vector3d tra(0,0,0);
     Vector4d rot(0,0,0,0); //w,x,y,z
     int votes=0;
@@ -354,6 +367,15 @@ Pose PointPairFeatures::averagePosesInCluster(Poses cluster){
 
 }
 
+Poses PointPairFeatures::sortPoses(Poses vec){
+    //cout<<"clusterPoses"<<endl;
+    //printPoses(vec);
+    std::sort(vec.begin(), vec.end(), [](const Pose & a, const Pose & b) -> bool{ return a.second > b.second; });
+    //cout<<"sorted"<<endl;
+    //printPoses(vec);
+    return vec;
+}
+
 
 Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
     Poses vec;
@@ -361,6 +383,10 @@ Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
     for(auto cluster : clusters){
         vec.push_back(averagePosesInCluster(cluster));
     }
+
+    vec=sortPoses(vec);
+
+
 
     return vec;
 }
@@ -387,14 +413,15 @@ void PointPairFeatures::err(Projective3d P, Projective3d Pest){
     double rot_error=rot_diff.array().cwiseAbs().sum();
 
 
-    cout<<setprecision(3);
-    cout<<"tra_ori: "<<tra.transpose()<<endl;
-    cout<<"tra_est: "<<tra_est.transpose()<<endl;
-    cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
+    //cout<<setprecision(3);
+    //cout<<"tra_ori: "<<tra.transpose()<<endl;
+    //cout<<"tra_est: "<<tra_est.transpose()<<endl;
+    //cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
 
     cout<<"rot_ori: "<<rot.transpose()<<endl;
     cout<<"rot_est: "<<rot_est.transpose()<<endl;
-    cout<<"rot_dif: "<<rot_diff.transpose()<<"\n --->rot_error: "<<rot_error<<endl;
+    //cout<<"rot_dif: "<<rot_diff.transpose()<<endl;
+    cout<<"rot_error:----------------------------------------------> "<<rot_error<<endl;
 
     //cout<<"P: "<<endl<<P.matrix()<<endl;
     //cout<<"P_est: "<<endl<<Pest.matrix()<<endl;

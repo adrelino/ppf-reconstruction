@@ -46,10 +46,17 @@ class PointPairFeatures{
     static Pose averagePosesInCluster(Poses);
     static Poses averagePosesInClusters(vector<Poses>);
 
+
+    static void printPose(Pose Pest,string title="");
+
+    static void printPose(Projective3d P,string title="");
+
     static void printPoses(Poses vec);
 
     static void err(Projective3d P, Pose Pest);
     static void err(Projective3d P, Projective3d Pest);
+
+    static Poses sortPoses(Poses poses);
 
 };
 
