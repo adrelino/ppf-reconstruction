@@ -1,3 +1,13 @@
+//
+//  RandomN.h
+//  PointPairFeatures
+//
+//  Created by Adrian Haarbach on 20.10.14.
+//  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
+//
+
+//Random normally/gaussian distributed Eigen Matrices
+
 #ifndef RANDOMN_H
 #define RANDOMN_H
 

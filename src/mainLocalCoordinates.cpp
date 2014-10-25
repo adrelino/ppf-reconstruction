@@ -1,3 +1,11 @@
+//
+//  mainLocalCoordinates.cpp
+//  PointPairFeatures
+//
+//  Created by Adrian Haarbach on 26.10.14.
+//  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
+//
+
 #include "LoadingSaving.h"
 #include "PointPairFeatures.h"
 #include "PointCloudManipulation.h"
@@ -10,9 +18,9 @@ int main(int argc, char * argv[])
 {
     MatrixXd m=PointCloudManipulation::downSample(LoadingSaving::loadXYZ("bunny/scene.xyz"),false);
     Quaterniond q=Quaterniond::Identity();
-    q = q * AngleAxisd(radians(180), Vector3d::UnitX());
-    q = q * AngleAxisd(radians(-180),Vector3d::UnitY());
-    q = q * AngleAxisd(radians(360*3),Vector3d::UnitZ());
+    q = q * AngleAxisd(radians(10), Vector3d::UnitX());
+    q = q * AngleAxisd(radians(-20),Vector3d::UnitY());
+    q = q * AngleAxisd(radians(-123.333),Vector3d::UnitZ());
 
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
@@ -36,28 +44,9 @@ int main(int argc, char * argv[])
     PPF ppfScene = PPF::makePPF(q1,q2,0,1);  //also gets alpha-> planar rot angle to local coords
 
 
-    //PointPairFeatures::computePose
+    double alpha = PointPairFeatures::getAngleDiffMod2Pi(ppfModel.alpha, ppfScene.alpha);
 
-    double alpha=-ppfModel.alpha+ppfScene.alpha; //TODO: works, but why so many abs??
-
-    cout<<"ppfModel.alpha: "<<degrees(ppfModel.alpha)<<endl;
-
-    cout<<"ppfScene.alpha: "<<degrees(ppfScene.alpha)<<endl;
-
-    cout<<"alpha: "<<degrees(alpha)<<endl;
-
-    //if(alpha<0) alpha+=M_PI*2;
-    //cout<<"alpha positive: "<<alpha<<endl;
-
-
-    //TODO wrong: this is just the translation, not rotation
-    Projective3d Tgs(ppfScene.T.inverse());//==ppfScene.tra.inverse() * ppfScene.rot.inverse());
-
-    AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
-
-    Projective3d Tmg(ppfModel.T); //==(ppfModel.rot * ppfModel.tra);
-
-    Projective3d Pest(Tgs*Rx*Tmg);
+    Projective3d Pest = PointPairFeatures::alignSceneToModel(q1,p1,alpha);
 
     PointPairFeatures::printPose(Pest,"P_est:");
 

@@ -41,12 +41,14 @@ int main(int argc, char * argv[])
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),sSmall);
 
-    Quaterniond q(AngleAxisd(radians(90), Vector3d::UnitX()));
-    //q = q * AngleAxisd(radians(45),Vector3d::UnitY());
+    Quaterniond q=Quaterniond::Identity();
+    q = q * AngleAxisd(radians(-30), Vector3d::UnitX());
+    q = q * AngleAxisd(radians(60),Vector3d::UnitY());
+    q = q * AngleAxisd(radians(65),Vector3d::UnitZ());
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
     //Vector4d rot(.2,.2,.2,.4);
-    Vector3d tra(.1,0,0);
+    Vector3d tra(.04,0.09,-0.07);//,0.5,0.01);
 
     Projective3d P = Translation3d(tra)*Quaterniond(rot);
     PointPairFeatures::printPose(P,"P_original:");
@@ -71,14 +73,12 @@ int main(int argc, char * argv[])
     vector<Poses> clusters = ppfs->clusterPoses(Pests);
     Pests = ppfs->averagePosesInClusters(clusters);
 
-    for(Pose PoseEst : Pests){
-        ppfs->err(P,PoseEst);
+    for(int i = Pests.size()-1; i>=0; i--){
+        ppfs->err(P,Pests[i]);
+        cout<<endl;
     }
     
     MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pests[0].first, mSmall);
-
-    PointPairFeatures::printPose(P,"P_original:");
-    PointPairFeatures::printPose(Pests[0],"P_est:");
 
     //printMap(map);
     //KeyBucketPairList best10=PointPairFeatures::print10(map);

@@ -27,7 +27,8 @@ public:
     int d,n1d,n2d,n1n2;
     
     double alpha;
-    Projective3d T; //Transformation of point and normal to local coordinates, aligned with x axis
+    //TODO: think about weather to save this for later reuse if ppf is peak in acc array
+    //Projective3d T; //Transformation of point and normal to local coordinates, aligned with x axis
 
     //PPF();
     static PPF makePPF(RowVectorXd p1,RowVectorXd p2, int i, int j);
@@ -35,6 +36,8 @@ public:
     void pointPairFeature(RowVector3d m1,RowVector3d m2,RowVector3d n1,RowVector3d n2);
     
     void planarRotAngle();
+
+    static Projective3d twistToLocalCoords(Vector3d m, Vector3d n);//translates m to origin, rotates n onto x Axis
     
     void print();
     

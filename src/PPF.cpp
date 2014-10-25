@@ -62,26 +62,8 @@ void PPF::planarRotAngle(){
     //cout<<"m1="<<m1<<" n1="<<n1<<endl;
     Vector3d m=m1.transpose();
     Vector3d n=n1.transpose().normalized();
-    Vector3d m22=m2.transpose();
 
-    //cout<<"m="<<endl<<m.transpose()<<endl;
-    //cout<<"n="<<endl<<n.transpose()<<endl;
-
-    Vector3d xAxis(1,0,0);
-    
-    //Vector3d axis = (0.5*(n+xAxis)).transpose(); //Vector3d(1,0,0)
-    //cout<<"axis="<<endl<<axis.transpose()<<endl;
-    //AngleAxisd rot(M_PI, axis);
-    
-    double angle = acos(xAxis.dot(n));
-    Vector3d orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
-
-
-    AngleAxisd rot(angle, orthogonalAxis);
-    Translation3d tra(-m);
-    
-
-    T = Projective3d(rot*tra);
+    Projective3d T=twistToLocalCoords(m,n); //TODO: think about reuse
     Matrix4d Pm=T.matrix();
     
     //std::cout<<Pm<<endl;
@@ -94,6 +76,7 @@ void PPF::planarRotAngle(){
     nn(3)=0;
     
 
+    Vector3d m22=m2.transpose(); //m2 only needed to get alpha
     //cout<<"mm="<<(Pm*mm).transpose()<<endl;
     //cout<<"nn="<<(Pm*nn).transpose()<<endl;
     Vector4d m22P=Pm*m22.homogeneous();
@@ -107,4 +90,25 @@ void PPF::planarRotAngle(){
     //cout<<result<<endl;
     //cout<<"m1T="<<t*m<<" n1T="<<t*n<<endl;
 
+}
+
+Projective3d PPF::twistToLocalCoords(Vector3d m, Vector3d n){
+    //cout<<"m="<<endl<<m.transpose()<<endl;
+    //cout<<"n="<<endl<<n.transpose()<<endl;
+
+    Vector3d xAxis(1,0,0);
+
+    //Vector3d axis = (0.5*(n+xAxis)).transpose(); //Vector3d(1,0,0)
+    //cout<<"axis="<<endl<<axis.transpose()<<endl;
+    //AngleAxisd rot(M_PI, axis);
+
+    double angle = acos(xAxis.dot(n));
+    Vector3d orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
+
+
+    AngleAxisd rot(angle, orthogonalAxis);
+    Translation3d tra(-m);
+
+
+    return Projective3d(rot*tra);
 }

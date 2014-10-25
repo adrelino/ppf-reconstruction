@@ -32,7 +32,6 @@ add_executable(
 	src/LoadingSaving.h
 	src/PPF.cpp
 	src/PPF.h
-	src/Params.h
 	src/PointCloudManipulation.cpp
 	src/PointCloudManipulation.h
 	src/PointPairFeatures.cpp
@@ -56,7 +55,6 @@ add_executable(
         src/PPF.cpp
         src/PPF.h
         src/RandomN.h
-        src/Params.h
         src/PointCloudManipulation.cpp
         src/PointCloudManipulation.h
         src/PointPairFeatures.cpp
@@ -73,7 +71,6 @@ add_executable(
         src/LoadingSaving.h
         src/PPF.cpp
         src/PPF.h
-        src/Params.h
         src/PointCloudManipulation.cpp
         src/PointCloudManipulation.h
         src/PointPairFeatures.cpp

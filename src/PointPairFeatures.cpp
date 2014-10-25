@@ -172,14 +172,26 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
                 cout<<mr<<" mr isnan"<<endl;
                 continue;
             }
-            double alpha=abs(abs(it1.alpha)-abs(it.scenePPF.alpha)); //TODO: should rather be mod pi than abs
-            
+
+            double alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
+
+
             int alphaDiscretised=alpha/dangle;
-            /*long r=acc.rows();
-            long c=acc.cols();
+
+            long r=accVec[sr].rows();
+            long c=accVec[sr].cols();
             if(mr<0 || mr>=r || alphaDiscretised>=c || alphaDiscretised <0){
+
+                cout<<"alpha: "<<(alpha)<<endl;
+                cout<<"alpha dangle"<<dangle<<endl;
+
+                cout<<"alpha discretised"<<alphaDiscretised<<endl;
+                cout<<"accSize="<<accVec[sr].rows() << " " << accVec[sr].cols()<<endl;
+
                 cout<<mr<<"*"<<alphaDiscretised<<endl;
-            }*/
+            }
+
+
             accVec[sr](mr,alphaDiscretised)=accVec[sr](mr,alphaDiscretised)+1;
         }
         //cout<<acc<<endl;
@@ -187,7 +199,24 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
     return accVec;
 }
 
+double PointPairFeatures::getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
+    double alpha = sceneAlpha - modelAlpha; //correct direction
+
+    //cout<<"modelAlpha: "<<degrees(modelAlpha)<<endl;
+    //cout<<"sceneAlpha: "<<degrees(sceneAlpha)<<endl;
+    //cout<<"alpha: "<<degrees(alpha)<<endl;
+
+    while(alpha<0.0) alpha += M_PI*2;
+    alpha=fmod(alpha,M_PI*2);
+
+    //now alpha is in interval 0 -> 2*pi
+
+    return alpha;
+}
+
 Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
+    cout<<"PointPairFeatures::computePoses"<<endl;
+
     Poses vec;
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
@@ -202,28 +231,29 @@ Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, Matri
         double alpha=alphaD*dangle;
 
         //ref points (just one, not both of the ppf)
-        RowVector3d m1=m.block(mr, 0, 1, 3);
-        RowVector3d s1=s.block(sr, 0, 1, 3);
+        RowVectorXd modelRefPt = m.row(mr);
+        RowVectorXd sceneRefPt = s.row(sr);
 
-        //normals
-        RowVector3d m1n=m.block(mr, 3, 1, 3);
-        RowVector3d s1n=s.block(sr, 3, 1, 3);
-
-        Translation3d Tgs(s1); //TODO wrong: this is just the translation, not rotation
-        AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
-
-        Translation3d Tmg(-m1);
-
-        Projective3d P(Tgs*Rx*Tmg);
-
-        //cout<<"Pose: "<<index<<" score:"<<score<<" alpha:"<<alpha<<endl;
-        //cout<<"computed:"<<endl;
-        //cout<<P.matrix()<<endl;
+        Projective3d P = alignSceneToModel(sceneRefPt,modelRefPt,alpha);
 
         vec.push_back(std::make_pair(P,score));
     }
     
     return vec;
+}
+
+Projective3d PointPairFeatures::alignSceneToModel(RowVectorXd q1, RowVectorXd p1, double alpha){
+    //Projective3d Tgs(ppfScene.T.inverse());
+    Projective3d Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
+
+    AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
+
+    //Projective3d Tmg(ppfModel.T);
+    Projective3d Tmg = PPF::twistToLocalCoords(p1.head(3),p1.tail(3));
+
+    Projective3d Pest(Tgs*Rx*Tmg);
+
+    return Pest;
 }
 
 //returns true if farthest neighbors in cluster fit within threshold
@@ -397,7 +427,7 @@ Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
 }
 
 void PointPairFeatures::err(Projective3d P, Pose PoseEst){
-    cout<<"---- Error between P_gold and P_est with "<<PoseEst.second<<" votes ----"<<endl;
+    cout<<"//------- Error between P_gold and P_est with "<<PoseEst.second<<" votes --------\\"<<endl;
     Projective3d Pest=PoseEst.first;
     err(P,Pest);
 }

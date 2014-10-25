@@ -1,9 +1,3 @@
-/**
-* Copyright (C) 2014 Adrian Haarbach
-*
-* Author: Adrian Haarbach (mail@adrian-haarbach.de)
-*/
-
 //
 //  mainPoseDiff.cpp
 //  PointPairFeatures
@@ -11,6 +5,7 @@
 //  Created by Adrian Haarbach on 15.10.14.
 //  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
 //
+
 #include "Visualize.h"
 #include "LoadingSaving.h"
 #include "PointPairFeatures.h"

@@ -39,8 +39,14 @@ class PointPairFeatures{
     GlobalModelDescription buildGlobalModelDescription(MatrixXd m);
     Matches matchSceneAgainstModel(MatrixXd m, GlobalModelDescription model);
     vector<MatrixXi> voting(Matches matches);
+
+    static double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
     
     Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
+
+    static Projective3d alignSceneToModel(RowVectorXd sceneRefPt, RowVectorXd modelRefPt, double angleAroundXAxis);
+
+
     static vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
 
     static Pose averagePosesInCluster(Poses);
