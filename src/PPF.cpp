@@ -74,15 +74,15 @@ void PPF::planarRotAngle(){
     //AngleAxisd rot(M_PI, axis);
     
     double angle = acos(xAxis.dot(n));
-    Vector3d orthogonalAxis = (n.cross(xAxis).normalized());
-    AngleAxisd rot(angle, orthogonalAxis);
+    Vector3d orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
 
-    
+
+    AngleAxisd rot(angle, orthogonalAxis);
     Translation3d tra(-m);
     
-    Affine3d P(rot*tra);
-    Matrix4d Pm=P.matrix();
 
+    T = Projective3d(rot*tra);
+    Matrix4d Pm=T.matrix();
     
     //std::cout<<Pm<<endl;
     
@@ -101,8 +101,6 @@ void PPF::planarRotAngle(){
     
     alpha=atan2(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
 
-    
-    
     
 
     //cout<<"transformed"<<endl;

@@ -1,7 +1,7 @@
 /**
-* Copyright (C) 2014 BMW Car IT Gmbh. All rights reserved.
+* Copyright (C) 2014 Adrian Haarbach
 *
-* Author: Adrian Haarbach (adrian.haarbach@bmw-carit.de)
+* Author: Adrian Haarbach (mail@adrian-haarbach.de)
 */
 
 //

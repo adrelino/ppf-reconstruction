@@ -172,7 +172,7 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
                 cout<<mr<<" mr isnan"<<endl;
                 continue;
             }
-            double alpha=abs(abs(it1.alpha)-abs(it.scenePPF.alpha));
+            double alpha=abs(abs(it1.alpha)-abs(it.scenePPF.alpha)); //TODO: should rather be mod pi than abs
             
             int alphaDiscretised=alpha/dangle;
             /*long r=acc.rows();
@@ -201,10 +201,15 @@ Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, Matri
 
         double alpha=alphaD*dangle;
 
+        //ref points (just one, not both of the ppf)
         RowVector3d m1=m.block(mr, 0, 1, 3);
         RowVector3d s1=s.block(sr, 0, 1, 3);
 
-        Translation3d Tgs(s1);
+        //normals
+        RowVector3d m1n=m.block(mr, 3, 1, 3);
+        RowVector3d s1n=s.block(sr, 3, 1, 3);
+
+        Translation3d Tgs(s1); //TODO wrong: this is just the translation, not rotation
         AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
 
         Translation3d Tmg(-m1);
@@ -412,11 +417,19 @@ void PointPairFeatures::err(Projective3d P, Projective3d Pest){
     Vector4d rot_diff = (rot - rot_est);
     double rot_error=rot_diff.array().cwiseAbs().sum();
 
+//    if(rot_error>1.5){
+//        cout<<"flipping rot"<<endl;
+//        rot_est*=-1;
+//        rot_diff = (rot - rot_est);
+//        rot_error=rot_diff.array().cwiseAbs().sum();
+//    }
+
 
     //cout<<setprecision(3);
-    //cout<<"tra_ori: "<<tra.transpose()<<endl;
-    //cout<<"tra_est: "<<tra_est.transpose()<<endl;
+    cout<<"tra_ori: "<<tra.transpose()<<endl;
+    cout<<"tra_est: "<<tra_est.transpose()<<endl;
     //cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
+    cout<<"tra_error:----------------------------------------------> "<<tra_error<<endl;
 
     cout<<"rot_ori: "<<rot.transpose()<<endl;
     cout<<"rot_est: "<<rot_est.transpose()<<endl;

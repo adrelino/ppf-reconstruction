@@ -65,5 +65,19 @@ add_executable(
         src/Visualize.h
 )
 
+add_executable(
+        localCoords
+        src/mainLocalCoordinates.cpp
+        src/Constants.h
+        src/LoadingSaving.cpp
+        src/LoadingSaving.h
+        src/PPF.cpp
+        src/PPF.h
+        src/Params.h
+        src/PointCloudManipulation.cpp
+        src/PointCloudManipulation.h
+        src/PointPairFeatures.cpp
+        src/PointPairFeatures.h
+)
 target_link_libraries(ppfs_test ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES}) 
 target_link_libraries(poseDiffTest ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})

@@ -27,7 +27,8 @@ public:
     int d,n1d,n2d,n1n2;
     
     double alpha;
-    
+    Projective3d T; //Transformation of point and normal to local coordinates, aligned with x axis
+
     //PPF();
     static PPF makePPF(RowVectorXd p1,RowVectorXd p2, int i, int j);
     
