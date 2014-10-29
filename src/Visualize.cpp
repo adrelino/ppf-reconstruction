@@ -6,16 +6,6 @@
 //  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
 //
 #include "Visualize.h"
-#include <thread>
-
-#if defined (__APPLE__) || defined(MACOSX)
- //MAC
-#else
- //LINUX
- #include <chrono>
-#endif
-
-
 #include <iostream>
 
 using namespace std;
@@ -31,7 +21,7 @@ Visualize* Visualize::getInstance(){
 }
 
 Visualize::Visualize()
-    : m_Smooth(false)
+    : m_Scene(true)
     , m_Highlight(false)
     , m_ColorMaterial(true)
     , m_Estimate(true)
@@ -49,6 +39,7 @@ Visualize::Visualize()
     , offsetY(-0.075f)
     , offsetX(0)
     , current_object(0)
+    , m_Model(true)
 {
     std::cout<<"Visualize construct"<<std::endl;
 }
@@ -61,28 +52,14 @@ void Visualize::drawCylinderAdvanced(double r, double l, bool coverback, bool co
 	int z=normalInwards ? -1 : 1;
     
     for(i=0;i<2*n;i++){
-        if(m_Smooth)
-        {
-            glBegin(GL_POLYGON);
-            glNormal3d(sin(i*M_PI/n)*z,cos(i*M_PI/n)*z,0); //just on one side, not the middle
-            glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),0);
-            glNormal3d(sin((i+1)*M_PI/n)*z,cos((i+1)*M_PI/n)*z,0); //just on one side, not the middle
-            glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),0);
-            glNormal3d(sin((i+1)*M_PI/n)*z,cos((i+1)*M_PI/n)*z,0); //just on one side, not the middle
-            glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),l);
-            glNormal3d(sin(i*M_PI/n)*z,cos(i*M_PI/n)*z,0); //just on one side, not the middle
-            glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),l);
-            glEnd();
-        } else	{
-            glBegin(GL_POLYGON);
-            // Explanation: the normal of the whole polygon is the coordinate of the center of the polygon for a sphere
-            glNormal3d(sin((i+0.5)*M_PI/n)*z,cos((i+0.5)*M_PI/n)*z,0); //middle
-            glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),0);
-            glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),0);
-            glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),l);
-            glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),l);
-            glEnd();
-        }
+        glBegin(GL_POLYGON);
+        // Explanation: the normal of the whole polygon is the coordinate of the center of the polygon for a sphere
+        glNormal3d(sin((i+0.5)*M_PI/n)*z,cos((i+0.5)*M_PI/n)*z,0); //middle
+        glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),0);
+        glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),0);
+        glVertex3d(r*sin((i+1)*M_PI/n),r*cos((i+1)*M_PI/n),l);
+        glVertex3d(r*sin(i*M_PI/n),r*cos(i*M_PI/n),l);
+        glEnd();
         //bottom
         if(coverback){
             glBegin(GL_POLYGON);
@@ -257,11 +234,15 @@ void Visualize::display(void)
     
     switch (current_object) {
 		case 0:
-			drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
+            if(m_Model) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
+            if(m_Scene) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
             if(matches.size()>0) drawMatches(matches);
 			break;
-		case 1:
+        case 1:
+            if(m_Model) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
+            for(auto it : ms){
+                drawPointCloud(it.first,it.second);
+            }
 			break;
 		default:
 			break;
@@ -306,7 +287,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
 //            break;
         case 's':
         case 'S':
-            m_Smooth = !m_Smooth;
+            m_Scene = !m_Scene;
             break;
         case 'h':
         case 'H':
@@ -332,6 +313,10 @@ void Visualize::keyboard (unsigned char key, int x, int y)
         case 'N':
             m_Normals = !m_Normals;
             break;
+        case 'm':
+        case 'M':
+            m_Model = !m_Model;
+            break;
         case 'b':
         case 'B':
             m_Buckets = !m_Buckets;
@@ -349,7 +334,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
         case '7':
         case '8':
             current_object = key - '1';
-            m=ms.at(current_object).first;
+            //m=ms.at(current_object).first;
             break;
             
         case 'Q':
@@ -431,6 +416,13 @@ void Visualize::motionW(int x, int y){
     instance->motion(x, y);
 }
 
+void Visualize::idleW(){
+    if(getInstance()->doUpdate){
+        glutPostRedisplay();
+        getInstance()->doUpdate=false;
+    }
+}
+
 
 int Visualize::mainVisualize(int argc, char **argv)
 {
@@ -466,6 +458,7 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutMouseFunc(mouseW);
 	glutMotionFunc(motionW);
 	glutKeyboardFunc(keyboardW);
+   // glutIdleFunc(idleW);
 	//setupLighting();
 	//glDisable(GL_CULL_FACE);
 	//glEnable(GL_DEPTH_TEST);
@@ -489,7 +482,6 @@ int Visualize::mainVisualize(int argc, char **argv)
 void Visualize::visualize(){
     getInstance()->mainVisualize(0,0);
 }
-/*
 
 void Visualize::start(){
     cout<<"start Visualize thread "<<endl;
@@ -502,20 +494,23 @@ void Visualize::waitKeyQuit(){
 
 void Visualize::waitKeyInst(unsigned char key){
     cout<<"waiting for "<<key<<endl;
-//    std::chrono::milliseconds dura( 1000 );
-//    while(true){
-//        std::this_thread::sleep_for( dura );
-//        sleep(1);
-//        if(lastKey==key){
-//            lastKey=-1;
-//            break;
-//            cout<<"ok, exit waiting = "<<endl;
-//        }
-//    }
+    std::chrono::milliseconds dura( 1000 );
+    while(true){
+        std::this_thread::sleep_for( dura );
+        sleep(1);
+        if(lastKey==key){
+            lastKey=-1;
+            break;
+            cout<<"ok, exit waiting = "<<endl;
+        }
+    }
 }
 
 void Visualize::waitKey(unsigned char key){
     getInstance()->waitKeyInst(key);
 }
 
-*/
+void Visualize::update(){
+    cout<<"Visualize::update"<<endl;
+    getInstance()->doUpdate=true;
+}

@@ -22,48 +22,53 @@ using namespace Eigen;
 using namespace std;
 
 
-class PointPairFeatures{
-    public:
+namespace PointPairFeatures{
+
+    Projective3d getTransformationBetweenPointClouds(MatrixXd m, MatrixXd s);
+
+    Projective3d getTransformationBetweenPointClouds(MatrixXd m, MatrixXd s, GlobalModelDescription model);
+
+
     
-    long numberOfSceneRefPts,Nm;
-    vector<int> sceneIndexToI;
+    //long numberOfSceneRefPts,Nm;
+    //vector<int> sceneIndexToI;
 
-    static void printBucket(Bucket v);
-    static void printMap(GlobalModelDescription m);
-    static KeyBucketPairList print10(GlobalModelDescription &mymap);
+    void printBucket(Bucket v);
+    void printMap(GlobalModelDescription m);
+    KeyBucketPairList print10(GlobalModelDescription &mymap);
 
-    static bool isPoseSimilar(Projective3d P1, Projective3d P2);
-    static bool isClusterSimilar(Poses cluster1, Poses cluster2);
+    bool isPoseSimilar(Projective3d P1, Projective3d P2);
+    bool isClusterSimilar(Poses cluster1, Poses cluster2);
 
     
     GlobalModelDescription buildGlobalModelDescription(MatrixXd m);
-    Matches matchSceneAgainstModel(MatrixXd m, GlobalModelDescription model);
-    vector<MatrixXi> voting(Matches matches);
-
-    static double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
-    
-    Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s);
-
-    static Projective3d alignSceneToModel(RowVectorXd sceneRefPt, RowVectorXd modelRefPt, double angleAroundXAxis);
+    MatchesWithSceneRefIdx matchSceneAgainstModel(MatrixXd s, GlobalModelDescription model);
+    vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
+    Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s, vector<int> sceneIndexToI);
 
 
-    static vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+    double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
 
-    static Pose averagePosesInCluster(Poses);
-    static Poses averagePosesInClusters(vector<Poses>);
+    Projective3d alignSceneToModel(RowVectorXd sceneRefPt, RowVectorXd modelRefPt, double angleAroundXAxis);
 
 
-    static void printPose(Pose Pest,string title="");
+    vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
 
-    static void printPose(Projective3d P,string title="");
+    Pose averagePosesInCluster(Poses);
+    Poses averagePosesInClusters(vector<Poses>);
 
-    static void printPoses(Poses vec);
 
-    static void err(Projective3d P, Pose Pest);
-    static void err(Projective3d P, Projective3d Pest);
+    void printPose(Pose Pest,string title="");
 
-    static Poses sortPoses(Poses poses);
+    void printPose(Projective3d P,string title="");
 
-};
+    void printPoses(Poses vec);
+
+    void err(Projective3d P, Pose Pest);
+    void err(Projective3d P, Projective3d Pest);
+
+    Poses sortPoses(Poses poses);
+
+}
 
 #endif /* defined(__PointPairFeatures__PointPairFeatures__) */

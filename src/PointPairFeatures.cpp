@@ -11,14 +11,39 @@
 #include <iostream>     // std::cout, std::fixed
 #include <iomanip>      // std::setprecision
 
-void PointPairFeatures::printBucket(Bucket v){
+namespace PointPairFeatures{
+
+Projective3d getTransformationBetweenPointClouds(MatrixXd mSmall, MatrixXd sSmall){
+
+    GlobalModelDescription map =  buildGlobalModelDescription(mSmall);
+
+    return getTransformationBetweenPointClouds(mSmall,sSmall,map);
+}
+
+Projective3d getTransformationBetweenPointClouds(MatrixXd mSmall, MatrixXd sSmall, GlobalModelDescription map){
+
+    MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
+
+    vector<MatrixXi> accVec = voting(pair,mSmall.rows());
+
+    Poses Pests = computePoses(accVec, mSmall, sSmall,pair.second);
+
+    vector<Poses> clusters = clusterPoses(Pests);
+
+    Pests = averagePosesInClusters(clusters);
+
+    return Pests[0].first;
+}
+
+
+void printBucket(Bucket v){
     cout<<v.size()<< "::::";
     for(auto i : v){
         i.print();
     }
 }
 
-void PointPairFeatures::printMap(GlobalModelDescription m){
+void printMap(GlobalModelDescription m){
     for (auto kv : m) {
         cout << &kv.first << " : ";
         printBucket(kv.second);
@@ -27,7 +52,7 @@ void PointPairFeatures::printMap(GlobalModelDescription m){
 }
 
 
-KeyBucketPairList PointPairFeatures::print10(GlobalModelDescription &mymap) {
+KeyBucketPairList print10(GlobalModelDescription &mymap) {
     KeyBucketPairList myvec(mymap.begin(), mymap.end());
     assert(myvec.size() >= 10);
     //std::partial_sort(myvec.begin(), myvec.begin() + 10, myvec.end(),
@@ -48,14 +73,16 @@ KeyBucketPairList PointPairFeatures::print10(GlobalModelDescription &mymap) {
 }
 
 
-GlobalModelDescription PointPairFeatures::buildGlobalModelDescription(MatrixXd m){
+GlobalModelDescription buildGlobalModelDescription(MatrixXd m){
+    int Nm=m.rows();
+    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts"<<endl;
+
     
     RowVectorXd p1(6),p2(6);
 
     
     GlobalModelDescription map;
     
-    Nm=m.rows();
     
     int numPPFs=0;
     
@@ -78,42 +105,43 @@ GlobalModelDescription PointPairFeatures::buildGlobalModelDescription(MatrixXd m
         }
     }
     
-    vector<double> numb;
+//    vector<double> numb;
     
-    for (auto it : map){
-        double x=it.second.size();
-        numb.push_back(x);
-    }
+//    for (auto it : map){
+//        double x=it.second.size();
+//        numb.push_back(x);
+//    }
     
-    cout<<"PPF's discretisation values: ddist="<<ddist<<" dangle"<<dangle<<endl;
-    cout<<"Built GlobalModelDescription from: "<<Nm<<" pts, yielding "<<numPPFs<< " PPF's hashed into "<<map.size()<<" Buckets: "<<endl;
-    LoadingSaving::summary(numb);
+    //cout<<"PPF's discretisation values: ddist="<<ddist<<" dangle"<<dangle<<endl;
+    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts, yielding "<<numPPFs<< " PPF's hashed into "<<map.size()<<" Buckets: "<<endl;
+    //LoadingSaving::summary(numb);
     //LoadingSaving::saveVector("buckets.txt", numb);
     
     return map;
     
 }
 
-Matches PointPairFeatures::matchSceneAgainstModel(MatrixXd m, GlobalModelDescription model){
+std::pair<Matches, vector<int> > matchSceneAgainstModel(MatrixXd s, GlobalModelDescription model){
+    long Sm=s.rows(); //number of model sample points
+    int numberOfSceneRefPts=sceneRefPtsFraction*Sm;
+    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
 
     Matches matches;
 
     RowVectorXd p1(6),p2(6);
-    
-    long Sm=m.rows(); //number of model sample points
-    
-    numberOfSceneRefPts=sceneRefPtsFraction*Sm;
+
+    vector<int> sceneIndexToI;
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
         
         int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
-        i=index;//Testing
-        p1=m.row(i);
+        //i=index;//Testing
+        p1=s.row(i);
         sceneIndexToI.push_back(i);
         
-        for (int j=0; j<m.rows(); j++) {
+        for (int j=0; j<s.rows(); j++) {
             if(i==j) continue;
-            p2=m.row(j);
+            p2=s.row(j);
                         
             PPF ppf = PPF::makePPF(p1,p2,i,j);
             ppf.index=index;
@@ -130,35 +158,37 @@ Matches PointPairFeatures::matchSceneAgainstModel(MatrixXd m, GlobalModelDescrip
         }
     }
     
-    vector<double> numb;
+//    vector<double> numb;
     
-    for (auto it : matches){
-        double x=it.modelPPFs.size();
-        //cout<<it.scenePPF.i<<" "<<it.scenePPF.j<<" model bucket size="<<x<<endl;
-        numb.push_back(x);
-    }
-    
-    cout<<"Matched PPF's from "<<numberOfSceneRefPts<<" Scene Reference Points against "<<model.size()<<" Model buckets:"<<endl;
-    LoadingSaving::summary(numb);
+//    for (auto it : matches){
+//        double x=it.modelPPFs.size();
+//        //cout<<it.scenePPF.i<<" "<<it.scenePPF.j<<" model bucket size="<<x<<endl;
+//        numb.push_back(x);
+//    }
+
+    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts to "<<model.size()<<" model buckets"<<endl;
+
+    //LoadingSaving::summary(numb);
     //LoadingSaving::saveVector("buckets_matched.txt", numb);
 
-    return matches;
+    return make_pair(matches,sceneIndexToI);
 
 }
 
 
-vector<MatrixXi> PointPairFeatures::voting(Matches matches){
+vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
     vector<MatrixXi> accVec;
+    int numberOfSceneRefPts=matches.second.size();
     for (int i=0; i<numberOfSceneRefPts; i++) {
         MatrixXi acc=MatrixXi::Zero(Nm,nangle);
         accVec.push_back(acc);
     }
 
     
-    cout<<"Voting for ACC of "<<numberOfSceneRefPts<<" sceneRefPts * "<<accVec[0].rows()<<" * "<<accVec[0].cols()<<endl;
+    cout<<"PointPairFeatures::voting for ACC "<<numberOfSceneRefPts<<" sceneRefPts * "<<accVec[0].rows()<<" * "<<accVec[0].cols()<<endl;
     
     
-    for (auto it : matches){
+    for (auto it : matches.first){
         int sr=it.scenePPF.index;
         if(std::isnan(it.scenePPF.alpha)){
             cout<<sr<<" sr isnan"<<endl;
@@ -195,10 +225,12 @@ vector<MatrixXi> PointPairFeatures::voting(Matches matches){
         }
         //cout<<acc<<endl;
     }
+    cout<<"PointPairFeatures::voting done "<<endl;
+
     return accVec;
 }
 
-double PointPairFeatures::getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
+double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
     double alpha = sceneAlpha - modelAlpha; //correct direction
 
     //cout<<"modelAlpha: "<<degrees(modelAlpha)<<endl;
@@ -213,12 +245,12 @@ double PointPairFeatures::getAngleDiffMod2Pi(double modelAlpha, double sceneAlph
     return alpha;
 }
 
-Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s){
+Poses computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s,vector<int> sceneIndexToI){
     cout<<"PointPairFeatures::computePoses"<<endl;
 
     Poses vec;
 
-    for (int index=0; index<numberOfSceneRefPts; index++) {
+    for (int index=0; index<accVec.size(); index++) {
         MatrixXi acc=accVec[index];
 
         int sr=sceneIndexToI[index];
@@ -241,7 +273,7 @@ Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, Matri
     return vec;
 }
 
-Projective3d PointPairFeatures::alignSceneToModel(RowVectorXd q1, RowVectorXd p1, double alpha){
+Projective3d alignSceneToModel(RowVectorXd q1, RowVectorXd p1, double alpha){
     //Projective3d Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
     Projective3d Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
 
@@ -257,7 +289,7 @@ Projective3d PointPairFeatures::alignSceneToModel(RowVectorXd q1, RowVectorXd p1
 
 //returns true if farthest neighbors in cluster fit within threshold
 //http://en.wikipedia.org/wiki/Complete-linkage_clustering
-bool PointPairFeatures::isClusterSimilar(Poses cluster1, Poses cluster2){
+bool isClusterSimilar(Poses cluster1, Poses cluster2){
     for(auto pose2 : cluster2){
         bool isSimilar = std::all_of(cluster1.begin(), cluster1.end(), [&](Pose pose1){return isPoseSimilar(pose1.first, pose2.first);});
         if(!isSimilar) return false;
@@ -266,7 +298,7 @@ bool PointPairFeatures::isClusterSimilar(Poses cluster1, Poses cluster2){
     return true;
 }
 
-bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
+bool isPoseSimilar(Projective3d P1, Projective3d P2){
     Vector3d    tra1 = P1.translation();
     Quaterniond rot1(P1.rotation());
 
@@ -304,14 +336,14 @@ bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
     return false;
 }
 
-void PointPairFeatures::printPose(Pose pose,string title){
+void printPose(Pose pose,string title){
     if(title!="") title+=" ";
     cout<< title <<"score : "<<pose.second<<endl;
     printPose(pose.first);
 }
 
 
-void PointPairFeatures::printPose(Projective3d P,string title){
+void printPose(Projective3d P,string title){
     //cout<<P.matrix()<<endl;
     Vector3d tra(P.translation());
     Quaterniond q(P.rotation());
@@ -322,13 +354,13 @@ void PointPairFeatures::printPose(Projective3d P,string title){
     cout<<"rot: "<<rot.transpose()<<endl;
 }
 
-void PointPairFeatures::printPoses(Poses vec){
+void printPoses(Poses vec){
     for(auto pose : vec){
         printPose(pose);
     }
 }
 
-vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
+vector<Poses> clusterPoses (Poses vec){
 
    vec=sortPoses(vec);
 
@@ -371,7 +403,7 @@ vector<Poses> PointPairFeatures::clusterPoses (Poses vec){
     return clusters;
 }
 
-Pose PointPairFeatures::averagePosesInCluster(Poses cluster){
+Pose averagePosesInCluster(Poses cluster){
     //cout<<cluster.size()<<endl;
     Vector3d tra(0,0,0);
     Vector4d rot(0,0,0,0); //w,x,y,z
@@ -400,7 +432,7 @@ Pose PointPairFeatures::averagePosesInCluster(Poses cluster){
 
 }
 
-Poses PointPairFeatures::sortPoses(Poses vec){
+Poses sortPoses(Poses vec){
     //cout<<"clusterPoses"<<endl;
     //printPoses(vec);
     std::sort(vec.begin(), vec.end(), [](const Pose & a, const Pose & b) -> bool{ return a.second > b.second; });
@@ -410,7 +442,7 @@ Poses PointPairFeatures::sortPoses(Poses vec){
 }
 
 
-Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
+Poses averagePosesInClusters(vector<Poses> clusters){
     Poses vec;
 
     for(auto cluster : clusters){
@@ -424,13 +456,13 @@ Poses PointPairFeatures::averagePosesInClusters(vector<Poses> clusters){
     return vec;
 }
 
-void PointPairFeatures::err(Projective3d P, Pose PoseEst){
+void err(Projective3d P, Pose PoseEst){
     cout<<"//------- Error between P_gold and P_est with "<<PoseEst.second<<" votes --------\\"<<endl;
     Projective3d Pest=PoseEst.first;
     err(P,Pest);
 }
 
-void PointPairFeatures::err(Projective3d P, Projective3d Pest){
+void err(Projective3d P, Projective3d Pest){
     Vector3d tra(P.translation());
     Quaterniond q(P.rotation());
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
@@ -467,3 +499,5 @@ void PointPairFeatures::err(Projective3d P, Projective3d Pest){
     //cout<<"P: "<<endl<<P.matrix()<<endl;
     //cout<<"P_est: "<<endl<<Pest.matrix()<<endl;
 }
+
+} //end namespace

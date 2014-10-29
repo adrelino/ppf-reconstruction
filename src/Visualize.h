@@ -28,6 +28,8 @@
  //LINUX
  #include "GL/freeglut.h"
  #include "GL/gl.h"
+// #include <chrono>
+// #include <thread>
 #endif
 
 #include <eigen3/Eigen/Dense>
@@ -42,9 +44,10 @@ using namespace std;
 class Visualize {
 
 public:
-//    static void start();       //starts the visualisation async
-//    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
-//    static void waitKeyQuit(); //waits till q is pressed, joins the threads
+    static void start();       //starts the visualisation async
+    static void update();
+    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
+    static void waitKeyQuit(); //waits till q is pressed, joins the threads
 
     static void visualize();  //blocks
 
@@ -61,11 +64,13 @@ public:
     Matches matches;
     vector< pair<MatrixXd, RowVector3f> > ms;
 
+    int current_object;
+
+
 
 private:
     Visualize(); // singleton, acces via factory
 
-    bool m_Smooth;
     bool m_Highlight;
     bool m_ColorMaterial;
     bool m_Estimate;
@@ -74,6 +79,11 @@ private:
     bool m_Normals;
     bool m_Buckets;
     bool m_Voxels;
+    bool m_Model;
+    bool m_Scene;
+
+    bool doUpdate;
+
 
     int modifier;
     
@@ -86,8 +96,7 @@ private:
     
     GLfloat offsetY,offsetX;
     
-    const static int WINDOW_SIZE = 1024;
-    int current_object;
+    const static int WINDOW_SIZE = 512;
     
     void bucketInfo();
 
@@ -142,6 +151,9 @@ private:
 
 
     int mainVisualize(int argc, char **argv);
+
+    static void idleW(void);
+
 };
 
 #endif /* defined(__PointPairFeatures__Visualize__) */

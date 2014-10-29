@@ -20,6 +20,8 @@ class LoadingSaving {
     
 public:
     static MatrixXd loadXYZ(std::string filename);
+    static Matrix4d loadProjectionMatrix(std::string filename);
+
     static void saveXYZ(std::string filename, MatrixXd pts);
     static void saveVector(std::string filename, vector<double> vec);
     

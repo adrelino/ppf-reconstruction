@@ -59,29 +59,12 @@ int main(int argc, char * argv[])
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
-    PointPairFeatures* ppfs=new PointPairFeatures();
+
+    Projective3d Pest=PointPairFeatures::getTransformationBetweenPointClouds(mSmall,sSmall);
 
 
-    //Visualize::getInstance()->ms.push_back({sSmall,RowVector3f(0.5,1,0)});
     
-    GlobalModelDescription map =  ppfs->buildGlobalModelDescription(mSmall);
-    
-    Matches matches = ppfs->matchSceneAgainstModel(sSmall, map);
-    
-    vector<MatrixXi> accVec=ppfs->voting(matches);
-    
-    //cout<<accVec[0]<<endl;
-    
-    Poses Pests = ppfs->computePoses(accVec, mSmall, sSmall);
-    vector<Poses> clusters = ppfs->clusterPoses(Pests);
-    Pests = ppfs->averagePosesInClusters(clusters);
-
-    for(int i = Pests.size()-1; i>=0; i--){
-        ppfs->err(P,Pests[i]);
-        cout<<endl;
-    }
-    
-    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pests[0].first, mSmall);
+    MatrixXd modelPoseEst=PointCloudManipulation::projectPointsAndNormals(Pest, mSmall);
 
     //printMap(map);
     //KeyBucketPairList best10=PointPairFeatures::print10(map);
@@ -92,7 +75,7 @@ int main(int argc, char * argv[])
     inst->model=mSmall;
     inst->scene=sSmall;
     inst->modelT=modelPoseEst;
-    inst->matches=matches;
+    //inst->matches=matches;
 
     Visualize::visualize();
 }

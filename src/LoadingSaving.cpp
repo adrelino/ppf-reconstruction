@@ -13,6 +13,34 @@
 
 using namespace std;
 
+Matrix4d LoadingSaving::loadProjectionMatrix(std::string filename){
+
+    std::ifstream file(filename,std::ifstream::in);
+
+    if( file.fail() == true )
+    {
+        cerr << filename << " could not be opened" << endl;
+        return Matrix4d::Zero();
+
+    }
+
+    RowVectorXd p(4);
+    Matrix4d mat;
+
+    int i=0;
+    while(file >> p(0) >> p(1) >> p(2) >> p(3))
+    {
+        cout<<p<<endl;
+        mat.row(i++)=p;
+
+    }
+
+    cout<<"Loaded "<<i<<" rows from "<<filename<<endl;
+
+    return mat;
+
+}
+
 
 MatrixXd LoadingSaving::loadXYZ(std::string filename){
     std::ifstream file(filename,std::ifstream::in);
