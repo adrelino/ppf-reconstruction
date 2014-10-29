@@ -102,12 +102,11 @@ Matches PointPairFeatures::matchSceneAgainstModel(MatrixXd m, GlobalModelDescrip
     
     long Sm=m.rows(); //number of model sample points
     
-    numberOfSceneRefPts=0.4*Sm;
-    //numberOfSceneRefPts=1;
+    numberOfSceneRefPts=sceneRefPtsFraction*Sm;
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
         
-        int i=rand() % Sm;
+        int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
         i=index;//Testing
         p1=m.row(i);
         sceneIndexToI.push_back(i);
@@ -243,10 +242,10 @@ Poses PointPairFeatures::computePoses(vector<MatrixXi> accVec, MatrixXd m, Matri
 }
 
 Projective3d PointPairFeatures::alignSceneToModel(RowVectorXd q1, RowVectorXd p1, double alpha){
-    //Projective3d Tgs(ppfScene.T.inverse());
+    //Projective3d Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
     Projective3d Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
 
-    AngleAxisd Rx(alpha, Vector3d::UnitX()); //TODO: in the end, we can only detect rotations around x axis... why???
+    AngleAxisd Rx(alpha, Vector3d::UnitX());
 
     //Projective3d Tmg(ppfModel.T);
     Projective3d Tmg = PPF::twistToLocalCoords(p1.head(3),p1.tail(3));
@@ -275,21 +274,20 @@ bool PointPairFeatures::isPoseSimilar(Projective3d P1, Projective3d P2){
     Quaterniond rot2(P2.rotation());
 
 
+
     //Translation
     double diff_tra=(tra1-tra2).norm();
-    double model_diameter = 0.20; //cm
-    double thresh_tra = 0.05 * model_diameter; //double thresh_tra=0.02; //2cm
-
     //Rotation
     double d = rot1.dot(rot2);
     //double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
-    double thresh_rot_degrees = 30;
+    //    rot1.angularDistance(rot2);
+
     //http://math.stackexchange.com/questions/90081/quaternion-distance
     //double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
     //double diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
-    double diff_rot_degrees = degrees(acos(2*d - 1));
+    double diff_rot_degrees = rad2deg(acos(2*d - 1));
 
     //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
     //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;

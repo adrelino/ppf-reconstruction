@@ -111,9 +111,7 @@ MatrixXd PointCloudManipulation::projectPointsAndNormals(Projective3d P, MatrixX
 }
 
 MatrixXd PointCloudManipulation::reestimateNormals(MatrixXd C){
-    
-    double neighbourBallSize=ddist*2; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
-    
+        
     for (int i=0; i<C.rows(); i++) {
         RowVector3d p1=C.block(i, 0, 1, 3);
         vector<RowVector3d> neighbors;
@@ -233,7 +231,7 @@ MatrixXd PointCloudManipulation::downSample(MatrixXd C, bool useCenter){
         
         //voxelCenter << C.row(i).head(3); //normal pt
         
-        double dist=9999999;
+        double dist=std::numeric_limits<double>::max();
         RowVector3d normal;
         for (auto it2: it.second.pts){
             RowVector3d pt2=it2.head(3);

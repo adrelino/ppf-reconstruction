@@ -51,11 +51,11 @@ cout<<endl<<endl<<endl;
     //adding small uniform/gaussian noise to quaternion and translation
     //http://www.mathworks.com/matlabcentral/fileexchange/40098-averaging-quaternions
     int nSamples = 100;
-    double sigma = 0.1;
+    double sigma = 0.9;
 
 
-    Quaterniond q(AngleAxisd(radians(45), Vector3d::UnitX()));
-    q = q * AngleAxisd(radians(45),Vector3d::UnitY());
+    Quaterniond q(AngleAxisd(deg2rad(45), Vector3d::UnitX()));
+    q = q * AngleAxisd(deg2rad(45),Vector3d::UnitY());
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
     Vector3d tra(0.1,0,0);

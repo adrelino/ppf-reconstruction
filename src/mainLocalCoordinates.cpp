@@ -18,9 +18,9 @@ int main(int argc, char * argv[])
 {
     MatrixXd m=PointCloudManipulation::downSample(LoadingSaving::loadXYZ("bunny/scene.xyz"),false);
     Quaterniond q=Quaterniond::Identity();
-    q = q * AngleAxisd(radians(10), Vector3d::UnitX());
-    q = q * AngleAxisd(radians(-20),Vector3d::UnitY());
-    q = q * AngleAxisd(radians(-123.333),Vector3d::UnitZ());
+    q = q * AngleAxisd(deg2rad(10), Vector3d::UnitX());
+    q = q * AngleAxisd(deg2rad(-20),Vector3d::UnitY());
+    q = q * AngleAxisd(deg2rad(-123.333),Vector3d::UnitZ());
 
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());

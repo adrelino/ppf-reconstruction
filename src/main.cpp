@@ -19,7 +19,7 @@ int main(int argc, char * argv[])
 
     Visualize* inst = Visualize::getInstance();
 
-    MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz");//.block(0, 0, 1000, 6);
+    MatrixXd m=LoadingSaving::loadXYZ("bunny/model.xyz"); //bunny/cloudXYZ_0.xyz");
     MatrixXd mSmall=PointCloudManipulation::downSample(m,false);
 
     Translation3d traCentroid=PointCloudManipulation::getTranslationToCentroid(mSmall);
@@ -35,19 +35,22 @@ int main(int argc, char * argv[])
     //Visualize::getInstance()->ms.push_back({mSmall,RowVector3f(1,0.5,0)});
     //Visualize::getInstance()->ms.push_back({mSmallVoxelCenter,RowVector3f(1,0.9,0)});
 
+    //MatrixXd s=LoadingSaving::loadXYZ("bunny/cloudXYZ_1.xyz");
     MatrixXd s=LoadingSaving::loadXYZ("bunny/scene.xyz");
+
     MatrixXd sSmall=PointCloudManipulation::downSample(s,false);
     //LoadingSaving::saveXYZ("bunny/scene_downSampled.xyz", sSmall);
 
     sSmall=PointCloudManipulation::projectPointsAndNormals(Projective3d(traCentroid),sSmall);
 
     Quaterniond q=Quaterniond::Identity();
-    q = q * AngleAxisd(radians(-30), Vector3d::UnitX());
-    q = q * AngleAxisd(radians(60),Vector3d::UnitY());
-    q = q * AngleAxisd(radians(65),Vector3d::UnitZ());
+    q = q * AngleAxisd(deg2rad(-30), Vector3d::UnitX());
+    q = q * AngleAxisd(deg2rad(60),Vector3d::UnitY());
+    q = q * AngleAxisd(deg2rad(65),Vector3d::UnitZ());
 
     Vector4d rot(q.x(),q.y(),q.z(),q.w());
     //Vector4d rot(.2,.2,.2,.4);
+    //Vector3d tra(0,0,0);//
     Vector3d tra(.04,0.09,-0.07);//,0.5,0.01);
 
     Projective3d P = Translation3d(tra)*Quaterniond(rot);
