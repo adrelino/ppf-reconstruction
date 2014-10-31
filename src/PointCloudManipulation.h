@@ -14,25 +14,28 @@
 #include <math.h>
 #include <unordered_map>
 #include <vector>
-#include "LoadingSaving.h"
-#include "PointPairFeatures.h" //for ddist
+#include "Constants.h"
 
 using namespace Eigen;
 using namespace std;
 
 
-class PointCloudManipulation {
+namespace PointCloudManipulation {
     
-public:
-    static double getPointCloudDiameter(MatrixXd m);
-    static MatrixXd projectPointsAndNormals(Projective3d P, MatrixXd C);
-    static MatrixXd reestimateNormals(MatrixXd C);
-    static MatrixXd downSample(MatrixXd C, bool useCenter);
-    static MatrixXd translateCentroidToOrigin(MatrixXd C);
+    double getPointCloudDiameter(MatrixXd m);
+    MatrixXd projectPointsAndNormals(Projective3d P, MatrixXd C);
+    MatrixXd reestimateNormals(MatrixXd C);
+    MatrixXd downSample(MatrixXd C, bool useCenter);
+    MatrixXd translateCentroidToOrigin(MatrixXd C);
 
-    static Translation3d getTranslationToCentroid(MatrixXd C);
+    Translation3d getTranslationToCentroid(MatrixXd C);
 
-};
+}
+
+namespace ICP {
+    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,Vector3f &a,Vector3f &b,bool withScale);
+    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor);
+}
 
 #endif /* defined(__PointPairFeatures__PointCloudManipulation__) */
 

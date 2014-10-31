@@ -304,3 +304,111 @@ MatrixXd PointCloudManipulation::translateCentroidToOrigin(MatrixXd C){
     return C2;
 }
 
+
+Isometry3f ICP::computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor)
+
+{
+
+    assert(src.size()==dst.size() && src.size()==nor.size());
+
+
+
+// Maybe also have a look at that?
+
+   // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_point-to-plane_icp_techrep.pdf
+
+
+
+    // http://www.cs.princeton.edu/~smr/papers/icpstability.pdf
+
+    Matrix<float,6,6> C;
+
+    Matrix<float,6,1> b;
+
+    C.setZero();
+
+    b.setZero();
+
+    for(uint i=0;i<src.size();++i)
+
+    {
+
+        Vector3f cro = src[i].cross(nor[i]);
+
+        C.block<3,3>(0,0) += cro*cro.transpose();
+
+        C.block<3,3>(0,3) += nor[i]*cro.transpose();
+
+        C.block<3,3>(3,3) += nor[i]*nor[i].transpose();
+
+
+
+        float sum = (src[i]-dst[i]).dot(nor[i]);
+
+        b.head(3) -= cro*sum;
+
+        b.tail(3) -= nor[i]*sum;
+
+    }
+
+    C.block<3,3>(3,0) = C.block<3,3>(0,3);
+
+    Matrix<float,6,1> x = C.ldlt().solve(b);
+
+
+
+    Isometry3f transform = Isometry3f::Identity();
+
+    transform.linear() =
+
+            (AngleAxisf(x(0), Vector3f::UnitX())
+
+             * AngleAxisf(x(1), Vector3f::UnitY())
+
+             * AngleAxisf(x(2), Vector3f::UnitZ())).toRotationMatrix();
+
+    transform.translation() = x.block(3,0,3,1);
+
+
+
+    return transform;
+
+}
+
+
+
+
+Isometry3f ICP::computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,Vector3f &a,Vector3f &b,bool withScale)
+{
+    assert(src.size()==dst.size());
+
+    // http://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2005/Zinsser05-PSR.pdf
+
+    Matrix3f K = Matrix3f::Zero();
+    for (uint i=0; i < src.size();i++)
+        K += (b-dst[i])*(a-src[i]).transpose();
+
+    JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
+    Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
+    if(R.determinant()<0) R.col(2) *= -1;
+
+    if (withScale)
+    {
+        float s_up=0,s_down=0;
+        for (uint i=0; i < src.size();i++)
+        {
+            Vector3f b_tilde = (b-dst[i]);
+            Vector3f a_tilde = R*(a-src[i]);
+            s_up += b_tilde.dot(a_tilde);
+            s_down += a_tilde.dot(a_tilde);
+        }
+        R *= s_up/s_down;
+    }
+
+    Isometry3f transform = Isometry3f::Identity();
+    transform.linear() = R;
+    transform.translation() = b - R*a;
+    return transform;
+}
+
+
