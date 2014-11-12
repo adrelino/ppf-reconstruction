@@ -1,17 +1,17 @@
 #include <gtest/gtest.h>
-#include <opencv2/core/core.hpp>
+//#include <opencv2/core/core.hpp>
 
 // our own testing code
 #include "testHelpers.h"
-#include "../src/LoadingSaving.h"
 
+#include "../src/LoadingSaving.h"
 #include "../src/PointPairFeatures.h"
 
 namespace{
 
 using namespace std;
-using namespace cv;
-using namespace Eigen;
+//using namespace cv;
+//using namespace Eigen;
 
 //TEST(LoadingSaving, cv) {
 //  float A[3][4] = {
@@ -33,60 +33,71 @@ using namespace Eigen;
 //  areMatricesEqual(mExpectedRes, mA);
 //}
 
-//TEST(LoadingSavingxf, MatrixXf) {
-//  MatrixXf mA = MatrixXf::Random(5,5);
-//  LoadingSaving::saveMatrixXf("MatrixXf",mA);
-//  MatrixXf mB=LoadingSaving::loadMatrixXf("MatrixXf");
-//  areMatricesEqual<float>(mA, mB);
-//}
+TEST(Eigen, SymmetricMatrixTranspose) {
+    Eigen::Matrix2i A, B;
 
-//TEST(LoadingSavingxd, MatrixXd) {
-//  MatrixXd mA = MatrixXd::Random(5,5);
-//  LoadingSaving::saveMatrixXd("MatrixXd",mA);
-//  MatrixXd mB=LoadingSaving::loadMatrixXd("MatrixXd");
-//  areMatricesEqual<double>(mA,mB);
-//}
+    A << 1, 3,
+         3, 4;
+    B = A.transpose();
 
-//TEST(LoadingSavingxi, MatrixXi) {
-//  MatrixXi mA = MatrixXi::Random(100,2);
-//  LoadingSaving::saveMatrixXi("MatrixXi",mA);
-//  MatrixXi mB=LoadingSaving::loadMatrixXi("MatrixXi");
-//  areMatricesEqual<int>(mA, mB);
-//}
+    EXPECT_EQ_MATRIX(A,B);
 
-//TEST(LoadingSaving4d, Matrix4f) {
-//  Matrix4f mA = Matrix4f::Random();
-//  LoadingSaving::saveMatrixXd("Matrix4f",mA);
-//  Matrix4f mB=LoadingSaving::loadMatrix4f("Matrix4f");
-//  areMatricesEqual<double>(mA, mB);
-//}
+}
 
-//TEST(QuaternionAvg, test_avg_quat) {
-//  cout<<'Testing un-weighted quaternion averaging'<<endl;
-//  // Average 100 times
-//  int numTrials = 100;
-//  int perturb = 5;
+TEST(LoadingSaving, MatrixXf) {
+  MatrixXf mA = MatrixXf::Random(5,5);
+  LoadingSaving::saveMatrixXf("MatrixXf",mA);
+  MatrixXf mB=LoadingSaving::loadMatrixXf("MatrixXf");
+  EXPECT_FLOAT_EQ_MATRIX(mA, mB)
+}
 
-//  double errNaiveSum = 0;
-//  double errMarkleySum = 0;
+TEST(LoadingSaving, MatrixXd) {
+  MatrixXd mA = MatrixXd::Random(5,5);
+  LoadingSaving::saveMatrixXd("MatrixXd",mA);
+  MatrixXd mB=LoadingSaving::loadMatrixXd("MatrixXd");
+  EXPECT_DOUBLE_EQ_MATRIX(mA,mB)
+}
 
-//  for(int i=0; i<numTrials; i++){
-//      Vector4f qinit = Vector4f::Random();
-//      qinit = qinit.normalized();
+TEST(LoadingSaving, MatrixXi) {
+  MatrixXi mA = MatrixXi::Random(100,2);
+  LoadingSaving::saveMatrixXi("MatrixXi",mA);
+  MatrixXi mB=LoadingSaving::loadMatrixXi("MatrixXi");
+  EXPECT_EQ_MATRIX(mA, mB);
+}
 
-//      Poses poses;
-//      for(int j = 0; j< 10; j++){
-//          Vector4f q2(qinit);
-//          q2 += Vector4f::Random()*perturb/2.0; //matlab : 0->1, eigen -1->1
-//          poses.push_back(std::make_pair(Isometry3f(Quaternionf(q2)),1));
-//      }
+TEST(LoadingSaving, Matrix4f) {
+  Matrix4f mA = Matrix4f::Random();
+  LoadingSaving::saveMatrixXf("Matrix4f",mA);
+  Matrix4f mB=LoadingSaving::loadMatrix4f("Matrix4f");
+  EXPECT_FLOAT_EQ_MATRIX(mA,mB)
+}
 
-//      Quaternionf Qavg = PointPairFeatures::avg_quaternion_markley(poses);
+TEST(Quaternion, test_avg_quat) {
+  //cout<<'Testing un-weighted quaternion averaging'<<endl;
+  // Average 100 times
+  int numTrials = 100;
+  int perturb = 5;
 
-//      cout<<Qavg.coeffs()<<endl;
-//  }
+  double errNaiveSum = 0;
+  double errMarkleySum = 0;
 
-//}
+  for(int i=0; i<numTrials; i++){
+      Vector4f qinit = Vector4f::Random();
+      qinit = qinit.normalized();
+
+      Poses poses;
+      for(int j = 0; j< 10; j++){
+          Vector4f q2(qinit);
+          q2 += Vector4f::Random()*perturb/2.0; //matlab : 0->1, eigen -1->1
+          poses.push_back(std::make_pair(Isometry3f(Quaternionf(q2)),1));
+      }
+
+      Quaternionf Qavg = PointPairFeatures::avg_quaternion_markleyQ(poses);
+
+      //cout<<Qavg.coeffs()<<endl;
+  }
+
+}
 
 //TEST(Quaternion, simple){
 //    MatrixXf Q2 = LoadingSaving::loadMatrixXf("Q2");
@@ -102,7 +113,7 @@ using namespace Eigen;
 //    cout<<QavgExp.transpose()<<endl;
 
 
-//    areMatricesEqual<float>(Qavg.cwiseAbs(), QavgExp.cwiseAbs(),1e-2);
+//    EXPECT_NEAR_MATRIX(Qavg.cwiseAbs(), QavgExp.cwiseAbs(),1e-2);
 //}
 
 //TEST(Quaternion, poses){
@@ -139,7 +150,7 @@ using namespace Eigen;
 //    cout<<"eigvectors"<<endl<<eig.eigenvectors()<<endl;
 //}
 
-TEST(two2arr,eigValues){
+TEST(two2arr,indexing){
       int expectedRes[3][3] = {
         {1,2,3},
         {4,5,6},
@@ -155,17 +166,32 @@ TEST(two2arr,eigValues){
       exp3 = &expectedRes;
       //int exp4[][] = (*exp3);
 
-
-      for(int i=0; i<9;i++){
-          cout<<exp2[i]<<endl;
-      }
-
       for(int i=0; i<3;i++){
           for(int j=0; j<3;j++){
-              cout<< (*exp3)[i][j] <<endl;
+              EXPECT_EQ( exp2[3*i+j],(*exp3)[i][j] );
           }
       }
 
+}
+
+TEST(floating,numnber){
+
+    float b41=0.10793996f;
+    //cout.precision(8);//numeric_limits<float>::digits10);
+    //cout<<fixed<<b41<<endl;
+
+    std::stringstream ss;
+    ss.precision(8);
+    ss<<b41;
+
+    //cout<<ss.str()<<endl;
+
+    float b41Test;
+    ss>>b41Test;
+
+    //cout<<b41Test<<endl;
+
+    EXPECT_FLOAT_EQ(b41,b41Test);
 }
 
 } //namespace
