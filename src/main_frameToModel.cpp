@@ -33,14 +33,14 @@ int main(int argc, char * argv[])
 
     for(int i=0; i<=36; i+=2){
         stringstream ss,ss1,ss2;
+
         ss<<"bunny/depth-cloud/cloudXYZ_"<<i<<".xyz";
         MatrixXf cloud=LoadingSaving::loadMatrixXf(ss.str());
 
         ss1<<"bunny/depth-poses/poses_"<<i<<".txt";
         Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
 
-        ss2.flush();
-        ss2<<"P:"<<i<<endl;
+        ss2<<"poses_"<<i<<":";
 
         PointPairFeatures::printPose(P,ss2.str());
 
@@ -94,20 +94,5 @@ int main(int argc, char * argv[])
 
         Visualize::spin();
 
-
-
-
-
-
-
-
-
-
-        //Visualize::waitKey('g');
-
     }
-
-
-
-
 }

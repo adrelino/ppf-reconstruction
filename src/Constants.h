@@ -31,22 +31,22 @@ typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
 //
 
 //model diameter, downsampling
-static double diamM=0.15; //model diameter //stanford bunny // max dist is diagonal
-static double tau_d=0.1; //sampling rate, set like in paper. ddist=tau_d*diam(M);
-static double ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
+static float diamM=0.15f; //model diameter //stanford bunny // max dist is diagonal
+static float tau_d=0.1f; //sampling rate, set like in paper. ddist=tau_d*diam(M);
+static float ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
 
 // reestimate normals after downsampling
-static double neighbourBallSize=ddist*2.5; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
+static float neighbourBallSize=ddist*2.5f; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
 
 //ppf's
 static int ndist=1/tau_d; //number of distance buckets
 static int nangle=30;     //number of angle buckets
-static double dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
-static double sceneRefPtsFraction = 0.3; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
+static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
+static float sceneRefPtsFraction = 0.3f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
 
 //for pose cluster averaging
-static double thresh_tra = 0.05 * diamM; //double thresh_tra=0.02; //2cm
-static double thresh_rot_degrees = 20; //180 max
+static float thresh_tra = 0.05f * diamM; //float thresh_tra=0.02; //2cm
+static float thresh_rot_degrees = 20; //180 max
 
 //Macros
 //
@@ -57,11 +57,11 @@ namespace Colormap{
 
 
 //http://stackoverflow.com/questions/7706339/grayscale-to-red-green-blue-matlab-jet-color-scale
-static double interpolate( double val, double y0, double x0, double y1, double x1 ) {
+static float interpolate( float val, float y0, float x0, float y1, float x1 ) {
     return (val-x0)*(y1-y0)/(x1-x0) + y0;
 }
 
-static double base( double val ) {
+static float base( float val ) {
     if ( val <= -0.75 ) return 0;
     else if ( val <= -0.25 ) return interpolate( val, 0.0, -0.75, 1.0, -0.25 );
     else if ( val <= 0.25 ) return 1.0;
@@ -69,17 +69,17 @@ static double base( double val ) {
     else return 0.0;
 }
 
-static double red( double gray ) {
+static float red( float gray ) {
     return base( gray - 0.5 );
 }
-static double green( double gray ) {
+static float green( float gray ) {
     return base( gray );
 }
-static double blue( double gray ) {
+static float blue( float gray ) {
     return base( gray + 0.5 );
 }
 
-static RowVector3f Jet(double gray){
+static RowVector3f Jet(float gray){
     return RowVector3f(red(gray),green(gray),blue(gray));
 }
 

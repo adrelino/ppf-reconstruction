@@ -50,9 +50,9 @@ namespace PointPairFeatures{
     Poses computePoses(vector<MatrixXi> acc,MatrixXf m, MatrixXf s, vector<int> sceneIndexToI);
 
 
-    double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
+    float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha); //always positive, needed for accumulator array discretisation
 
-    Isometry3f alignSceneToModel(RowVectorXf sceneRefPt, RowVectorXf modelRefPt, double angleAroundXAxis);
+    Isometry3f alignSceneToModel(RowVectorXf sceneRefPt, RowVectorXf modelRefPt, float angleAroundXAxis);
 
 
     vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
