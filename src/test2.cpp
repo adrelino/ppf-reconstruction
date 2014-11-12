@@ -13,8 +13,8 @@
 int main(int argc, char * argv[])
 {
     
-    MatrixXd mSmall=LoadingSaving::loadXYZ("bunny/model_downSampled.xyz");
-    MatrixXd sSmall=LoadingSaving::loadXYZ("bunny/scene_downSampled.xyz");
+    MatrixXf mSmall=LoadingSaving::loadMatrixXf("bunny/model_downSampled.xyz");
+    MatrixXf sSmall=LoadingSaving::loadMatrixXf("bunny/scene_downSampled.xyz");
     
     Visualize* inst=Visualize::getInstance();
     

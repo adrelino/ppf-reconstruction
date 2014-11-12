@@ -24,9 +24,9 @@ using namespace std;
 
 namespace PointPairFeatures{
 
-    Projective3d getTransformationBetweenPointClouds(MatrixXd m, MatrixXd s);
+    Isometry3f getTransformationBetweenPointClouds(MatrixXf m, MatrixXf s);
 
-    Projective3d getTransformationBetweenPointClouds(MatrixXd m, MatrixXd s, GlobalModelDescription model);
+    Isometry3f getTransformationBetweenPointClouds(MatrixXf m, MatrixXf s, GlobalModelDescription model);
 
 
     
@@ -37,19 +37,22 @@ namespace PointPairFeatures{
     void printMap(GlobalModelDescription m);
     KeyBucketPairList print10(GlobalModelDescription &mymap);
 
-    bool isPoseSimilar(Projective3d P1, Projective3d P2);
+    bool isPoseSimilar(Isometry3f P1, Isometry3f P2);
+
+    bool isPoseCloseToIdentity(Isometry3f P1, float eps);
+
     bool isClusterSimilar(Poses cluster1, Poses cluster2);
 
     
-    GlobalModelDescription buildGlobalModelDescription(MatrixXd m);
-    MatchesWithSceneRefIdx matchSceneAgainstModel(MatrixXd s, GlobalModelDescription model);
+    GlobalModelDescription buildGlobalModelDescription(MatrixXf m);
+    MatchesWithSceneRefIdx matchSceneAgainstModel(MatrixXf s, GlobalModelDescription model);
     vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
-    Poses computePoses(vector<MatrixXi> acc,MatrixXd m, MatrixXd s, vector<int> sceneIndexToI);
+    Poses computePoses(vector<MatrixXi> acc,MatrixXf m, MatrixXf s, vector<int> sceneIndexToI);
 
 
     double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
 
-    Projective3d alignSceneToModel(RowVectorXd sceneRefPt, RowVectorXd modelRefPt, double angleAroundXAxis);
+    Isometry3f alignSceneToModel(RowVectorXf sceneRefPt, RowVectorXf modelRefPt, double angleAroundXAxis);
 
 
     vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
@@ -60,14 +63,20 @@ namespace PointPairFeatures{
 
     void printPose(Pose Pest,string title="");
 
-    void printPose(Projective3d P,string title="");
+    void printPose(Isometry3f P,string title="");
 
     void printPoses(Poses vec);
 
-    void err(Projective3d P, Pose Pest);
-    void err(Projective3d P, Projective3d Pest);
+    void err(Isometry3f P, Pose Pest);
+    void err(Isometry3f P, Isometry3f Pest);
 
     Poses sortPoses(Poses poses);
+
+    Vector4f avg_quaternion_markley(MatrixXf Q);
+
+    Vector4f avg_quaternion_markley(Poses poses);
+
+    Quaternionf avg_quaternion_markleyQ(Poses poses);
 
 }
 

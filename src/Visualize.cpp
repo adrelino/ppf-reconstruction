@@ -102,17 +102,17 @@ void Visualize::drawOrigin(){
 	glPopMatrix();
 }
 
-void Visualize::drawNormals(MatrixXd m, RowVector3f color){
+void Visualize::drawNormals(MatrixXf m, RowVector3f color){
     glLineWidth(0.02f);
     glBegin(GL_LINES);
     glColor3f(color(0),color(1),color(2));
     for (int i=0; i<m.rows(); i++) {
-        RowVector3d p=m.block(i, 0, 1, 3);
-        RowVector3d n=m.block(i, 3, 1, 3);
+        RowVector3f p=m.block(i, 0, 1, 3);
+        RowVector3f n=m.block(i, 3, 1, 3);
         
         n.normalize();
         n/=100;
-        RowVector3d q=p+n;
+        RowVector3f q=p+n;
         
         glVertex3d(p(0),p(1),p(2));
         glVertex3d(q(0),q(1),q(2));
@@ -122,40 +122,39 @@ void Visualize::drawNormals(MatrixXd m, RowVector3f color){
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPointCloud(MatrixXd m, RowVector3f color, float pointSize){
+void Visualize::drawPointCloud(MatrixXf m, RowVector3f color, float pointSize){
     glPointSize(pointSize);
     glColor3f(color(0),color(1),color(2));
     glBegin(GL_POINTS);
     for (int i=0; i<m.rows(); i++) {
-        glVertex3d(m(i,0),m(i,1),m(i,2));
+        glVertex3f(m(i,0),m(i,1),m(i,2));
     }
 	glEnd();
 }
 
-void Visualize::drawAll(MatrixXd m, RowVector3f color, RowVector3f colorNormals){
+void Visualize::drawAll(MatrixXf m, RowVector3f color, RowVector3f colorNormals){
     drawPointCloud(m, color);
     
     if(m_Normals) drawNormals(m,colorNormals);
     if(m_Buckets) drawPPfs(b[bucketIndex].second, m);
     if(m_Voxels)  drawCubes(m,ddist);
-    if(m_Estimate && modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
 }
 
 
-void Visualize::drawPPF(int i, int j, MatrixXd m)
+void Visualize::drawPPF(int i, int j, MatrixXf m)
 {
     glLineWidth(0.05f);
     glBegin(GL_LINE_STRIP);
-        RowVector3d p=m.block(i, 0, 1, 3);
-        RowVector3d n=m.block(i, 3, 1, 3);
-        RowVector3d p2=m.block(j, 0, 1, 3);
-        RowVector3d n2=m.block(j, 3, 1, 3);
+        RowVector3f p=m.block(i, 0, 1, 3);
+        RowVector3f n=m.block(i, 3, 1, 3);
+        RowVector3f p2=m.block(j, 0, 1, 3);
+        RowVector3f n2=m.block(j, 3, 1, 3);
         n.normalize();
         n/=100;
         n2.normalize();
         n2/=100;
-        RowVector3d q=p+n;
-        RowVector3d q2=p2+n2;
+        RowVector3f q=p+n;
+        RowVector3f q2=p2+n2;
     
         glColor3f(0.0,0.2,1);
         glVertex3d(q(0),q(1),q(2)); //first normal
@@ -170,13 +169,53 @@ void Visualize::drawPPF(int i, int j, MatrixXd m)
 	glEnd();
 }
 
-void Visualize::drawPPfs(Bucket b,MatrixXd m){
+void Visualize::drawLines(vector<int> vertices)
+{
+    glLineWidth(0.05f);
+
+    glBegin(GL_LINES);
+    glColor3f(0.8,0,0.8);
+
+    int n = vertices.size();
+
+    for (int i = 0; i < n; ++i) {
+        RowVector3f p1=scene.block(i, 0, 1, 3);
+        RowVector3f p2=modelT.block(vertices[i], 0, 1, 3);
+
+        glVertex3f(p1(0),p1(1),p1(2));  //distance line
+        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+    }
+
+    glEnd();
+}
+
+void Visualize::drawLines(vector<Vector3f> v1, vector<Vector3f> v2)
+{
+    glLineWidth(0.05f);
+
+    glBegin(GL_LINES);
+    glColor3f(0.8,0,0.8);
+
+    int n = v1.size();
+
+    for (int i = 0; i < n; ++i) {
+        Vector3f p1=v1[i];
+        Vector3f p2=v2[i];
+
+        glVertex3f(p1(0),p1(1),p1(2));  //distance line
+        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+    }
+
+    glEnd();
+}
+
+void Visualize::drawPPfs(Bucket b,MatrixXf m){
     for (auto it : b){
         drawPPF(it.i, it.j,m);
     }
 }
 
-void Visualize::drawCubes(MatrixXd C, double size){
+void Visualize::drawCubes(MatrixXf C, double size){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<C.rows(); i++) {
         glPushMatrix();
@@ -234,15 +273,20 @@ void Visualize::display(void)
     
     switch (current_object) {
 		case 0:
+            for(auto it : ms){
+                MatrixXf m = it.first;
+                RowVector3f color = RowVector3f(0,1,0); //it.second
+                drawPointCloud(m,color,10.0f);
+            }
             if(m_Model) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
             if(m_Scene) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
+
+            if(m_Estimate && modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
+
             if(matches.size()>0) drawMatches(matches);
-			break;
-        case 1:
-            if(m_Model) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            for(auto it : ms){
-                drawPointCloud(it.first,it.second);
-            }
+            if(closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
+            if(src.size()>0) drawLines(src,dst);
+
 			break;
 		default:
 			break;
@@ -269,7 +313,7 @@ void Visualize::bucketInfo(){
 
 void Visualize::keyboard (unsigned char key, int x, int y)
 {
-    std::cout<<"keyboard: "<<key<< " at " << x << y <<std::endl;
+    //std::cout<<"keyboard: "<<key<< " at " << x << y <<std::endl;
     lastKey=key;
 
 	switch (key) {
@@ -338,8 +382,10 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             break;
             
         case 'Q':
+            glutLeaveMainLoop();
+            exit(0);
+            break;
         case 'q':
-           glutLeaveMainLoop();
             break;
         case '+':
             bucketIndex++;
@@ -363,7 +409,7 @@ void Visualize::keyboardW (unsigned char key, int x, int y){
 
 void Visualize::mouse(int button, int state, int x, int y)
 {
-    printf("button=%d %s At %d %d\n", button, (state == GLUT_DOWN) ? "Down" : "Up", x, y);
+    //printf("button=%d %s At %d %d\n", button, (state == GLUT_DOWN) ? "Down" : "Up", x, y);
     
     modifier=glutGetModifiers();
     
@@ -445,6 +491,20 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutInitWindowPosition (50, 50);
 	glutCreateWindow ("Adrian's Point Cloud Visualizer");
 	glClearColor (1.0,1.0,1.0, 1.0);
+
+    /*
+    CGLError err;
+    CGLContextObj ctx = CGLGetCurrentContext();
+
+    // Enable the multi-threading
+    err =  CGLEnable( ctx, kCGLCEMPEngine);
+
+    if (err != kCGLNoError )
+    {
+        cout<<"no multithread available"<<endl;
+         // Multi-threaded execution is possibly not available
+         // Insert your code to take appropriate action
+    } */
     
     
     // store a call to a member function
@@ -458,6 +518,8 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutMouseFunc(mouseW);
 	glutMotionFunc(motionW);
 	glutKeyboardFunc(keyboardW);
+
+    //glutTimerFunc();
    // glutIdleFunc(idleW);
 	//setupLighting();
 	//glDisable(GL_CULL_FACE);
@@ -472,8 +534,7 @@ int Visualize::mainVisualize(int argc, char **argv)
     
     
     
-	glutMainLoop();
-    
+    //glutMainLoop();
     
 	return 0;
 }
@@ -492,22 +553,40 @@ void Visualize::waitKeyQuit(){
     getInstance()->visThread->join();
 }
 
-void Visualize::waitKeyInst(unsigned char key){
-    cout<<"waiting for "<<key<<endl;
-    std::chrono::milliseconds dura( 1000 );
-    while(true){
-        std::this_thread::sleep_for( dura );
-        sleep(1);
-        if(lastKey==key){
-            lastKey=-1;
-            break;
-            cout<<"ok, exit waiting = "<<endl;
-        }
+void Visualize::spin(){
+    while(Visualize::waitKey('q')){
+        glutPostRedisplay();
+        glutMainLoopEvent();
     }
 }
 
-void Visualize::waitKey(unsigned char key){
-    getInstance()->waitKeyInst(key);
+void Visualize::spin(int i){
+    while(i-- > 0){
+        std::chrono::milliseconds dura( 10 );
+        std::this_thread::sleep_for( dura );
+        glutPostRedisplay();
+        glutMainLoopEvent();
+    }
+}
+
+bool Visualize::waitKeyInst(unsigned char key){
+    //cout<<"waiting for "<<key<<endl;
+    std::chrono::milliseconds dura( 10 );
+    //while(true){
+        std::this_thread::sleep_for( dura );
+        //sleep(1);
+        if(lastKey==key){
+            lastKey=-1;
+            cout<<"ok, exit waiting = "<<endl;
+            return false;
+        }else{
+            return true;
+        }
+    //}
+}
+
+bool Visualize::waitKey(unsigned char key){
+    return getInstance()->waitKeyInst(key);
 }
 
 void Visualize::update(){

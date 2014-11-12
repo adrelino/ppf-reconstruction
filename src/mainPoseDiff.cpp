@@ -6,7 +6,6 @@
 //  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
 //
 
-#include "Visualize.h"
 #include "LoadingSaving.h"
 #include "PointPairFeatures.h"
 #include "PointCloudManipulation.h"
@@ -17,18 +16,18 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    Projective3d P1 = Translation3d(0, 0, 1) * AngleAxisd(M_PI, Vector3d::UnitX()+Vector3d::UnitY()*0.05);// * Scaling(s);
-    Projective3d P2 = Translation3d(0, 0, 0.9999) * AngleAxisd(M_PI, Vector3d::UnitX()-Vector3d::UnitY()*0.05);// * Scaling(s);
-    Projective3d P3 = Translation3d(0, 0, 1.0001) * AngleAxisd(M_PI+2, Vector3d::UnitX());// * Scaling(s);
+    Isometry3f P1 = Translation3f(0, 0, 1) * AngleAxisf(M_PI, Vector3f::UnitX()+Vector3f::UnitY()*0.05);// * Scaling(s);
+    Isometry3f P2 = Translation3f(0, 0, 0.9999) * AngleAxisf(M_PI, Vector3f::UnitX()-Vector3f::UnitY()*0.05);// * Scaling(s);
+    Isometry3f P3 = Translation3f(0, 0, 1.0001) * AngleAxisf(M_PI+2, Vector3f::UnitX());// * Scaling(s);
 
     cout<<"P1:"<<endl;
-    cout<<P1.rotation().matrix()<<endl;
+    cout<<P1.linear().matrix()<<endl;
 
     cout<<"P2:"<<endl;
-    cout<<P2.rotation().matrix()<<endl;
+    cout<<P2.linear().matrix()<<endl;
 
     cout<<"P3:"<<endl;
-    cout<<P3.rotation().matrix()<<endl;
+    cout<<P3.linear().matrix()<<endl;
 
     cout<<"P1.equals(P2): "; PointPairFeatures::isPoseSimilar(P1,P2);
     cout<<"P1.equals(P3): "; PointPairFeatures::isPoseSimilar(P1,P3);
@@ -54,30 +53,30 @@ cout<<endl<<endl<<endl;
     double sigma = 0.9;
 
 
-    Quaterniond q(AngleAxisd(deg2rad(45), Vector3d::UnitX()));
-    q = q * AngleAxisd(deg2rad(45),Vector3d::UnitY());
+    Quaternionf q(AngleAxisf(deg2rad(45), Vector3f::UnitX()));
+    q = q * AngleAxisf(deg2rad(45),Vector3f::UnitY());
 
-    Vector4d rot(q.x(),q.y(),q.z(),q.w());
-    Vector3d tra(0.1,0,0);
+    Vector4f rot(q.x(),q.y(),q.z(),q.w());
+    Vector3f tra(0.1,0,0);
 
-    Projective3d P = Translation3d(tra)*Quaterniond(rot);
+    Isometry3f P = Translation3f(tra)*Quaternionf(rot);
 
     Poses cluster;
 
     for (int i = 0; i < nSamples; ++i) {
-        //Vector4d rotRand=RandomN::RandomNGet(4); //standard normally
-        Vector4d rotRand=Vector4d::Random(); // uniform(-1,1) distributed samples
-        //Vector4d rotTest = rot;
+        //Vector4f rotRand=RandomN::RandomNGet(4); //standard normally
+        Vector4f rotRand=Vector4f::Random(); // uniform(-1,1) distributed samples
+        //Vector4f rotTest = rot;
         //if(i % 3 == 1) rotTest=-rotTest;
-        Vector4d rotNoisy = rot + sigma * rotRand;
-        //Vector3d traRand=RandomN::RandomNGet(3);//standard normally
-        Vector3d traRand=Vector3d::Random(); // uniform(-1,1) distributed samples
-        Vector3d traNoisy = tra + sigma * traRand;
+        Vector4f rotNoisy = rot + sigma * rotRand;
+        //Vector3f traRand=RandomN::RandomNGet(3);//standard normally
+        Vector3f traRand=Vector3f::Random(); // uniform(-1,1) distributed samples
+        Vector3f traNoisy = tra + sigma * traRand;
 
         //cout<<"traRand: "<<traRand.transpose()<<endl;
         //cout<<"rotRand: "<<rotRand.transpose()<<endl;
 
-        Projective3d Pi=Translation3d(traNoisy)*Quaterniond(rotNoisy);
+        Isometry3f Pi=Translation3f(traNoisy)*Quaternionf(rotNoisy);
         cluster.push_back(std::make_pair(Pi,1));
     }
 

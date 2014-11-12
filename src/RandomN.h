@@ -25,10 +25,9 @@
 //for(int i=0; i<10000; i++) vals.push_back(RandomN::generateGaussianNoise(1));
 //RandomN::meanAndVar(vals);
 
-class RandomN{
-public:
-static void hist()
-{
+namespace RandomN{
+
+void hist(){
     std::random_device rd;
     std::mt19937 gen(rd());
 
@@ -46,17 +45,9 @@ static void hist()
     }
 }
 
-static VectorXd RandomNGet(int n){
-    VectorXd vec(n);
-    for (int i = 0; i < n; ++i) {
-        vec[i]=RandomN::generateGaussianNoise(1);
-    }
-    return vec;
-}
-
 //http://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
 #define TWO_PI 6.2831853071795864769252866
-static double generateGaussianNoise(const double &variance)
+double generateGaussianNoise(const double &variance)
 {
     static bool haveSpare = false;
     static double rand1, rand2;
@@ -77,7 +68,7 @@ static double generateGaussianNoise(const double &variance)
     return sqrt(variance * rand1) * cos(rand2);
 }
 
-static void meanAndVar(vector<double> vals){
+void meanAndVar(vector<double> vals){
     int n=vals.size();
 
     double mean=0;
@@ -95,6 +86,58 @@ static void meanAndVar(vector<double> vals){
 
     cout<<"mean= "<<mean<<" var: "<<variance<<endl;
 }
-};
+
+VectorXf RandomNGet(int n){
+    VectorXf vec(n);
+    for (int i = 0; i < n; ++i) {
+        vec[i]=generateGaussianNoise(1);
+    }
+    return vec;
+}
+
+//http://stackoverflow.com/questions/7616511/calculate-mean-and-standard-deviation-from-a-vector-of-samples-in-c-using-boos
+
+void summary(std::vector<double> v){  //Like R's summary
+    double sum = std::accumulate(v.begin(), v.end(), 0.0);
+    double mean = sum / v.size();
+
+    double sq_sum = std::inner_product(v.begin(), v.end(), v.begin(), 0.0);
+    double std = std::sqrt(sq_sum / v.size() - mean * mean);
+
+    std::sort(v.begin(),v.end());
+    double min=v[0];
+    double firstQuantile=v[v.size()*0.25];
+    double median=v[v.size()*0.5];
+    double thirdQuantile=v[v.size()*0.75];
+    double max=v[v.size()-1];
+
+    cout<<"Summary of "<<v.size()<<" bucket sizes:"<<endl;
+    cout<<"Min\t.25\tMed\tMean\t.75\tMax \tStd"<<endl;
+    cout<<min<<" \t"<<firstQuantile<<" \t"<<median<<" \t"<<round(mean*100)*0.01<<" \t"<<thirdQuantile<<" \t"<<max<<" \t"<<round(std*100)*0.01<<endl;
+
+
+
+
+
+    /*std::vector<double> diff(v.size());
+    std::transform(v.begin(), v.end(), diff.begin(),
+                   std::bind2nd(std::minus<double>(), mean));
+    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+    double stdev = std::sqrt(sq_sum / v.size());
+
+
+    double sum = std::accumulate(std::begin(v), std::end(v), 0.0);
+    double m =  sum / v.size();
+
+    double accum = 0.0;
+    std::for_each (std::begin(v), std::end(v), [&](const double d) {
+        accum += (d - m) * (d - m);
+    });
+
+    double stdev = sqrt(accum / (v.size()-1));*/
+
+}
+
+} // end namespace
 
 #endif // RANDOMN_H

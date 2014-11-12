@@ -11,7 +11,7 @@
 #include <eigen3/Eigen/Geometry>
 #include <math.h>
 
-PPF PPF::makePPF(RowVectorXd p1,RowVectorXd p2, int i, int j){
+PPF PPF::makePPF(RowVectorXf p1,RowVectorXf p2, int i, int j){
     PPF p;
     p.i=i;
     p.j=j;
@@ -20,11 +20,11 @@ PPF PPF::makePPF(RowVectorXd p1,RowVectorXd p2, int i, int j){
 }
 
 //F(m1, m2) = (∥d∥2, ∠(n1, d), ∠(n2, d), ∠(n1, n2)),
-void PPF::pointPairFeature(RowVector3d m1,RowVector3d m2,RowVector3d n1,RowVector3d n2){
+void PPF::pointPairFeature(RowVector3f m1,RowVector3f m2,RowVector3f n1,RowVector3f n2){
     this->m1=m1;this->m2=m2;this->n1=n1;this->n2=n2;
     
-    RowVector3d dist = m2-m1;
-    RowVector3d dn=dist.normalized(), n1n=n1.normalized(), n2n=n2.normalized();
+    RowVector3f dist = m2-m1;
+    RowVector3f dn=dist.normalized(), n1n=n1.normalized(), n2n=n2.normalized();
     
     _d= dist.norm(); //Euclidean distance
     _n1d=acos(n1n.dot(dn));
@@ -60,26 +60,26 @@ std::size_t PPF::operator()(const PPF& k) const
 
 void PPF::planarRotAngle(){
     //cout<<"m1="<<m1<<" n1="<<n1<<endl;
-    Vector3d m=m1.transpose();
-    Vector3d n=n1.transpose().normalized();
+    Vector3f m=m1.transpose();
+    Vector3f n=n1.transpose().normalized();
 
-    Projective3d T=twistToLocalCoords(m,n); //TODO: think about reuse
-    Matrix4d Pm=T.matrix();
+    Isometry3f T=twistToLocalCoords(m,n); //TODO: think about reuse
+    Matrix4f Pm=T.matrix();
     
     //std::cout<<Pm<<endl;
     
     //std::cout<<Pm.size()<<endl;
     //std::cout<<m1.homogeneous().size()<<endl;
     
-    Vector4d mm=m.homogeneous();
-    Vector4d nn=n.homogeneous();
+    Vector4f mm=m.homogeneous();
+    Vector4f nn=n.homogeneous();
     nn(3)=0;
     
 
-    Vector3d m22=m2.transpose(); //m2 only needed to get alpha
+    Vector3f m22=m2.transpose(); //m2 only needed to get alpha
     //cout<<"mm="<<(Pm*mm).transpose()<<endl;
     //cout<<"nn="<<(Pm*nn).transpose()<<endl;
-    Vector4d m22P=Pm*m22.homogeneous();
+    Vector4f m22P=Pm*m22.homogeneous();
     //cout<<"mm2="<<m22P.transpose()<<endl;
     
     alpha=atan2(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
@@ -92,23 +92,23 @@ void PPF::planarRotAngle(){
 
 }
 
-Projective3d PPF::twistToLocalCoords(Vector3d m, Vector3d n){
+Isometry3f PPF::twistToLocalCoords(Vector3f m, Vector3f n){
     //cout<<"m="<<endl<<m.transpose()<<endl;
     //cout<<"n="<<endl<<n.transpose()<<endl;
 
-    Vector3d xAxis(1,0,0);
+    Vector3f xAxis(1,0,0);
 
-    //Vector3d axis = (0.5*(n+xAxis)).transpose(); //Vector3d(1,0,0)
+    //Vector3f axis = (0.5*(n+xAxis)).transpose(); //Vector3f(1,0,0)
     //cout<<"axis="<<endl<<axis.transpose()<<endl;
-    //AngleAxisd rot(M_PI, axis);
+    //AngleAxisf rot(M_PI, axis);
 
     double angle = acos(xAxis.dot(n));
-    Vector3d orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
+    Vector3f orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
 
 
-    AngleAxisd rot(angle, orthogonalAxis);
-    Translation3d tra(-m);
+    AngleAxisf rot(angle, orthogonalAxis);
+    Translation3f tra(-m);
 
 
-    return Projective3d(rot*tra);
+    return Isometry3f(rot*tra);
 }

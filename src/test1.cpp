@@ -14,13 +14,13 @@ using namespace Eigen;
 
 int main(int, char *[])
 {
-    //MatrixXd m = MatrixXd::Random(10000, 3)*0.5;
+    //MatrixXf m = MatrixXf::Random(10000, 3)*0.5;
     //VectorXd indices = VectorXd::Random(0.2*800);
     
-    RowVectorXd p1(6);
+    RowVectorXf p1(6);
     p1 << 3,1,4,5,2,3;
     
-    RowVectorXd p2(6);
+    RowVectorXf p2(6);
     p2 << 2,3,6,7,1,7;
     
     PPF ppf = PPF::makePPF(p1, p2, 0, 1);

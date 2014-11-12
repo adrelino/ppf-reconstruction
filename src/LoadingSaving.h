@@ -12,21 +12,25 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <vector>
-using namespace Eigen;
-using namespace std;
 
-class LoadingSaving {
-    
-    
-public:
-    static MatrixXd loadXYZ(std::string filename);
-    static Matrix4d loadProjectionMatrix(std::string filename);
+namespace LoadingSaving {
+    using namespace Eigen;
+    using namespace std;
 
-    static void saveXYZ(std::string filename, MatrixXd pts);
-    static void saveVector(std::string filename, vector<double> vec);
-    
-    static void summary(std::vector<double> v); //Like R's summary
+    MatrixXi loadMatrixXi(std::string filename);
+    MatrixXf loadMatrixXf(std::string filename);
+    MatrixXd loadMatrixXd(std::string filename);
 
-};
+    Matrix4f loadMatrix4f(std::string filename);
+
+
+    void saveMatrixXi(std::string filename, MatrixXi mat);
+    void saveMatrixXf(std::string filename, MatrixXf mat);
+    void saveMatrixXd(std::string filename, MatrixXd mat);
+
+    void saveMatrix4f(std::string filename, Matrix4f mat);
+
+    void saveVector(std::string filename, vector<double> vec);
+}
 
 #endif /* defined(__PointPairFeatures__LoadingSaving__) */

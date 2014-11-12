@@ -8,99 +8,120 @@
 
 #include "LoadingSaving.h"
 #include <fstream>
-#include <vector>
 #include <numeric>
+#include <iostream>
 
-using namespace std;
+namespace LoadingSaving{
 
-Matrix4d LoadingSaving::loadProjectionMatrix(std::string filename){
-
-    std::ifstream file(filename,std::ifstream::in);
-
-    if( file.fail() == true )
-    {
-        cerr << filename << " could not be opened" << endl;
-        return Matrix4d::Zero();
-
-    }
-
-    RowVectorXd p(4);
-    Matrix4d mat;
-
-    int i=0;
-    while(file >> p(0) >> p(1) >> p(2) >> p(3))
-    {
-        cout<<p<<endl;
-        mat.row(i++)=p;
-
-    }
-
-    cout<<"Loaded "<<i<<" rows from "<<filename<<endl;
-
-    return mat;
-
-}
-
-
-MatrixXd LoadingSaving::loadXYZ(std::string filename){
+template<typename Number>
+Matrix<Number,Dynamic,Dynamic> loadMatrix(std::string filename, std::string type){
     std::ifstream file(filename,std::ifstream::in);
     if( file.fail() == true )
     {
         cerr << filename << " could not be opened" << endl;
-        return MatrixXd::Zero(1, 6);
+        return Matrix<Number,Dynamic,Dynamic>::Zero(1, 1);
 
     }
-    
-    vector<RowVectorXd> vec;
-    
-    RowVectorXd p(6);
-    
-    int i=0;
-    while(file >> p(0) >> p(1) >> p(2) >> p(3) >> p(4) >> p(5))
+
+
+    std::string line;
+    std::getline(file,line);
+    std::stringstream lineStream(line);
+
+    int cols=0;
+    Number n;
+    while(lineStream >> n)
     {
-        i++;
-        //cout<<p<<endl;
-        vec.push_back(p);
+        cols++;
     }
-    
-    
-    MatrixXd mat(i,6);
+    if(cols==0){
+        return Matrix<Number,Dynamic,Dynamic>::Zero(1, 1);
+    }
+
+    vector< Matrix<Number,1,Dynamic> > vec;
+
+
+    int rows=0;
+
+    do{
+        rows++;
+        std::stringstream lineStream2(line);
+        Matrix<Number,1,Dynamic> row(cols);
+        int col = 0;
+        while(lineStream2 >> n)
+        {
+            row(col)=n;
+            col++;
+        }
+
+        vec.push_back(row);
+    }while(std::getline(file,line));
+
+
+    Matrix<Number,Dynamic,Dynamic> mat(rows,cols);
     int j=0;
     for (auto it : vec) {
         //cout<<it<<endl;
         mat.row(j++)=it;
     }
-    
-    cout<<"Loaded "<<i<<" pts from "<<filename<<endl;
+
+    //cout<<"Loaded MatrixX"<<type<<"("<<rows<<","<<cols<<") from "<<filename<<endl;
 
     return mat;
-    
 }
 
-void LoadingSaving::saveXYZ(std::string filename, MatrixXd mat){
-    
-        std::ofstream outputFile(filename, std::ofstream::out) ;
-    
-        long rows=mat.rows();
-        long cols=mat.cols();
-        //cout<<"saving "<<rows<<"x"<<cols<<" matrix"<<endl;
-    
-        int i=0;
-        for(; i<rows; i++)
-        {
-            for(int j=0; j<cols; j++)
-            {
-                outputFile << mat(i,j) <<" ";
-            }
-            outputFile<< std::endl;
-        }
-    
-        outputFile.close( );
-    
-    cout<<"Wrote "<<i<<" pts to "<<filename<<endl;
+Matrix4f loadMatrix4f(std::string filename){
+    std::ifstream file(filename,std::ifstream::in);
+    if( file.fail() == true )
+    {
+        cerr << filename << " could not be opened" << endl;
+        return Matrix4f::Zero();
+
+    }
+    float array[16];
+    int i=0;
+    while(file >> array[i++]){}
+
+    //cout<<"Loaded Matrix4f from "<<filename<<endl;
+    return Map< Matrix<float,4,4,RowMajor> > (array);
 }
 
-void LoadingSaving::saveVector(std::string filename, vector<double> vec){
+MatrixXd loadMatrixXd(std::string filename){
+    return loadMatrix<double>(filename,"d");
+}
+
+MatrixXf loadMatrixXf(std::string filename){
+    return loadMatrix<float>(filename,"f");
+}
+
+MatrixXi loadMatrixXi(std::string filename){
+    return loadMatrix<int>(filename,"i");
+}
+
+
+template<typename Number>
+void saveMatrix(std::string filename, Matrix<Number,Dynamic,Dynamic> mat, string type){
+    std::ofstream outputFile(filename, std::ofstream::out) ;
+    outputFile << mat.format(FullPrecision);
+    outputFile.close();
+
+    //cout<<"Saved MatrixX"<<type<<"("<<mat.rows()<<","<<mat.cols()<<") to "<<filename<<endl;
+
+}
+
+void saveMatrix4f(std::string filename, Matrix4f mat){
+    std::ofstream outputFile(filename, std::ofstream::out) ;
+    outputFile << mat.format(FullPrecision);
+    outputFile.close();
+
+    //cout<<"Saved Matrix4f to "<<filename<<endl;
+}
+
+void saveMatrixXd(std::string filename, MatrixXd mat){return saveMatrix<double>(filename,mat,"d");}
+void saveMatrixXf(std::string filename, MatrixXf mat){return saveMatrix<float>(filename,mat,"f");}
+void saveMatrixXi(std::string filename, MatrixXi mat){return saveMatrix<int>(filename,mat,"i");}
+
+void saveVector(std::string filename, vector<double> vec){
     
     std::ofstream outputFile(filename, std::ofstream::out) ;
     
@@ -113,45 +134,4 @@ void LoadingSaving::saveVector(std::string filename, vector<double> vec){
     cout<<"Wrote "<<vec.size()<<" numbers to "<<filename<<endl;
 }
 
-//http://stackoverflow.com/questions/7616511/calculate-mean-and-standard-deviation-from-a-vector-of-samples-in-c-using-boos
-
-void LoadingSaving::summary(std::vector<double> v){
-    double sum = std::accumulate(v.begin(), v.end(), 0.0);
-    double mean = sum / v.size();
-    
-    double sq_sum = std::inner_product(v.begin(), v.end(), v.begin(), 0.0);
-    double std = std::sqrt(sq_sum / v.size() - mean * mean);
-    
-    std::sort(v.begin(),v.end());
-    double min=v[0];
-    double firstQuantile=v[v.size()*0.25];
-    double median=v[v.size()*0.5];
-    double thirdQuantile=v[v.size()*0.75];
-    double max=v[v.size()-1];
-    
-    cout<<"Summary of "<<v.size()<<" bucket sizes:"<<endl;
-    cout<<"Min\t.25\tMed\tMean\t.75\tMax \tStd"<<endl;
-    cout<<min<<" \t"<<firstQuantile<<" \t"<<median<<" \t"<<round(mean*100)*0.01<<" \t"<<thirdQuantile<<" \t"<<max<<" \t"<<round(std*100)*0.01<<endl;
-    
-    
-    
-    
-    
-    /*std::vector<double> diff(v.size());
-    std::transform(v.begin(), v.end(), diff.begin(),
-                   std::bind2nd(std::minus<double>(), mean));
-    double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-    double stdev = std::sqrt(sq_sum / v.size());
-    
-    
-    double sum = std::accumulate(std::begin(v), std::end(v), 0.0);
-    double m =  sum / v.size();
-    
-    double accum = 0.0;
-    std::for_each (std::begin(v), std::end(v), [&](const double d) {
-        accum += (d - m) * (d - m);
-    });
-    
-    double stdev = sqrt(accum / (v.size()-1));*/
-    
-}
+} // end ns

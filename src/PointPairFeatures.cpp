@@ -10,17 +10,19 @@
 
 #include <iostream>     // std::cout, std::fixed
 #include <iomanip>      // std::setprecision
+#include "PPF.h"
+#include "math.h"
 
 namespace PointPairFeatures{
 
-Projective3d getTransformationBetweenPointClouds(MatrixXd mSmall, MatrixXd sSmall){
+Isometry3f getTransformationBetweenPointClouds(MatrixXf mSmall, MatrixXf sSmall){
 
     GlobalModelDescription map =  buildGlobalModelDescription(mSmall);
 
     return getTransformationBetweenPointClouds(mSmall,sSmall,map);
 }
 
-Projective3d getTransformationBetweenPointClouds(MatrixXd mSmall, MatrixXd sSmall, GlobalModelDescription map){
+Isometry3f getTransformationBetweenPointClouds(MatrixXf mSmall, MatrixXf sSmall, GlobalModelDescription map){
 
     MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
 
@@ -73,12 +75,12 @@ KeyBucketPairList print10(GlobalModelDescription &mymap) {
 }
 
 
-GlobalModelDescription buildGlobalModelDescription(MatrixXd m){
+GlobalModelDescription buildGlobalModelDescription(MatrixXf m){
     int Nm=m.rows();
     cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts"<<endl;
 
     
-    RowVectorXd p1(6),p2(6);
+    RowVectorXf p1(6),p2(6);
 
     
     GlobalModelDescription map;
@@ -121,14 +123,14 @@ GlobalModelDescription buildGlobalModelDescription(MatrixXd m){
     
 }
 
-std::pair<Matches, vector<int> > matchSceneAgainstModel(MatrixXd s, GlobalModelDescription model){
+std::pair<Matches, vector<int> > matchSceneAgainstModel(MatrixXf s, GlobalModelDescription model){
     long Sm=s.rows(); //number of model sample points
     int numberOfSceneRefPts=sceneRefPtsFraction*Sm;
     cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
 
     Matches matches;
 
-    RowVectorXd p1(6),p2(6);
+    RowVectorXf p1(6),p2(6);
 
     vector<int> sceneIndexToI;
 
@@ -245,7 +247,7 @@ double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
     return alpha;
 }
 
-Poses computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s,vector<int> sceneIndexToI){
+Poses computePoses(vector<MatrixXi> accVec, MatrixXf m, MatrixXf s,vector<int> sceneIndexToI){
     cout<<"PointPairFeatures::computePoses"<<endl;
 
     Poses vec;
@@ -262,10 +264,10 @@ Poses computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s,vector<int> s
         double alpha=alphaD*dangle;
 
         //ref points (just one, not both of the ppf)
-        RowVectorXd modelRefPt = m.row(mr);
-        RowVectorXd sceneRefPt = s.row(sr);
+        RowVectorXf modelRefPt = m.row(mr);
+        RowVectorXf sceneRefPt = s.row(sr);
 
-        Projective3d P = alignSceneToModel(sceneRefPt,modelRefPt,alpha);
+        Isometry3f P = alignSceneToModel(sceneRefPt,modelRefPt,alpha);
 
         vec.push_back(std::make_pair(P,score));
     }
@@ -273,16 +275,16 @@ Poses computePoses(vector<MatrixXi> accVec, MatrixXd m, MatrixXd s,vector<int> s
     return vec;
 }
 
-Projective3d alignSceneToModel(RowVectorXd q1, RowVectorXd p1, double alpha){
-    //Projective3d Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
-    Projective3d Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
+Isometry3f alignSceneToModel(RowVectorXf q1, RowVectorXf p1, double alpha){
+    //Isometry3f Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
+    Isometry3f Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
 
-    AngleAxisd Rx(alpha, Vector3d::UnitX());
+    AngleAxisf Rx(alpha, Vector3f::UnitX());
 
-    //Projective3d Tmg(ppfModel.T);
-    Projective3d Tmg = PPF::twistToLocalCoords(p1.head(3),p1.tail(3));
+    //Isometry3f Tmg(ppfModel.T);
+    Isometry3f Tmg = PPF::twistToLocalCoords(p1.head(3),p1.tail(3));
 
-    Projective3d Pest(Tgs*Rx*Tmg);
+    Isometry3f Pest(Tgs*Rx*Tmg);
 
     return Pest;
 }
@@ -298,12 +300,12 @@ bool isClusterSimilar(Poses cluster1, Poses cluster2){
     return true;
 }
 
-bool isPoseSimilar(Projective3d P1, Projective3d P2){
-    Vector3d    tra1 = P1.translation();
-    Quaterniond rot1(P1.rotation());
+bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
+    Vector3f    tra1 = P1.translation();
+    Quaternionf rot1(P1.linear());
 
-    Vector3d    tra2 = P2.translation();
-    Quaterniond rot2(P2.rotation());
+    Vector3f    tra2 = P2.translation();
+    Quaternionf rot2(P2.linear());
 
 
 
@@ -336,6 +338,20 @@ bool isPoseSimilar(Projective3d P1, Projective3d P2){
     return false;
 }
 
+bool isPoseCloseToIdentity(Isometry3f P1, float eps){
+    Vector3f    tra1 = P1.translation();
+    Quaternionf rot1(P1.linear());
+
+    //Translation
+    float diff_tra=tra1.norm();
+    //Rotation
+    Vector3f rot1V(rot1.x(),rot1.y(),rot1.z());  //w should be close to 1
+    float diff_rot=rot1V.norm();
+
+    return diff_tra < eps && diff_rot < eps;
+
+}
+
 void printPose(Pose pose,string title){
     if(title!="") title+=" ";
     cout<< title <<"score : "<<pose.second<<endl;
@@ -343,11 +359,11 @@ void printPose(Pose pose,string title){
 }
 
 
-void printPose(Projective3d P,string title){
+void printPose(Isometry3f P,string title){
     //cout<<P.matrix()<<endl;
-    Vector3d tra(P.translation());
-    Quaterniond q(P.rotation());
-    Vector4d rot(q.x(),q.y(),q.z(),q.w());
+    Vector3f tra(P.translation());
+    Quaternionf q(P.linear());
+    Vector4f rot(q.x(),q.y(),q.z(),q.w());
     //cout<<setprecision(3);
     if(title!="") cout<<title<<endl;
     cout<<"tra: "<<tra.transpose()<<endl;
@@ -405,13 +421,13 @@ vector<Poses> clusterPoses (Poses vec){
 
 Pose averagePosesInCluster(Poses cluster){
     //cout<<cluster.size()<<endl;
-    Vector3d tra(0,0,0);
-    Vector4d rot(0,0,0,0); //w,x,y,z
+    Vector3f tra(0,0,0);
+    Vector4f rot(0,0,0,0); //w,x,y,z
     int votes=0;
     for(Pose pose : cluster){
         tra += pose.first.translation(); //TODO: maybe weight using number of votes?
-        Quaterniond q = Quaterniond(pose.first.rotation());
-        rot += Vector4d(q.x(),q.y(),q.z(),q.w());  //w last http://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html#ad90ae48f7378bb94dfbc6436e3a66aa2
+        Quaternionf q = Quaternionf(pose.first.linear());
+        rot += Vector4f(q.x(),q.y(),q.z(),q.w());  //w last http://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html#ad90ae48f7378bb94dfbc6436e3a66aa2
         votes += pose.second;
     }
     tra /= cluster.size();
@@ -426,11 +442,55 @@ Pose averagePosesInCluster(Poses cluster){
     // http://objectmix.com/graphics/132645-averaging-quaternions-2.html
     rot /= cluster.size();
 
-    Projective3d P = Translation3d(tra)*Quaterniond(rot);
+    Isometry3f P = Translation3f(tra)*Quaternionf(rot);
 
     return std::make_pair(P,votes);
 
 }
+
+Vector4f avg_quaternion_markley(MatrixXf Q){
+    Matrix4f A = Matrix4f::Zero();
+    int M = Q.rows();
+
+    for(int i=0; i<M; i++){
+        Vector4f q = Q.row(i);
+        A = q*q.adjoint() + A;
+    }
+
+    A=(1.0/M)*A;
+
+
+    SelfAdjointEigenSolver<MatrixXf> eig(A);
+//    cout<<"A"<<endl<<A<<endl;
+//    cout<<"vecs"<<endl<<eig.eigenvectors()<<endl;
+//    cout<<"vals"<<endl<<eig.eigenvalues()<<endl;
+    Vector4f qavg=eig.eigenvectors().col(3);
+    return qavg;
+}
+
+
+
+Vector4f avg_quaternion_markley(Poses cluster){
+
+    int M = cluster.size();
+    MatrixXf Q(M,4);
+
+    for(int i=0; i<M; i++){
+        Pose p = cluster[i];
+        Quaternionf q = Quaternionf(p.first.linear());
+        RowVector4f rot = RowVector4f(q.x(),q.y(),q.z(),q.w());
+        Q.row(i)=rot;
+    }
+
+
+    return avg_quaternion_markley(Q);
+}
+
+Quaternionf avg_quaternion_markleyQ(Poses cluster){
+    Vector4f q=avg_quaternion_markley(cluster);
+    return Quaternionf(q(0),q(1),q(2),q(3));
+}
+
 
 Poses sortPoses(Poses vec){
     //cout<<"clusterPoses"<<endl;
@@ -456,25 +516,25 @@ Poses averagePosesInClusters(vector<Poses> clusters){
     return vec;
 }
 
-void err(Projective3d P, Pose PoseEst){
+void err(Isometry3f P, Pose PoseEst){
     cout<<"//------- Error between P_gold and P_est with "<<PoseEst.second<<" votes --------\\"<<endl;
-    Projective3d Pest=PoseEst.first;
+    Isometry3f Pest=PoseEst.first;
     err(P,Pest);
 }
 
-void err(Projective3d P, Projective3d Pest){
-    Vector3d tra(P.translation());
-    Quaterniond q(P.rotation());
-    Vector4d rot(q.x(),q.y(),q.z(),q.w());
+void err(Isometry3f P, Isometry3f Pest){
+    Vector3f tra(P.translation());
+    Quaternionf q(P.linear());
+    Vector4f rot(q.x(),q.y(),q.z(),q.w());
 
-    Vector3d tra_est(Pest.translation());
-    Quaterniond qest(Pest.rotation());
-    Vector4d rot_est(qest.x(),qest.y(),qest.z(),qest.w());
+    Vector3f tra_est(Pest.translation());
+    Quaternionf qest(Pest.linear());
+    Vector4f rot_est(qest.x(),qest.y(),qest.z(),qest.w());
 
-    Vector3d tra_diff = (tra - tra_est);
+    Vector3f tra_diff = (tra - tra_est);
     double tra_error=tra_diff.array().cwiseAbs().sum();
 
-    Vector4d rot_diff = (rot - rot_est);
+    Vector4f rot_diff = (rot - rot_est);
     double rot_error=rot_diff.array().cwiseAbs().sum();
 
 //    if(rot_error>1.5){

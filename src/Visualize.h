@@ -20,10 +20,9 @@
 //#include "GL\glut.h"
 
 #if defined (__APPLE__) || defined(MACOSX)
- //MAC
- #include <OpenGL/gl.h>
- #include <GLUT/GLUT.h>
- #define glutLeaveMainLoop() exit(0)
+    //MAC
+    #include <OpenGL/gl.h>
+    #include <GL/freeglut.h>
 #else
  //LINUX
  #include "GL/freeglut.h"
@@ -46,10 +45,13 @@ class Visualize {
 public:
     static void start();       //starts the visualisation async
     static void update();
-    static void waitKey(unsigned char key); //wait in another thread for keypress in opengl window
+    static bool waitKey(unsigned char key); //wait in another thread for keypress in opengl window
     static void waitKeyQuit(); //waits till q is pressed, joins the threads
 
     static void visualize();  //blocks
+
+    static void spin();
+    static void spin(int iterations);
 
 
     //TODO: mimic opencv's Viz
@@ -60,9 +62,13 @@ public:
     static Visualize* getInstance();
 
     KeyBucketPairList b;
-    MatrixXd model,scene,modelT;
+    MatrixXf model,scene,modelT;
     Matches matches;
-    vector< pair<MatrixXd, RowVector3f> > ms;
+    vector< pair<MatrixXf, RowVector3f> > ms;
+
+    vector<int> closestPtsSceneToModel;
+
+    vector<Vector3f> src,dst;
 
     int current_object;
 
@@ -96,19 +102,19 @@ private:
     
     GLfloat offsetY,offsetX;
     
-    const static int WINDOW_SIZE = 512;
+    const static int WINDOW_SIZE = 800;
     
     void bucketInfo();
 
     static Visualize *instance;
     
-    MatrixXd m;
+    //MatrixXf m;
 
     unsigned char lastKey;
 
     std::thread* visThread;
 
-    void waitKeyInst(unsigned char key);
+    bool waitKeyInst(unsigned char key);
 
     int bucketIndex;
     int matchIndex;
@@ -120,16 +126,21 @@ private:
     void drawCylinder(double r, double l);
     void drawOrigin();
 
-    void drawNormals(MatrixXd m,RowVector3f color);
-    void drawPointCloud(MatrixXd m, RowVector3f color, float pointSize = 4.0f);
-    void drawPPF(int i, int j, MatrixXd m);
-    void drawPPfs(Bucket, MatrixXd m);
-    void drawCubes(MatrixXd C, double size);
+    void drawNormals(MatrixXf m,RowVector3f color);
+    void drawPointCloud(MatrixXf m, RowVector3f color, float pointSize = 4.0f);
+    void drawPPF(int i, int j, MatrixXf m);
+    void drawPPfs(Bucket, MatrixXf m);
+
+    void drawLines(vector<int> vertices);
+
+    void drawLines(vector<Vector3f> v1, vector<Vector3f> v2);
+
+    void drawCubes(MatrixXf C, double size);
     void drawMatches(Matches matches);
     void printMatches(Matches matches);
 
 
-    void drawAll(MatrixXd m, RowVector3f color, RowVector3f colorNormals);
+    void drawAll(MatrixXf m, RowVector3f color, RowVector3f colorNormals);
 
 
 

@@ -22,19 +22,30 @@ using namespace std;
 
 namespace PointCloudManipulation {
     
-    double getPointCloudDiameter(MatrixXd m);
-    MatrixXd projectPointsAndNormals(Projective3d P, MatrixXd C);
-    MatrixXd reestimateNormals(MatrixXd C);
-    MatrixXd downSample(MatrixXd C, bool useCenter);
-    MatrixXd translateCentroidToOrigin(MatrixXd C);
+    double getPointCloudDiameter(MatrixXf m);
+    MatrixXf projectPointsAndNormals(Isometry3f P, MatrixXf C);
+    pair<MatrixXf,VectorXf> reestimateNormals(MatrixXf C);
+    MatrixXf downSample(MatrixXf C, bool useCenter);
+    MatrixXf translateCentroidToOrigin(MatrixXf C);
 
-    Translation3d getTranslationToCentroid(MatrixXd C);
+    Translation3f getTranslationToCentroid(MatrixXf C);
+
+    Vector3f getCentroid(vector<Vector3f> pts);
+
+    vector<int> getClosesPoints(MatrixXf modelPoseEst, MatrixXf sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+    float thresh);
 
 }
 
 namespace ICP {
+
+
     Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,Vector3f &a,Vector3f &b,bool withScale);
     Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor);
+    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,bool withScale);
+
+    //Isometry3f computeStepUnordered(MatrixXf modelPoseEst, MatrixXf sSmall, float thresh);
+
 }
 
 #endif /* defined(__PointPairFeatures__PointCloudManipulation__) */
