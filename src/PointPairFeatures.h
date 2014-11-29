@@ -24,12 +24,11 @@ using namespace std;
 
 namespace PointPairFeatures{
 
-    Isometry3f getTransformationBetweenPointClouds(MatrixXf m, MatrixXf s);
+    Isometry3f getTransformationBetweenPointClouds(PointCloud m, PointCloud s);
 
-    Isometry3f getTransformationBetweenPointClouds(MatrixXf m, MatrixXf s, GlobalModelDescription model);
+    //trained model contains m, traToCentroid, as well as GlobalModelDescription (discretised ppf's buckets)
+    Isometry3f getTransformationBetweenPointClouds(TrainedModel trainedModel,PointCloud s);
 
-
-    
     //long numberOfSceneRefPts,Nm;
     //vector<int> sceneIndexToI;
 
@@ -43,16 +42,17 @@ namespace PointPairFeatures{
 
     bool isClusterSimilar(Poses cluster1, Poses cluster2);
 
-    
-    GlobalModelDescription buildGlobalModelDescription(MatrixXf m);
-    MatchesWithSceneRefIdx matchSceneAgainstModel(MatrixXf s, GlobalModelDescription model);
+    TrainedModel trainModel(PointCloud m);
+
+    GlobalModelDescription buildGlobalModelDescription(PointCloud m);
+    MatchesWithSceneRefIdx matchSceneAgainstModel(PointCloud s, GlobalModelDescription model);
     vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
-    Poses computePoses(vector<MatrixXi> acc,MatrixXf m, MatrixXf s, vector<int> sceneIndexToI);
+    Poses computePoses(vector<MatrixXi> acc,PointCloud m, PointCloud s, vector<int> sceneIndexToI);
 
 
     double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
 
-    Isometry3f alignSceneToModel(RowVectorXf sceneRefPt, RowVectorXf modelRefPt, double angleAroundXAxis);
+    Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double angleAroundXAxis);
 
 
     vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene

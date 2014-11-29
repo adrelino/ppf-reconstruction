@@ -68,7 +68,7 @@ ENDIF(Glew_LIBRARY)
 
 add_definitions(-std=c++11)
 
-
+include_directories(src/viz/)
 
 
 find_package(OpenCV)
@@ -83,6 +83,7 @@ LINK_DIRECTORIES()
 set(SOURCE_FILES
     src/Constants.h
     src/RandomN.h
+    src/pointcloud.cpp
 
     src/LoadingSaving.cpp
     src/PointCloudManipulation.cpp
@@ -91,41 +92,54 @@ set(SOURCE_FILES
     src/PointPairFeatures.cpp
 )
 
+add_executable(
+    sequence
+    MACOSX_BUNDLE
+    src/mainSequence.cpp
+    ${SOURCE_FILES}
+)
+target_link_libraries(sequence ${OpenCV_LIBS} ${Freeglut_LIBRARY} ${OPENGL_LIBRARIES})
+add_custom_command(TARGET sequence PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:sequence>/bunny)
 
+
+
+
+set(VIZ
+    src/Visualize.cpp
+    src/viz/cameraSimple.h
+    src/viz/frustum.h
+)
 add_executable(
     main
     src/main.cpp
     ${SOURCE_FILES}
-    src/Visualize.cpp
+    ${VIZ}
 )
 target_link_libraries(main ${Glew_LIBRARY} ${Freeglut_LIBRARY} ${OPENGL_LIBRARIES} )
 add_custom_command(TARGET main PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:main>/bunny)
 
+
 add_executable(
     viz
+    MACOSX_BUNDLE
     src/mainOpenCVViz.cpp
 )
 target_link_libraries(viz ${OpenCV_LIBS})
 
 add_executable(
     viz2
+MACOSX_BUNDLE
     src/mainTransformations.cpp
 )
 target_link_libraries(viz2 ${OpenCV_LIBS})
 
-add_executable(
-    sequence
-    src/mainSequence.cpp
-    ${SOURCE_FILES}
-)
-target_link_libraries(sequence ${OpenCV_LIBS})
-add_custom_command(TARGET sequence PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:sequence>/bunny)
 
 add_executable(
     frameToModel
     src/main_frameToModel.cpp
     ${SOURCE_FILES}
-    src/Visualize.cpp
+    ${VIZ}
+
 )
 target_link_libraries(frameToModel ${Glew_LIBRARY} ${Freeglut_LIBRARY} ${OPENGL_LIBRARIES} )
 add_custom_command(TARGET frameToModel PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel>/bunny)
@@ -151,6 +165,8 @@ if (GTEST_FOUND)
     tests/testHelpers.h
     )
   target_link_libraries(runTests ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+  add_custom_command(TARGET runTests PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:runTests>/bunny)
+
 else()
   message("GTest was not found - testcases can and will not be build")
 endif()

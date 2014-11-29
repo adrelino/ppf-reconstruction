@@ -16,7 +16,7 @@ using namespace std;
 
 int main(int argc, char * argv[])
 {
-    MatrixXf m=PointCloudManipulation::downSample(LoadingSaving::loadMatrixXf("bunny/scene.xyz"),false);
+    PointCloud m=PointCloudManipulation::downSample(LoadingSaving::loadPointCloud("bunny/scene.xyz"),false);
     Quaternionf q=Quaternionf::Identity();
     q = q * AngleAxisf(deg2rad(10), Vector3f::UnitX());
     q = q * AngleAxisf(deg2rad(-20),Vector3f::UnitY());
@@ -28,25 +28,23 @@ int main(int argc, char * argv[])
 
     Isometry3f P = Translation3f(tra)*Quaternionf(rot);
     PointPairFeatures::printPose(P,"P_original:");
-    MatrixXf s=PointCloudManipulation::projectPointsAndNormals(P, m);
+    PointCloud s=PointCloudManipulation::projectPointsAndNormals(P, m);
 
     //now we simulate that there is a ppf correspondence between first row of sSmall and sSmallProjected
 
     //PPF:planarRotationAngle
-    RowVectorXf p1(6),p2(6);
-    p1=m.row(0);
-    p2=m.row(1); //model
-    PPF ppfModel = PPF::makePPF(p1,p2,0,1);  //also gets alpha-> planar rot angle to local coords
+    PPF ppfModel(m,0,1);  //also gets alpha-> planar rot angle to local coords
+    PPF ppfScene(s,0,1);  //also gets alpha-> planar rot angle to local coords
 
-    RowVectorXf q1(6),q2(6);
-    q1=s.row(0);
-    q2=s.row(1); //scene
-    PPF ppfScene = PPF::makePPF(q1,q2,0,1);  //also gets alpha-> planar rot angle to local coords
+    double alpha =PointPairFeatures::getAngleDiffMod2Pi(ppfModel.alpha, ppfScene.alpha);
 
+    Vector3f s_m=s.pts[0];
+    Vector3f s_n=s.nor[0];
 
-    double alpha = PointPairFeatures::getAngleDiffMod2Pi(ppfModel.alpha, ppfScene.alpha);
+    Vector3f m_m=m.pts[0];
+    Vector3f m_n=m.nor[0];
 
-    Isometry3f Pest = PointPairFeatures::alignSceneToModel(q1,p1,alpha);
+    Isometry3f Pest = PointPairFeatures::alignSceneToModel(s_m,s_n,m_m,m_n,alpha);
 
     PointPairFeatures::printPose(Pest,"P_est:");
 

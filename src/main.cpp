@@ -19,14 +19,22 @@ int main(int argc, char * argv[])
 
     Visualize* inst = Visualize::getInstance();
 
-    MatrixXf m=LoadingSaving::loadMatrixXf("bunny/model.xyz"); //bunny/cloudXYZ_0.xyz");
-    MatrixXf mSmall=PointCloudManipulation::downSample(m,false);
+    //PointCloud m=LoadingSaving::loadPointCloud("bunny/model.xyz"); //bunny/cloudXYZ_0.xyz");
+    PointCloud m=LoadingSaving::loadPointCloud("bunny/bunny_smoothNormals.xyz");
+    PointCloud mSmall=PointCloudManipulation::downSample(m,false);
+
+
+    PointCloud s=LoadingSaving::loadPointCloud("bunny/bunny_smoothNormals.xyz",400);
+    PointCloud sSmall=PointCloudManipulation::downSample(s,false);
+    PointCloudManipulation::reestimateNormals(sSmall,0.015f);
+
+    PointCloudManipulation::reestimateNormals(mSmall,0.015f);
     Translation3f traCentroid=PointCloudManipulation::getTranslationToCentroid(mSmall);
     mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmall);
     
-    MatrixXf s=LoadingSaving::loadMatrixXf("bunny/scene.xyz");
-    MatrixXf sSmall=PointCloudManipulation::downSample(s,false);
-    sSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),sSmall);
+//    PointCloud s=LoadingSaving::loadPointCloud("bunny/scene.xyz");
+//    PointCloud sSmall=PointCloudManipulation::downSample(s,false);
+//    sSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),sSmall);
 
     Quaternionf q=Quaternionf::Identity();
     q = q * AngleAxisf(deg2rad(-30), Vector3f::UnitX());
@@ -42,14 +50,14 @@ int main(int argc, char * argv[])
     PointPairFeatures::printPose(P,"P_original:");
     sSmall=PointCloudManipulation::projectPointsAndNormals(P, sSmall);
 
-    Visualize::visualize();
+    //Visualize::visualize();
 
     inst->model=mSmall;
     inst->scene=sSmall;
 
     cout<<"initial setup scene and model, press q to continue"<<endl;
 
-    Visualize::spin(5);
+    //Visualize::spin();
 
 
     Isometry3f Pest=PointPairFeatures::getTransformationBetweenPointClouds(mSmall,sSmall);
@@ -59,7 +67,7 @@ int main(int argc, char * argv[])
 
 
     Isometry3f P_Iterative_ICP = Pest; //initialize with ppf coarse alignment
-    MatrixXf modelPoseEst;
+    PointCloud modelPoseEst;
 
     for (int i = 0; i < 100; ++i) {  //5 ICP steps
         modelPoseEst=PointCloudManipulation::projectPointsAndNormals(P_Iterative_ICP, mSmall);

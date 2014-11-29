@@ -12,21 +12,43 @@
 #include <iomanip>      // std::setprecision
 #include "PPF.h"
 #include "math.h"
+#include "PointCloudManipulation.h"
 
 namespace PointPairFeatures{
 
-Isometry3f getTransformationBetweenPointClouds(MatrixXf mSmall, MatrixXf sSmall){
+TrainedModel trainModel(PointCloud mSmallOriginal){
+    //demean model to make rotation more invariant
+    Translation3f traCentroid=Translation3f::Identity();// PointCloudManipulation::getTranslationToCentroid(mSmallOriginal);
+
+    //cout<<"trainModel centroid"<<traCentroid.vector()<<endl;
+    PointCloud mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmallOriginal);
 
     GlobalModelDescription map =  buildGlobalModelDescription(mSmall);
 
-    return getTransformationBetweenPointClouds(mSmall,sSmall,map);
+    TrainedModel trainedModel;
+    trainedModel.centroid=traCentroid;
+    trainedModel.mSmall=mSmall;
+    trainedModel.modelDescr=map;
+
+    return trainedModel;
 }
 
-Isometry3f getTransformationBetweenPointClouds(MatrixXf mSmall, MatrixXf sSmall, GlobalModelDescription map){
+
+Isometry3f getTransformationBetweenPointClouds(PointCloud mSmallOriginal, PointCloud sSmall){
+
+    TrainedModel trainedModel = trainModel(mSmallOriginal);
+
+    return getTransformationBetweenPointClouds(trainedModel,sSmall);
+}
+
+Isometry3f getTransformationBetweenPointClouds(TrainedModel model, PointCloud sSmall){
+
+    GlobalModelDescription map = model.modelDescr;
+    PointCloud mSmall = model.mSmall;
 
     MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
 
-    vector<MatrixXi> accVec = voting(pair,mSmall.rows());
+    vector<MatrixXi> accVec = voting(pair,mSmall.pts.size());
 
     Poses Pests = computePoses(accVec, mSmall, sSmall,pair.second);
 
@@ -34,7 +56,15 @@ Isometry3f getTransformationBetweenPointClouds(MatrixXf mSmall, MatrixXf sSmall,
 
     Pests = averagePosesInClusters(clusters);
 
-    return Pests[0].first;
+    Isometry3f P_meaned = Pests[0].first;
+
+    cout<<"Pmean "<<P_meaned.matrix()<<endl;
+
+    Isometry3f P_demeaned = Isometry3f(model.centroid).inverse() * P_meaned;
+
+    cout<<"Pdemean "<<P_demeaned.matrix()<<endl;
+
+    return P_demeaned;
 }
 
 
@@ -75,35 +105,24 @@ KeyBucketPairList print10(GlobalModelDescription &mymap) {
 }
 
 
-GlobalModelDescription buildGlobalModelDescription(MatrixXf m){
-    int Nm=m.rows();
+
+GlobalModelDescription buildGlobalModelDescription(PointCloud m){
+    int Nm=m.pts.size();
     cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts"<<endl;
-
-    
-    RowVectorXf p1(6),p2(6);
-
     
     GlobalModelDescription map;
-    
     
     int numPPFs=0;
     
     for (int i=0; i<Nm; i++) {
-        p1=m.row(i);
         for (int j=0; j<Nm; j++) {
             if(i==j) continue;
-            p2=m.row(j);
-            
-            //p1 << 0,0,0,  1,0,0;
-            //p2 << 1,1,0,  0,1,0;
-            
-            //std::cout << p1 << std::endl;
-            //std::cout << p2 << std::endl;
+
             numPPFs++;
             
-            PPF ppf=PPF::makePPF(p1,p2,i,j);
+            PPF ppf(m,i,j);
             
-            map[ppf].push_back(ppf);
+            map[ppf.hashKey()].push_back(ppf); //calls the hasher function
         }
     }
     
@@ -123,32 +142,27 @@ GlobalModelDescription buildGlobalModelDescription(MatrixXf m){
     
 }
 
-std::pair<Matches, vector<int> > matchSceneAgainstModel(MatrixXf s, GlobalModelDescription model){
+std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalModelDescription model){
     long Sm=s.rows(); //number of model sample points
     int numberOfSceneRefPts=sceneRefPtsFraction*Sm;
     cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
 
     Matches matches;
 
-    RowVectorXf p1(6),p2(6);
-
     vector<int> sceneIndexToI;
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
-        
+
         int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
-        //i=index;//Testing
-        p1=s.row(i);
         sceneIndexToI.push_back(i);
         
         for (int j=0; j<s.rows(); j++) {
             if(i==j) continue;
-            p2=s.row(j);
                         
-            PPF ppf = PPF::makePPF(p1,p2,i,j);
+            PPF ppf(s,i,j);
             ppf.index=index;
             
-            auto it = model.find(ppf);
+            auto it = model.find(ppf.hashKey());
             
             if(it != model.end()){
                 Bucket modelBucket = it->second;
@@ -247,7 +261,7 @@ double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
     return alpha;
 }
 
-Poses computePoses(vector<MatrixXi> accVec, MatrixXf m, MatrixXf s,vector<int> sceneIndexToI){
+Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<int> sceneIndexToI){
     cout<<"PointPairFeatures::computePoses"<<endl;
 
     Poses vec;
@@ -264,10 +278,14 @@ Poses computePoses(vector<MatrixXi> accVec, MatrixXf m, MatrixXf s,vector<int> s
         double alpha=alphaD*dangle;
 
         //ref points (just one, not both of the ppf)
-        RowVectorXf modelRefPt = m.row(mr);
-        RowVectorXf sceneRefPt = s.row(sr);
+        Vector3f s_m=s.pts[sr];
+        Vector3f s_n=s.nor[sr];
 
-        Isometry3f P = alignSceneToModel(sceneRefPt,modelRefPt,alpha);
+        Vector3f m_m=m.pts[mr];
+        Vector3f m_n=m.nor[mr];
+
+
+        Isometry3f P = alignSceneToModel(s_m,s_n,m_m,m_n,alpha);
 
         vec.push_back(std::make_pair(P,score));
     }
@@ -275,14 +293,14 @@ Poses computePoses(vector<MatrixXi> accVec, MatrixXf m, MatrixXf s,vector<int> s
     return vec;
 }
 
-Isometry3f alignSceneToModel(RowVectorXf q1, RowVectorXf p1, double alpha){
+Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double alpha){
     //Isometry3f Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
-    Isometry3f Tgs = PPF::twistToLocalCoords(q1.head(3),q1.tail(3)).inverse();
+    Isometry3f Tgs = PPF::twistToLocalCoords(s_m,s_n).inverse();
 
     AngleAxisf Rx(alpha, Vector3f::UnitX());
 
     //Isometry3f Tmg(ppfModel.T);
-    Isometry3f Tmg = PPF::twistToLocalCoords(p1.head(3),p1.tail(3));
+    Isometry3f Tmg = PPF::twistToLocalCoords(m_m,m_n);
 
     Isometry3f Pest(Tgs*Rx*Tmg);
 

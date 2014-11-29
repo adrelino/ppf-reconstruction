@@ -11,38 +11,48 @@
 #include <eigen3/Eigen/Geometry>
 #include <math.h>
 
-PPF PPF::makePPF(RowVectorXf p1,RowVectorXf p2, int i, int j){
-    PPF p;
-    p.i=i;
-    p.j=j;
-    p.pointPairFeature(p1.head(3), p2.head(3), p1.tail(3), p2.tail(3));
-    return p;
+//Constructor
+PPF::PPF(PointCloud C, int i, int j){
+    this->i=i;
+    this->j=j;
+
+    //TODO
+    //Vector<uint8_t,4> fd;
+
+    Vector3f m1=C.pts[i];
+    Vector3f n1=C.nor[i];
+    Vector3f m2=C.pts[j];
+    Vector3f n2=C.nor[j];
+
+    Vector4f f = computePPF(m1,n1,m2,n2);
+
+    //discretise
+    d=f.x()/ddist;
+    n1d=f.y()/dangle;
+    n2d=f.z()/dangle;
+    n1n2=f.w()/dangle;
+
+    //calculate angle
+    alpha = planarRotAngle(m1,n1,m2);
 }
 
 //F(m1, m2) = (∥d∥2, ∠(n1, d), ∠(n2, d), ∠(n1, n2)),
-void PPF::pointPairFeature(RowVector3f m1,RowVector3f m2,RowVector3f n1,RowVector3f n2){
-    this->m1=m1;this->m2=m2;this->n1=n1;this->n2=n2;
-    
-    RowVector3f dist = m2-m1;
-    RowVector3f dn=dist.normalized(), n1n=n1.normalized(), n2n=n2.normalized();
-    
-    _d= dist.norm(); //Euclidean distance
-    _n1d=acos(n1n.dot(dn));
-    _n2d=acos(n2n.dot(dn));
-    _n1n2=acos(n1n.dot(n2n));
-    
-    //discretise
-    d=_d/ddist;
-    n1d=_n1d/dangle;
-    n2d=_n2d/dangle;
-    n1n2=_n1n2/dangle;
-    
-    planarRotAngle();
+Vector4f PPF::computePPF(Vector3f m1, Vector3f n1, Vector3f m2, Vector3f n2){
+    Vector4f f;
+    Vector3f dist = m1-m2;
+    Vector3f dn=dist.normalized();
+
+    f.x() = dist.norm(); //Euclidean distance
+    f.y() = acos(n1.dot(dn));
+    f.z() = acos(n2.dot(dn));
+    f.w() = acos(n1.dot(n2));
+
+    return f;
 }
 
 void PPF::print(){
-    cout <<"{"<< i <<","<< j<<"} ";
-    cout<<_d<<" "<<(180*_n1d/M_PI)<<" "<<(180*_n2d/M_PI)<<" "<<(180*_n1n2/M_PI)<<endl;
+    //cout <<"{"<< i <<","<< j<<"} ";
+    cout<<d<<" "<<(180*n1d/M_PI)<<" "<<(180*n2d/M_PI)<<" "<<(180*n1n2/M_PI)<<endl;
 }
 
 
@@ -51,39 +61,42 @@ bool PPF::operator==(const PPF &o) const{
 }
 
 //hashCode so we can insert this class in unordered_map as key directly
-std::size_t PPF::operator()(const PPF& k) const
+//int PPF::operator()(const PPF& k) const
+int PPF::hashKey()
 {
     //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
     
-    return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
+    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
+
+    int hashKey = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
+
+    return hashKey;
 }
 
-void PPF::planarRotAngle(){
+double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
     //cout<<"m1="<<m1<<" n1="<<n1<<endl;
-    Vector3f m=m1.transpose();
-    Vector3f n=n1.transpose().normalized();
 
     Isometry3f T=twistToLocalCoords(m,n); //TODO: think about reuse
-    Matrix4f Pm=T.matrix();
+    //Matrix4f Pm=T.matrix();
     
     //std::cout<<Pm<<endl;
     
     //std::cout<<Pm.size()<<endl;
     //std::cout<<m1.homogeneous().size()<<endl;
     
-    Vector4f mm=m.homogeneous();
-    Vector4f nn=n.homogeneous();
-    nn(3)=0;
+//    Vector4f mm=m.homogeneous();
+//    Vector4f nn=n.homogeneous();
+//    nn(3)=0;
     
 
-    Vector3f m22=m2.transpose(); //m2 only needed to get alpha
+    //Vector3f m22=m2.transpose(); //m2 only needed to get alpha
     //cout<<"mm="<<(Pm*mm).transpose()<<endl;
     //cout<<"nn="<<(Pm*nn).transpose()<<endl;
-    Vector4f m22P=Pm*m22.homogeneous();
+    Vector3f m22P=T*m2;
     //cout<<"mm2="<<m22P.transpose()<<endl;
     
-    alpha=atan2(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
-
+    double alpha=atan2(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
+    return alpha;
     
 
     //cout<<"transformed"<<endl;

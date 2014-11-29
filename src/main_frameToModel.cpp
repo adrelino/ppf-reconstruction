@@ -19,42 +19,46 @@ int main(int argc, char * argv[])
 {
     Visualize* inst = Visualize::getInstance();
 
-    MatrixXf m=LoadingSaving::loadMatrixXf("bunny/model.xyz");
-    MatrixXf mSmall=PointCloudManipulation::downSample(m,false);
+    PointCloud m=LoadingSaving::loadPointCloud("bunny/model.xyz");
+
+    PointCloud mSmall=PointCloudManipulation::downSample(m,false);
+    PointCloudManipulation::reestimateNormals(mSmall,0.015f);
+
+
     Translation3f traCentroid=PointCloudManipulation::getTranslationToCentroid(mSmall);
+
     mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmall);
 
+    inst->model=mSmall;
 
-    inst->model=mSmall; //PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),m);
-    Visualize::visualize();
+    Visualize::spin();
 
-
-    GlobalModelDescription model = PointPairFeatures::buildGlobalModelDescription(mSmall);
+    TrainedModel trainedModel = PointPairFeatures::trainModel(mSmall);
 
     for(int i=0; i<=36; i+=2){
         stringstream ss,ss1,ss2;
         ss<<"bunny/depth-cloud/cloudXYZ_"<<i<<".xyz";
-        MatrixXf cloud=LoadingSaving::loadMatrixXf(ss.str());
+        PointCloud cloud=LoadingSaving::loadPointCloud(ss.str());
 
-        ss1<<"bunny/depth-poses/poses_"<<i<<".txt";
-        Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
+//        ss1<<"bunny/depth-poses/poses_"<<i<<".txt";
+//        Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
+//        ss2<<"P:"<<i<<endl;
+//        PointPairFeatures::printPose(P,ss2.str());
+//        cloud=PointCloudManipulation::projectPointsAndNormals(P, cloud);
 
-        ss2.flush();
-        ss2<<"P:"<<i<<endl;
+        PointCloud sSmall=PointCloudManipulation::downSample(cloud,false);
+        PointCloudManipulation::reestimateNormals(sSmall,0.015f);
 
-        PointPairFeatures::printPose(P,ss2.str());
+        Translation3f traCentroid2=PointCloudManipulation::getTranslationToCentroid(sSmall);
+        sSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid2),sSmall);
+        inst->scene=sSmall; //TODO: display in own reference frame
 
-        cloud=PointCloudManipulation::projectPointsAndNormals(P, cloud);
-
-        MatrixXf sSmall=PointCloudManipulation::downSample(cloud,false);
-        inst->scene=sSmall;
-
-        Isometry3f Pg = PointPairFeatures::getTransformationBetweenPointClouds(mSmall,sSmall,model);
+        Isometry3f Pg = PointPairFeatures::getTransformationBetweenPointClouds(trainedModel,sSmall);
 
         PointPairFeatures::printPose(Pg, "Pinitial ppf");
 
         Isometry3f P_Iterative_ICP = Pg; //initialize with ppf coarse alignment
-        MatrixXf cloud2;
+        PointCloud cloud2;
 
         int j = 0;
         for (; j < 100; ++j) {  //5 ICP steps
@@ -75,7 +79,7 @@ int main(int argc, char * argv[])
 
             cout<<"ICP "<<endl;
 
-            Isometry3f P_incemental = ICP::computeStep(src,dst,false);            
+            Isometry3f P_incemental = ICP::computeStep(src,dst,false);
             PointPairFeatures::printPose(P_incemental, "P incremental ICP");
             if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,0.000001)){
                 break;
@@ -103,7 +107,7 @@ int main(int argc, char * argv[])
 
 
 
-        //Visualize::waitKey('g');
+        Visualize::waitKey('g');
 
     }
 

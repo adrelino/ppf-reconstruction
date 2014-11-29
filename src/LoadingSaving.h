@@ -12,14 +12,22 @@
 #include <iostream>
 #include <eigen3/Eigen/Dense>
 #include <vector>
+#include "Constants.h"
 
 namespace LoadingSaving {
     using namespace Eigen;
     using namespace std;
 
+    PointCloud loadPLY(const std::string filename, bool withNormals=true);
+    void savePLY(const std::string filename, PointCloud PC);
+
+
+
     MatrixXi loadMatrixXi(std::string filename);
     MatrixXf loadMatrixXf(std::string filename);
     MatrixXd loadMatrixXd(std::string filename);
+
+    PointCloud loadPointCloud(std::string filename, int ptLimit=-1);
 
     Matrix4f loadMatrix4f(std::string filename);
 

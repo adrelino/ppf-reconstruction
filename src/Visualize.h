@@ -20,15 +20,14 @@
 //#include "GL\glut.h"
 
 #if defined (__APPLE__) || defined(MACOSX)
-    //MAC
-    #include <OpenGL/gl.h>
-    #include <GL/freeglut.h>
+  //MAC
+  #include <OpenGL/gl.h>
+  #include <OpenGL/glu.h>
+  #include <GL/freeglut.h>
 #else
  //LINUX
  #include "GL/freeglut.h"
  #include "GL/gl.h"
-// #include <chrono>
-// #include <thread>
 #endif
 
 #include <eigen3/Eigen/Dense>
@@ -50,21 +49,19 @@ public:
 
     static void visualize();  //blocks
 
+    //mimics opencv's Viz
     static void spin();
     static void spin(int iterations);
-
-
-    //TODO: mimic opencv's Viz
-    //static void spin();
     //static void spinOnce(int millis);
 
     //TODO make private, make better interface
     static Visualize* getInstance();
 
     KeyBucketPairList b;
-    MatrixXf model,scene,modelT;
+    PointCloud model,scene,modelT;
     Matches matches;
-    vector< pair<MatrixXf, RowVector3f> > ms;
+    vector< pair<PointCloud, RowVector3f> > ms;
+    vector<Isometry3f> cameraPoses;
 
     vector<int> closestPtsSceneToModel;
 
@@ -77,18 +74,9 @@ public:
 private:
     Visualize(); // singleton, acces via factory
 
-    bool m_Highlight;
-    bool m_ColorMaterial;
-    bool m_Estimate;
-    bool m_Ambient; //use white as ambient color, not the one set by colorMaterial
-    bool m_Origin;
-    bool m_Normals;
-    bool m_Buckets;
-    bool m_Voxels;
-    bool m_Model;
-    bool m_Scene;
+    bool keyToggle[256];
 
-    bool doUpdate;
+    static bool isInitalized;
 
 
     int modifier;
@@ -126,21 +114,25 @@ private:
     void drawCylinder(double r, double l);
     void drawOrigin();
 
-    void drawNormals(MatrixXf m,RowVector3f color);
-    void drawPointCloud(MatrixXf m, RowVector3f color, float pointSize = 4.0f);
-    void drawPPF(int i, int j, MatrixXf m);
-    void drawPPfs(Bucket, MatrixXf m);
+    void drawNormals(PointCloud m, RowVector3f color);
+    void drawPointCloud(PointCloud C, RowVector3f color, float pointSize = 4.0f);
 
+    void drawPoints(vector<Vector3f> pts, vector<RowVector3f> color, float pointSize = 4.0f);
     void drawLines(vector<int> vertices);
-
     void drawLines(vector<Vector3f> v1, vector<Vector3f> v2);
+    void drawCubes(vector<Vector3f> C, double size);
+    void drawSpheres(vector<Vector3f> C, double radius);
 
-    void drawCubes(MatrixXf C, double size);
+    void drawPPF(int i, int j, PointCloud m);
+    void drawPPfs(Bucket, PointCloud m);
+
+
+
     void drawMatches(Matches matches);
-    void printMatches(Matches matches);
+    //void printMatches(Matches matches);
 
 
-    void drawAll(MatrixXf m, RowVector3f color, RowVector3f colorNormals);
+    void drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormals);
 
 
 

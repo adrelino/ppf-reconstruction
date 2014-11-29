@@ -9,23 +9,29 @@
 #ifndef PointPairFeatures_Params_h
 #define PointPairFeatures_Params_h
 
-#include "PPF.h"
+#include <eigen3/Eigen/Dense>
 #include <vector>
 #include <unordered_map>
+#include "PPF.h"
 
 using namespace std;
 
 //Typedefs
 //
 typedef vector<PPF> Bucket;
-typedef unordered_map<PPF,Bucket,PPF> GlobalModelDescription;
+//key type, value, hasher
+typedef unordered_map<int,Bucket> GlobalModelDescription;
 struct Match {PPF scenePPF; Bucket modelPPFs;};
-typedef std::pair<PPF, Bucket> KeyBucketPair;
+typedef std::pair<int, Bucket> KeyBucketPair;
 typedef vector<KeyBucketPair> KeyBucketPairList;
 typedef vector<Match> Matches;
 typedef pair<Isometry3f,int> Pose;
 typedef vector<Pose> Poses;
 typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
+
+
+
+struct TrainedModel{GlobalModelDescription modelDescr; PointCloud mSmall; Translation3f centroid;};
 
 //Params
 //

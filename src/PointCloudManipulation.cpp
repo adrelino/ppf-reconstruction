@@ -8,34 +8,29 @@
 
 #include "PointCloudManipulation.h"
 
-double PointCloudManipulation::getPointCloudDiameter(MatrixXf m){
-    VectorXf X=m.col(0);
-    VectorXf Y=m.col(1);
-    VectorXf Z=m.col(2);
-    
-    //cout<<X<<endl;
-    
-    double x=X.maxCoeff()-X.minCoeff();
-    double y=Y.maxCoeff()-Y.minCoeff();
-    double z=Z.maxCoeff()-Z.minCoeff();
-    
-    cout<<x<<"*"<<y<<"*"<<z<<endl;
-    
-    Vector3f corner(x,y,z);
+double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
+
+    //upper bound is the diagonal of enclosing cube
+    Matrix3Xf m = C.ptsMat();
+    Vector3f min = m.rowwise().minCoeff();
+    Vector3f max = m.rowwise().maxCoeff();
+
+    Vector3f corner = max - min;
     
     cout<<corner<<endl;
     
     double diagonal=corner.norm();
-    cout<<"diagonal:"<<diagonal<<endl;
-    cout<<"ddist:"<<0.05*diagonal<<endl;
+    cout<<"diagonalUpperBound:"<<diagonal<<endl;
     
+
+    //for real diagonal, we have to loop n^2 times and compare each element with each other
     diagonal=0;
     
-    for (int i=0; i<m.rows(); i++) {
-        RowVector3f pt1=m.block(i,0,1,3);
-        for (int j=0; j<m.rows(); j++) {
+    for (int i=0; i<C.pts.size(); i++) {
+        Vector3f pt1=C.pts[i];
+        for (int j=0; j<C.pts.size(); j++) {
             if(i==j) continue;
-            RowVector3f pt2=m.block(j,0,1,3);
+            Vector3f pt2=C.pts[j];
             
             double distA=(pt2-pt1).norm();
             if (distA>diagonal) {
@@ -44,106 +39,164 @@ double PointCloudManipulation::getPointCloudDiameter(MatrixXf m){
         }
     }
     
-    cout<<"diagonal:"<<diagonal<<endl;
-    cout<<"ddist:"<<0.05*diagonal<<endl;
+    cout<<"diagonalExact:"<<diagonal<<endl;
 
-
-    
-    return 0;
+    return diagonal;
 }
 
 
 
 
-MatrixXf PointCloudManipulation::projectPointsAndNormals(Isometry3f P, MatrixXf CandN){
-    int r=CandN.rows();
-    int c=CandN.cols();
-    MatrixXf C=CandN.block(0, 0, r, 3);
-    MatrixXf N=CandN.block(0, 3, r, 3);
+PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCloud CandN){
+    Matrix3Xf pts = vec2mat(CandN.pts);
+    Matrix3Xf nor = vec2mat(CandN.nor);
+
+    Matrix3Xf pts2 = P * pts;
+    Matrix3Xf nor2 = P.linear() * nor;
+
+    PointCloud C2;
+    C2.pts=mat2vec(pts2);
+    C2.nor=mat2vec(nor2);
+    C2.cur=CandN.cur;
+    C2.pts_color=CandN.pts_color;
+    C2.neighRadius=CandN.neighRadius;
+
+    cout<<"Projected "<<CandN.pts.size()<< "pts "<<endl;
+
+
+    return C2;
+
+//    int r=CandN.rows();
+//    int c=CandN.cols();
+//    MatrixXf C=CandN.block(0, 0, r, 3);
+//    MatrixXf N=CandN.block(0, 3, r, 3);
     
-    VectorXf I=VectorXf::Ones(r);
-    VectorXf Z=VectorXf::Zero(r);
-    
-    
-    MatrixXf Ch(C.rows(), C.cols()+I.cols());
-    Ch << C, I;
-    //cout<<"N="<<N<<endl;
-    
-    
-    MatrixXf Nh(N.rows(), N.cols()+Z.cols());
-    Nh << N, Z;
-    
-    MatrixXf m=P.matrix();
-    //cout<<"P="<<m<<endl;
-    
-    MatrixXf C2=m*Ch.transpose();
-    
-    //cout<<"C2="<<C2.transpose().row(0)<<endl;
-    
-    MatrixXf N2=m*Nh.transpose();
-    //cout<<"N2="<<N2.transpose().row(0)<<endl;
-    
-    MatrixXf C2i=C2.transpose().block(0, 0, r, 3);
-    //cout<<"C2i="<<C2i<<endl;
-    
-    MatrixXf N2i=N2.transpose().block(0, 0, r, 3);
-    //cout<<"N2i="<<N2i<<endl;
+//    VectorXf I=VectorXf::Ones(r);
+//    VectorXf Z=VectorXf::Zero(r);
     
     
+//    MatrixXf Ch(C.rows(), C.cols()+I.cols());
+//    Ch << C, I;
+//    //cout<<"N="<<N<<endl;
     
     
-    MatrixXf CandN2(r, 6);
-    CandN2 << C2i, N2i;
+//    MatrixXf Nh(N.rows(), N.cols()+Z.cols());
+//    Nh << N, Z;
+    
+//    MatrixXf m=P.matrix();
+//    //cout<<"P="<<m<<endl;
+    
+//    MatrixXf C2=m*Ch.transpose();
+    
+//    //cout<<"C2="<<C2.transpose().row(0)<<endl;
+    
+//    MatrixXf N2=m*Nh.transpose();
+//    //cout<<"N2="<<N2.transpose().row(0)<<endl;
+    
+//    MatrixXf C2i=C2.transpose().block(0, 0, r, 3);
+//    //cout<<"C2i="<<C2i<<endl;
+    
+//    MatrixXf N2i=N2.transpose().block(0, 0, r, 3);
+//    //cout<<"N2i="<<N2i<<endl;
     
     
-    //cout<<"C"<<C<<endl;
-    //cout<<"m"<<m<<"*"<<C.transpose();
     
-    //MatrixXf C2=P * C.transpose();
-    //MatrixXf N2=P.linear() * N.transpose();
     
-    //cout<<C2<<endl;
-    //cout<<N2<<endl;
+//    MatrixXf CandN2(r, 6);
+//    CandN2 << C2i, N2i;
     
-    //cout<<"Projected "<<r<< "pts with transform:"<<endl<<m<<endl;
     
-    return CandN2;
+//    //cout<<"C"<<C<<endl;
+//    //cout<<"m"<<m<<"*"<<C.transpose();
+    
+//    //MatrixXf C2=P * C.transpose();
+//    //MatrixXf N2=P.linear() * N.transpose();
+    
+//    //cout<<C2<<endl;
+//    //cout<<N2<<endl;
+    
+    
+//    return CandN2;
 }
 
-pair<MatrixXf,VectorXf> PointCloudManipulation::reestimateNormals(MatrixXf C){
-    VectorXf curvatures(C.rows());
-        
-    for (int i=0; i<C.rows(); i++) {
-        RowVector3f p1=C.block(i, 0, 1, 3);
-        vector<RowVector3f> neighbors;
-        //auto indices = norm(C)
-        for (int j=0; j<C.rows(); j++) {
-            RowVector3f p2=C.block(j, 0, 1, 3);
-            if ((p2-p1).norm()<neighbourBallSize){
-                neighbors.push_back(p2);
-            }
+Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius){
+    //Matrix3f cov = Matrix3f::Zero();
+    //Vector3f mean = Vector3f::Zero();
+
+    vector<Vector3f> neighbours;
+
+    int nN=0; //number of neighbours
+    for (int j=0; j<pts.size(); j++) {
+        Vector3f p2=pts[j];
+        if ((p2-p1).norm()<neighRadius){
+            neighbours.push_back(p2);
+            nN++;
+            //mean +=p2;
+            //cov +=p1*p2.transpose(); //outer product
         }
-        
-        if(neighbors.size()<3){
-            C.block(i, 3, 1, 3)=RowVector3f(0,0,0);
-            cout<<"no pca: i="<<i<<endl;
-            continue;
-        }
-        
-        MatrixXf mat(neighbors.size(),3);
-        
-        int k=0;
-        for(auto it : neighbors){
-            mat.row(k++)=it;
-        }
-        
-        //http://forum.kde.org/viewtopic.php?f=74&t=110265
-        
-        MatrixXf centered = mat.rowwise() - mat.colwise().mean();
-        MatrixXf cov = centered.adjoint() * centered;
-        
+    }
+
+    //mean /= (nN+0.0f);
+    //cov -= (mean * mean.transpose())*nN;
+
+
+    MatrixXf mat(3,nN);
+    int k=0;
+    for(auto it : neighbours){
+        mat.col(k++)=it;
+    }
+
+    //http://forum.kde.org/viewtopic.php?f=74&t=110265
+    MatrixXf centered = mat.colwise() - mat.rowwise().mean();
+    Matrix3f cov = centered * centered.adjoint();
+
+    return cov;
+}
+
+vector<Vector3f> PointCloudManipulation::estimateNormals(vector<Vector3f> pts, const vector<Vector3f> oldNormals, const float neighRadius){
+
+    vector<Vector3f> nor;
+
+    for (int i=0; i<pts.size(); i++) {
+        Vector3f p1=pts[i];
+
+        Matrix3f cov = covarianceOfNeighbours(pts,p1,neighRadius);
+
         //and then perform the eigendecomposition:
-        
+        SelfAdjointEigenSolver<MatrixXf> eig(cov);
+
+        Vector3f normal=eig.eigenvectors().col(0);
+        normal.normalize();
+
+        //orient according to old normals
+        if(oldNormals.size()>0){
+            Vector3f oldNormal=oldNormals[i];
+            double angle=acos(oldNormal.dot(normal));
+            if(angle>=M_PI_2){
+                //cout<<"otherside"<<endl;
+                normal*=-1;
+                //normal.normalize();
+            }
+        }else{ //TODO; orient according to viewpoint or away from given viewpont .... or even better: outwards on a surface
+
+        }
+
+        nor.push_back(normal);
+    }
+
+    return nor;
+}
+
+void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighRadius){
+    float min=std::numeric_limits<float>::max();
+    float max=std::numeric_limits<float>::min();
+
+    for (int i=0; i<C.pts.size(); i++) {
+        Vector3f p1=C.pts[i];
+
+        Matrix3f cov = covarianceOfNeighbours(C.pts,p1,neighRadius);
+
+        //and then perform the eigendecomposition:
         SelfAdjointEigenSolver<MatrixXf> eig(cov);
         
         //From eig, you have access to the sorted (increasing order) eigenvalues (eig.eigenvalues()) and respective eigenvectors (eig.eigenvectors()). For instance, eig.eigenvectors().rightCols(N) gives you the best N-dimension basis.
@@ -151,9 +204,7 @@ pair<MatrixXf,VectorXf> PointCloudManipulation::reestimateNormals(MatrixXf C){
         //cout<<eig.eigenvalues()<<endl;
         //cout<<eig.eigenvectors()<<endl;
         
-        RowVector3f oldNormal=C.block(i, 3, 1, 3);
-        oldNormal.normalize();
-        RowVector3f normal=eig.eigenvectors().col(0).transpose();
+        Vector3f normal=eig.eigenvectors().col(0);
         normal.normalize();
 
         //cout<<"cov"<<endl<<cov<<endl;
@@ -167,58 +218,69 @@ pair<MatrixXf,VectorXf> PointCloudManipulation::reestimateNormals(MatrixXf C){
     //    https://github.com/PointCloudLibrary/pcl/blob/647de7bed7df7cd383e5948ff42b116e5aae0e79/features/include/pcl/features/impl/feature.hpp#L82
 
         float curvature = eigVals(0) / eigVals.sum();
-        //cout<<curvature<<endl;
-        curvatures(i)=curvature;
+        if(curvature<min) min=curvature;
+        if(curvature>max) max=curvature;
+        C.cur.push_back(curvature);
 
-        
+
         //orient according to old normals
-        double angle=acos(oldNormal.dot(normal));
-        if(angle>M_PI_2){
-            //cout<<"otherside"<<endl;
-            normal*=-1;
-            normal.normalize();
+        if(C.nor.size()>0){
+            Vector3f oldNormal=C.nor[i];
+            double angle=acos(oldNormal.dot(normal));
+            if(angle>=M_PI_2){
+                //cout<<"otherside"<<endl;
+                normal*=-1;
+                //normal.normalize();
+            }
+        }else{ //TODO; orient according to viewpoint or away from given viewpont .... or even better: outwards on a surface
+
         }
         
         //cout<<normal<<endl;
-        C.block(i, 3, 1, 3)=normal;
+        C.nor[i]=normal;
     }
+
+    for(int i=0;i<C.cur.size();i++){
+        float gray=C.cur[i]/max;
+        C.pts_color.push_back(Colormap::Jet(gray));
+
+    }
+
+    C.neighRadius=neighRadius;
+
+
+    cout<<"min:"<<min<<" max:"<<max<<endl;
     
-    cout <<"Reestimated Normals and Curvature using PCA and Neighbours in a "<<neighbourBallSize<<"m ball"<<endl;
-    
-    return {C,curvatures};
+    cout <<"Reestimated Normals and Curvature using PCA and Neighbours in a "<<neighRadius<<"m ball"<<endl;
+}
+
+//http://eigen.tuxfamily.org/dox/group__TutorialReductionsVisitorsBroadcasting.html   bottom example
+int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f> vec, Vector3f v){
+    Matrix3Xf m = vec2mat(vec);
+    MatrixXf::Index index;
+      // find nearest neighbour
+    (m.colwise() - v).colwise().squaredNorm().minCoeff(&index);
+
+    return index;
 }
 
 
-
-struct Voxel {RowVector3f center; vector<RowVectorXf> pts;};
-typedef std::pair<string,Voxel> myPair;
-
-
-MatrixXf PointCloudManipulation::downSample(MatrixXf C, bool useCenter){
+PointCloud PointCloudManipulation::downSample(PointCloud C, bool useCenter){
     
     //MatrixXf scaled = C/ddist;
-    unordered_map<string, Voxel> voxels;
+    unordered_map<string, vector<Vector3f> > voxels;
     
-    for (int i=0; i<C.rows(); i++) {
-        int x=round(C(i,0)/ddist);
-        int y=round(C(i,1)/ddist);
-        int z=round(C(i,2)/ddist);
+    for (int i=0; i<C.pts.size(); i++) {
+        int x=round(C.pts[i].x()/ddist);
+        int y=round(C.pts[i].y()/ddist);
+        int z=round(C.pts[i].z()/ddist);
         stringstream ss;
         ss<<x<<"|"<<y<<"|"<<z;
         string key=ss.str();
-        voxels[key].pts.push_back(C.row(i));
-        
-        if(useCenter){
-            //TODO calculated multiple times(reduntand)
-            RowVector3f voxelCenter;
-            voxelCenter(0)=x*ddist;
-            voxelCenter(1)=y*ddist;
-            voxelCenter(2)=z*ddist;
-            voxels[key].center=voxelCenter;
-        }
+        voxels[key].push_back(C.pts[i]);
     }
     
-    MatrixXf C2(voxels.size(),6); // contains Cmean,Nmean,Ccenter,Ncenter
+    PointCloud C2; // contains Cmean,Nmean,Ccenter,Ncenter
     
     int i=0;
     for (auto it : voxels){
@@ -226,69 +288,30 @@ MatrixXf PointCloudManipulation::downSample(MatrixXf C, bool useCenter){
         //        cout<<"center"<<it.second.center<<endl;
         //        cout<<"pts:"<<endl;
         
-        RowVector3f voxelCenterOrPtsMean;
-        if(useCenter){
-            voxelCenterOrPtsMean=it.second.center;
-        }else{ //mean
-            double x,y,z;
-            x=y=z=0;
-            for (auto it2 : it.second.pts){
-                //cout<<it2<<endl;
-                x+=it2(0);y+=it2(1);z+=it2(2);
-            }
-            long s=it.second.pts.size();
-            x/=s;y/=s;z/=s;
-            //        cout<<"s:"<<s<<endl;
-            voxelCenterOrPtsMean<<x,y,z;
-            //        cout<<"mean:"<<mean<<endl;
-        }
-        
-        
-        
-        //voxelCenter << C.row(i).head(3); //normal pt
-        
-        double dist=std::numeric_limits<double>::max();
-        RowVector3f normal;
-        for (auto it2: it.second.pts){
-            RowVector3f pt2=it2.head(3);
-            double nDist=(voxelCenterOrPtsMean-pt2).norm();
-            if(nDist<dist){
-                dist=nDist;
-                normal=it2.tail(3);  //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
-            }
-        }
-        
-        
-        C2.block(i,0,1,3)=voxelCenterOrPtsMean;
-        C2.block(i,3,1,3)=normal;
-        
-        
-        
+        Vector3f voxelCenterOrPtsMean=PointCloudManipulation::getCentroid(it.second);
+
+        C2.pts.push_back(voxelCenterOrPtsMean);
+
+
+        //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
+        int idx = nearestNeighbourIdx(C.pts,voxelCenterOrPtsMean);
+        C2.nor.push_back(C.nor[idx]);
+
         i++;
     }
     
-    cout<<"DownSampled "<<C.rows()<<"->"<<C2.rows()<< " pts with voxelSize="<<ddist<<"m using "<<(useCenter ? "Voxelcenter" : "Mean of pts per Voxel")<<endl;
+    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<ddist<<endl;
     
-    return reestimateNormals(C2).first;
+    return C2;
 }
 
-Translation3f PointCloudManipulation::getTranslationToCentroid(MatrixXf C){
-    double x=0;
-    double y=0;
-    double z=0;
+Translation3f PointCloudManipulation::getTranslationToCentroid(PointCloud C){
 
-    for (int i=0; i<C.rows(); i++) {
-        x+=C(i,0);
-        y+=C(i,1);
-        z+=C(i,2);
-    }
-    x/=C.rows();
-    y/=C.rows();
-    z/=C.rows();
+    Vector3f mean = PointCloudManipulation::getCentroid(C.pts);
 
-    cout<<"Centroid at: "<< x <<" "<< y <<" "<< z <<endl;
+    cout<<"Centroid at: "<< mean.x() <<" "<< mean.y() <<" "<< mean.z() <<endl;
 
-    return Translation3f(-x,-y,-z);
+    return Translation3f(-mean);
 }
 
 Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
@@ -299,36 +322,6 @@ Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
     mean /= pts.size();
     return mean;
 }
-
-
-MatrixXf PointCloudManipulation::translateCentroidToOrigin(MatrixXf C){
-    double x=0;
-    double y=0;
-    double z=0;
-
-    for (int i=0; i<C.rows(); i++) {
-        x+=C(i,0);
-        y+=C(i,1);
-        z+=C(i,2);
-    }
-    x/=C.rows();
-    y/=C.rows();
-    z/=C.rows();
-
-    cout<<"Centroid at: "<< x <<" "<< y <<" "<< z <<endl;
-
-    MatrixXf C2(C.rows(),6); // contains Cmean,Nmean,Ccenter,Ncenter
-
-    for (int i=0; i<C2.rows(); i++) {
-        C2(i,0)=C(i,0)-x;
-        C2(i,1)=C(i,1)-y;
-        C2(i,2)=C(i,2)-z;
-        C2.block(i,3,1,3)=C.block(i,3,1,3); //normal is unchanged by pure translation
-    }
-
-    return C2;
-}
-
 
 //point to plane
 Isometry3f ICP::computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor)
@@ -443,15 +436,15 @@ Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool w
     return computeStep(src,dst,a,b,withScale);
 }
 
-vector<int> PointCloudManipulation::getClosesPoints(MatrixXf modelPoseEst, MatrixXf sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+vector<int> PointCloudManipulation::getClosesPoints(PointCloud modelPoseEst, PointCloud sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
 float thresh){
     vector<int> corresp;
     for (int i = 0; i < sSmall.rows(); ++i) {
-        RowVector3f scenePt = sSmall.block(i,0,1,3);
+        Vector3f scenePt = sSmall.pts[i];
         double diffMin = 9999999999999;//std::numeric_limits::infinity();
         int idxMin;
         for (int j = 0; j < modelPoseEst.rows(); ++j) {
-            RowVector3f modelPnt = modelPoseEst.block(j,0,1,3);
+            Vector3f modelPnt = modelPoseEst.pts[j];
             double diff = (scenePt-modelPnt).norm();
             if(diff<diffMin){
                 diffMin=diff;
@@ -459,12 +452,12 @@ float thresh){
             }
         }
 
-        RowVector3f modelPntBest = modelPoseEst.block(idxMin,0,1,3);
+        Vector3f modelPntBest = modelPoseEst.pts[idxMin];
 
         if(diffMin<thresh){ //get rid ouf outlier correspondences
             corresp.push_back(idxMin);
-            src.push_back(modelPntBest.adjoint());
-            dst.push_back(scenePt.adjoint());
+            src.push_back(modelPntBest);
+            dst.push_back(scenePt);
         }
     }
 

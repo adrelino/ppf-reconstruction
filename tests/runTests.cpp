@@ -7,6 +7,8 @@
 
 #include "../src/PointPairFeatures.h"
 
+#include "../src/PointCloudManipulation.h"
+
 namespace{
 
 using namespace std;
@@ -157,15 +159,140 @@ TEST(two2arr,eigValues){
 
 
       for(int i=0; i<9;i++){
-          cout<<exp2[i]<<endl;
+          //cout<<exp2[i]<<endl;
       }
 
       for(int i=0; i<3;i++){
           for(int j=0; j<3;j++){
-              cout<< (*exp3)[i][j] <<endl;
+              //cout<< (*exp3)[i][j] <<endl;
+              EXPECT_EQ((*exp3)[i][j],exp2[i*3+j]) << "rowcol equal";
           }
       }
 
+}
+
+TEST(Transformations,simple){
+    Vector3f pt(0,1,2);
+
+    Isometry3f P = Isometry3f::Identity();
+    P.translation() = Vector3f(0,1,-2);
+
+    Vector3f ptR=P*pt;
+
+
+    Matrix3f threepts;
+    threepts << 0,4,7
+               ,1,5,8,
+                2,6,9;
+
+
+    Matrix3f ptR2=P*threepts;
+
+    //cout<<ptR2<<endl;
+
+    Vector3f pt2(4,5,6);
+
+
+    vector<Vector3f> threeptsVec;
+    threeptsVec.push_back(pt);
+    threeptsVec.push_back(pt);
+    threeptsVec.push_back(pt2);
+
+
+    float* ptr = &threeptsVec[0][0];
+    Map<Matrix3f> yeah(ptr);
+
+    //cout<<yeah<<endl;
+
+    //MatrixXf mat = MatrixXf::Zero(4,10);
+    //mat(0,0)=pt(0);
+
+    //cout<<"mat\n"<<mat<<endl;
+
+
+    //cout<<"transformed\n"<<P.matrix()*mat<<endl;
+
+}
+
+//https://forum.kde.org/viewtopic.php?f=74&t=111955
+//http://stackoverflow.com/questions/13722062/mesh-using-eigen-matrixx3f-or-stdvectorvector3f
+TEST(NewLayout,basic){
+    PointCloud pairBoth=LoadingSaving::loadPointCloud("bunny/model.xyz");
+    vector<Vector3f> vec = pairBoth.pts;
+
+    int N = vec.size();
+
+    Map<Matrix<float,3,Dynamic,ColMajor> > mat(&vec[0].x(), 3, N);
+
+    for(int i=0; i<N; i++){
+        EXPECT_TRUE(mat.col(i).isApprox(vec[i]));
+        //cout<<mat.col(i)<<vec[i]<<endl;
+    }
+}
+
+TEST(NewLayout,transform){
+    PointCloud C=LoadingSaving::loadPointCloud("bunny/model.xyz",1);
+
+    //cout<<"C "<<C<<endl;
+
+    Isometry3f P(PointCloudManipulation::getTranslationToCentroid(C));
+
+    //cout<<"P"<<endl<<P.matrix()<<endl;
+
+    PointCloud C2 = PointCloudManipulation::projectPointsAndNormals(P,C);
+
+    //cout<<"C2 "<<C2<<endl;
+
+    EXPECT_FLOAT_EQ(C2.nor[0].x(),C.nor[0].x()) << "Normals should be unnaffected by translation";
+    EXPECT_FLOAT_EQ(C2.nor[0].y(),C.nor[0].y()) << "Normals should be unnaffected by translation";
+    EXPECT_FLOAT_EQ(C2.nor[0].z(),C.nor[0].z()) << "Normals should be unnaffected by translation";
+
+    EXPECT_TRUE(C2.pts[0].isApprox(Vector3f::Zero())) << "Mean of 1 pt in pt cloud should be set to 0";
+}
+
+TEST(NewLayout,transform2){
+    PointCloud C=LoadingSaving::loadPointCloud("bunny/model.xyz");
+
+    stringstream ss1;
+    ss1<<"bunny/depth-poses/poses_"<<1<<".txt";
+    Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
+
+    PointCloud C2 = PointCloudManipulation::projectPointsAndNormals(P,C);
+    PointCloud C3 = PointCloudManipulation::projectPointsAndNormals(P.inverse(),C2);
+
+    EXPECT_TRUE(vec2mat(C.pts).isApprox(vec2mat(C3.pts))) << "2 translation and its inverse should be identity ";
+    EXPECT_TRUE(vec2mat(C.nor).isApprox(vec2mat(C3.nor))) << "same for normals";
+
+
+}
+
+TEST(NewLayout,downSample){
+    PointCloud cloud=LoadingSaving::loadPointCloud("bunny/model.xyz",10);
+
+    cloud=PointCloudManipulation::downSample(cloud,false);
+
+}
+
+TEST(NewLayout,normals){
+    PointCloud cloud=LoadingSaving::loadPointCloud("bunny/bunny_smoothNormals.xyz");
+    //cloud=PointCloudManipulation::downSample(cloud,false);
+
+    vector<Vector3f> norGold = cloud.nor;
+
+    for(float neighRadius=0.005f;neighRadius<0.05f;neighRadius+=0.005f){
+        vector<Vector3f> nor=PointCloudManipulation::estimateNormals(cloud.pts,norGold,neighRadius);
+
+        int numBad=0;
+        for(int i=0; i< nor.size(); i++){
+            double angle=acos(norGold[i].dot(nor[i]));
+            if(angle>1){
+                numBad++;
+            }
+        }
+
+        cout<<"neighRadius: "<<neighRadius<< " #bad normals: "<<numBad<<"/"<<cloud.pts.size()<<endl;
+
+    }
 }
 
 } //namespace

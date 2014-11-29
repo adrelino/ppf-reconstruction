@@ -13,6 +13,164 @@
 
 namespace LoadingSaving{
 
+//pair<vector<Vector3f>,vector<Vector3f>> loadMatrixPointsWithNormals(std::string filename){
+//    std::ifstream f(filename,std::ifstream::in);
+//    if( f.fail() == true )
+//    {
+//        cerr << filename << " could not be opened" << endl;
+//    }
+
+
+//    vector<Vector3f> pts;
+//    vector<Vector3f> nor;
+
+//    Vector3f pt;
+//    Vector3f no;
+
+//    int n=0;
+//    while( f >> pt(0) && f >> pt(1) && f >> pt(2) && f >> no(0) && f >> no(1) && f >> no(2)){
+//        pts.push_back(pt);
+//        nor.push_back(no);
+//        n++;
+//    }
+
+//    cout<<"Loaded "<<n<< " pts + nor from "<<filename<<endl;
+
+//    return make_pair(pts,nor);
+//}
+
+PointCloud loadPLY(const std::string filename, bool withNormals)
+{
+  PointCloud cloud;
+  int numVertices=0;
+
+  std::ifstream ifs(filename.c_str());
+
+  if (!ifs.is_open())
+  {
+    printf("Cannot open file...\n");
+    return cloud;
+  }
+
+  std::string str;
+  while (str.substr(0, 10) !="end_header")
+  {
+    std::string entry = str.substr(0, 14);
+    if (entry == "element vertex")
+    {
+      numVertices = atoi(str.substr(15, str.size()-15).c_str());
+    }
+    std::getline(ifs, str);
+  }
+
+  cloud.pts = vector<Vector3f>(numVertices);
+  if (withNormals) cloud.nor=vector<Vector3f>(numVertices);
+
+
+  for (int i = 0; i < numVertices; i++)
+  {
+    float* data1 = (float*)(&cloud.pts[i]);
+    ifs >> data1[0] >> data1[1] >> data1[2];
+
+    if (withNormals)
+    {
+      float* data = (float*)(&cloud.nor[i]);
+      ifs >> data[0] >> data[1] >> data[2];
+
+      // normalize to unit norm
+      double norm = sqrt(data[0]*data[0] + data[1]*data[1] + data[2]*data[2]);
+      if (norm>0.00001)
+      {
+        data[0]/=(float)norm;
+        data[1]/=(float)norm;
+        data[2]/=(float)norm;
+      }
+    }
+    else
+    {
+    }
+  }
+
+  //cloud *= 5.0f;
+  return cloud;
+}
+
+void savePLY(const std::string filename, PointCloud PC)
+{
+  std::ofstream outFile( filename.c_str() );
+
+  if ( !outFile )
+  {
+    //cerr << "Error opening output file: " << FileName << "!" << endl;
+    printf("Error opening output file: %s!\n", filename.c_str());
+    exit( 1 );
+  }
+
+  ////
+  // Header
+  ////
+
+  const int pointNum = ( int ) PC.pts.size();
+  //const int vertNum  = ( int ) PC.cols;
+
+  outFile << "ply" << std::endl;
+  outFile << "format ascii 1.0" << std::endl;
+  outFile << "element vertex " << pointNum << std::endl;
+  outFile << "property float x" << std::endl;
+  outFile << "property float y" << std::endl;
+  outFile << "property float z" << std::endl;
+  if (PC.nor.size()>0)
+  {
+    outFile << "property float nx" << std::endl;
+    outFile << "property float ny" << std::endl;
+    outFile << "property float nz" << std::endl;
+  }
+  outFile << "end_header" << std::endl;
+
+  ////
+  // Points
+  ////
+
+  for ( int i = 0; i < pointNum; ++i )
+  {
+    float* point = (float*)(&PC.pts[i]);
+
+    outFile << point[0] << " "<<point[1]<<" "<<point[2];
+
+    if (PC.nor.size()>0)
+    {
+      outFile<<" " << PC.nor[i].x() << " "<<PC.nor[i].y()<<" "<<PC.nor[i].z();
+    }
+
+    outFile << std::endl;
+  }
+
+  return;
+}
+
+PointCloud loadPointCloud(std::string filename, int ptLimit){
+    std::ifstream file(filename.c_str(),std::ifstream::in);
+    if( file.fail() == true )
+    {
+        cerr << filename << " could not be opened" << endl;
+    }
+
+    vector<Vector3f> pts,nor;
+
+    while(file && (ptLimit==-1 || (ptLimit--) > 0)){
+        Vector3f pt,no;
+        file >> pt.x() >> pt.y() >> pt.z() >> no.x() >> no.y() >> no.z();
+        pts.push_back(pt);
+        nor.push_back(no);
+    }
+
+    PointCloud C;
+    C.pts=pts;
+    C.nor=nor;
+
+    return C;
+}
+
 template<typename Number>
 Matrix<Number,Dynamic,Dynamic> loadMatrix(std::string filename, std::string type){
     std::ifstream file(filename,std::ifstream::in);

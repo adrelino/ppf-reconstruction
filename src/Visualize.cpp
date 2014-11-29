@@ -6,12 +6,16 @@
 //  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
 //
 #include "Visualize.h"
+#include "viz/cameraSimple.h"
+#include "viz/frustum.h"
 #include <iostream>
 
 using namespace std;
 
 
 Visualize* Visualize::instance = 0;
+
+bool Visualize::isInitalized = false;
 
 Visualize* Visualize::getInstance(){
     if(instance == 0){
@@ -21,16 +25,7 @@ Visualize* Visualize::getInstance(){
 }
 
 Visualize::Visualize()
-    : m_Scene(true)
-    , m_Highlight(false)
-    , m_ColorMaterial(true)
-    , m_Estimate(true)
-    , m_Ambient(true)
-    , m_Origin(true)
-    , m_Normals(false)
-    , m_Buckets(false)
-    , m_Voxels(false)
-    , modifier(-1)
+    : modifier(-1)
     , angle(0.0)
     , angle2(0.0)
     , angle3(0.0)
@@ -39,9 +34,17 @@ Visualize::Visualize()
     , offsetY(-0.075f)
     , offsetX(0)
     , current_object(0)
-    , m_Model(true)
 {
+    std::fill(std::begin(keyToggle), std::end(keyToggle), false);
     std::cout<<"Visualize construct"<<std::endl;
+    keyToggle['s']=true;
+    keyToggle['h']=true;
+    keyToggle['c']=true;
+    keyToggle['e']=true;
+    keyToggle['a']=true;
+    keyToggle['o']=true;
+    keyToggle['m']=true;
+
 }
 
 //draws cylinder towards z direction
@@ -102,69 +105,82 @@ void Visualize::drawOrigin(){
 	glPopMatrix();
 }
 
-void Visualize::drawNormals(MatrixXf m, RowVector3f color){
+void Visualize::drawNormals(PointCloud m, RowVector3f color){
     glLineWidth(0.02f);
     glBegin(GL_LINES);
     glColor3f(color(0),color(1),color(2));
-    for (int i=0; i<m.rows(); i++) {
-        RowVector3f p=m.block(i, 0, 1, 3);
-        RowVector3f n=m.block(i, 3, 1, 3);
+    for (int i=0; i<m.pts.size(); i++) {
+        Vector3f p=m.pts[i];
+        Vector3f n=m.nor[i];
         
         n.normalize();
         n/=100;
-        RowVector3f q=p+n;
+        Vector3f q=p+n;
         
-        glVertex3d(p(0),p(1),p(2));
-        glVertex3d(q(0),q(1),q(2));
+        glVertex3f(p(0),p(1),p(2));
+        glVertex3f(q(0),q(1),q(2));
     }
 	glEnd();
     
+}
+
+void Visualize::drawPointCloud(PointCloud m, RowVector3f color, float pointSize){
+    if(m.pts_color.size()==0){
+        m.pts_color.push_back(color);
+    }
+    drawPoints(m.pts,m.pts_color,pointSize);
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPointCloud(MatrixXf m, RowVector3f color, float pointSize){
+void Visualize::drawPoints(vector<Vector3f> pts, vector<RowVector3f> color, float pointSize){
     glPointSize(pointSize);
-    glColor3f(color(0),color(1),color(2));
+    bool colorPerVertex=true;
+    if(color.size()==1){
+        colorPerVertex=false;
+        glColor3f(color[0].x(),color[0].y(),color[0].z());
+    }
     glBegin(GL_POINTS);
-    for (int i=0; i<m.rows(); i++) {
-        glVertex3f(m(i,0),m(i,1),m(i,2));
+    for (int i=0; i<pts.size(); i++) {
+        if(colorPerVertex) glColor3f(color[i].x(),color[i].y(),color[i].z());
+        glVertex3f(pts[i].x(),pts[i].y(),pts[i].z());
     }
 	glEnd();
 }
 
-void Visualize::drawAll(MatrixXf m, RowVector3f color, RowVector3f colorNormals){
+void Visualize::drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormals){
     drawPointCloud(m, color);
     
-    if(m_Normals) drawNormals(m,colorNormals);
-    if(m_Buckets) drawPPfs(b[bucketIndex].second, m);
-    if(m_Voxels)  drawCubes(m,ddist);
+    if(keyToggle['n']) drawNormals(m,colorNormals);
+    if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
+    if(keyToggle['v']) drawCubes(m.pts,ddist);
+    if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
 }
 
 
-void Visualize::drawPPF(int i, int j, MatrixXf m)
+void Visualize::drawPPF(int i, int j, PointCloud m)
 {
     glLineWidth(0.05f);
     glBegin(GL_LINE_STRIP);
-        RowVector3f p=m.block(i, 0, 1, 3);
-        RowVector3f n=m.block(i, 3, 1, 3);
-        RowVector3f p2=m.block(j, 0, 1, 3);
-        RowVector3f n2=m.block(j, 3, 1, 3);
+        Vector3f p=m.pts[i];
+        Vector3f n=m.nor[i];
+        Vector3f p2=m.pts[j];
+        Vector3f n2=m.nor[j];
         n.normalize();
         n/=100;
         n2.normalize();
         n2/=100;
-        RowVector3f q=p+n;
-        RowVector3f q2=p2+n2;
+        Vector3f q=p+n;
+        Vector3f q2=p2+n2;
     
         glColor3f(0.0,0.2,1);
-        glVertex3d(q(0),q(1),q(2)); //first normal
-        glVertex3d(p(0),p(1),p(2));
+        glVertex3f(q(0),q(1),q(2)); //first normal
+        glVertex3f(p(0),p(1),p(2));
     
         glColor3f(0.8,0,0.8);
-        glVertex3d(p2(0),p2(1),p2(2));  //distance line
+        glVertex3f(p2(0),p2(1),p2(2));  //distance line
 
         glColor3f(0.0,0.2,1);
-        glVertex3d(q2(0),q2(1),q2(2));  //second normal
+        glVertex3f(q2(0),q2(1),q2(2));  //second normal
     
 	glEnd();
 }
@@ -179,8 +195,8 @@ void Visualize::drawLines(vector<int> vertices)
     int n = vertices.size();
 
     for (int i = 0; i < n; ++i) {
-        RowVector3f p1=scene.block(i, 0, 1, 3);
-        RowVector3f p2=modelT.block(vertices[i], 0, 1, 3);
+        Vector3f p1=scene.pts[i];
+        Vector3f p2=modelT.pts[vertices[i]];
 
         glVertex3f(p1(0),p1(1),p1(2));  //distance line
         glVertex3f(p2(0),p2(1),p2(2));  //distance line
@@ -209,18 +225,28 @@ void Visualize::drawLines(vector<Vector3f> v1, vector<Vector3f> v2)
     glEnd();
 }
 
-void Visualize::drawPPfs(Bucket b,MatrixXf m){
+void Visualize::drawPPfs(Bucket b,PointCloud m){
     for (auto it : b){
         drawPPF(it.i, it.j,m);
     }
 }
 
-void Visualize::drawCubes(MatrixXf C, double size){
+void Visualize::drawCubes(vector<Vector3f> pts, double size){
     glColor3f(0.9,0.9,0.9);
-    for (int i=0; i<C.rows(); i++) {
+    for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
-        glTranslated(C(i,0), C(i,1), C(i,2));
+        glTranslatef(pts[i].x(),pts[i].y(),pts[i].z());
         glutWireCube(size);
+        glPopMatrix();
+    }
+}
+
+void Visualize::drawSpheres(vector<Vector3f> pts, double radius){
+    glColor3f(0.9,0.9,0.9);
+    for (int i=0; i<pts.size(); i++) {
+        glPushMatrix();
+        glTranslatef(pts[i].x(),pts[i].y(),pts[i].z());
+        glutWireSphere(radius,5,5);
         glPopMatrix();
     }
 }
@@ -231,18 +257,18 @@ void Visualize::drawMatches(Matches matches){
     drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
 }
 
-void Visualize::printMatches(Matches matches){
-    Match match=matches[bucketIndex];
+//void Visualize::printMatches(Matches matches){
+//    Match match=matches[bucketIndex];
     
-    cout<<"scene:";
-    match.scenePPF.print();
-    cout<<"model:";
-    match.modelPPFs[0].print();
-    /*for (auto it : match.modelPPFs) {
-        it.ppf.print();
-    }*/
-    cout<<endl;
-}
+//    cout<<"scene:";
+//    match.scenePPF.print();
+//    cout<<"model:";
+//    match.modelPPFs[0].print();
+//    /*for (auto it : match.modelPPFs) {
+//        it.ppf.print();
+//    }*/
+//    cout<<endl;
+//}
 
 double Visualize::getRotationAngleApprox(double xdiff, double ydiff, double x, double y){
 	int xs=x>0 ? 1 : -1;
@@ -255,6 +281,9 @@ double Visualize::getRotationAngleApprox(double xdiff, double ydiff, double x, d
 void Visualize::display(void)
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
+
 	glPushMatrix();
     glTranslatef(0, 0, -6);
     
@@ -266,32 +295,61 @@ void Visualize::display(void)
     
     glTranslatef(offsetX, offsetY, 0);
         
-    if(m_Origin) drawOrigin();
+    if(keyToggle['o']) drawOrigin();
     
     //glRED;
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
-    switch (current_object) {
-		case 0:
-            for(auto it : ms){
-                MatrixXf m = it.first;
-                RowVector3f color = RowVector3f(0,1,0); //it.second
-                drawPointCloud(m,color,10.0f);
-            }
-            if(m_Model) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            if(m_Scene) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,0.5,1)); //orange blue
 
-            if(m_Estimate && modelT.rows()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
+//            for(auto it : ms){
+//                PointCloud m = it.first;
+//                RowVector3f color = RowVector3f(0,1,0); //it.second
+//                drawPointCloud(m,color,10.0f);
+//            }
+
+
+//            glLineWidth(0.09f);
+//            glBegin(GL_LINE_STRIP);
+//            glColor3f(0.8,0,0.8);
+//            for(Isometry3f P : cameraPoses){
+//                Vector3f next = P.translation();
+//                glVertex3f(next.x(),next.y(),next.z());
+//                //cout<<"v"<<next<<endl;
+//            }
+//            glEnd();
+
+//            for(Isometry3f P : cameraPoses){
+//                glPushMatrix();
+//                    Vector3f    tra1 = P.translation();
+//                    Quaternionf rot1(P.linear());
+//                    //glTranslatef(tra1.x(),tra1.y(),tra1.z());
+//                    //Matrix3f rot = P.linear();
+//                    //glMultMatrix(Affine3f())
+//                    glMultMatrixf((Translation3f(tra1)*rot1).matrix().data());
+//                    //glMultMatrixf(P.inverse().data()); //column major
+//                    glScalef(0.1f,0.1f,0.1f);
+
+//                    drawOrigin();
+//                    drawCamera();
+
+//                glPopMatrix();
+//            }
+
+
+            if(keyToggle['m']) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
+            if(keyToggle['s']) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
+
+            if(keyToggle['e'] && modelT.pts.size()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
 
             if(matches.size()>0) drawMatches(matches);
             if(closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
             if(src.size()>0) drawLines(src,dst);
 
-			break;
-		default:
-			break;
-    };
+
 	glPopMatrix();
+
+
+
 	glutSwapBuffers ();
 }
 
@@ -300,7 +358,7 @@ void Visualize::displayW(void){
 }
 
 void Visualize::bucketInfo(){
-    printMatches(matches);
+    //printMatches(matches);
 
     //Match match=matches[bucketIndex];
     //cout<<"bucketIndex= "<<bucketIndex<<"i="<<match.scenePPF.i<<"j="<<match.scenePPF.j<<"modelSize"<<match.modelPPFs.size()<<endl;
@@ -310,64 +368,27 @@ void Visualize::bucketInfo(){
     //" key="<<b[bucketIndex].first<<" size="<<b[bucketIndex].second.size()<<endl;
 }
 
+void exitFun(){
+    glutLeaveMainLoop();
+    exit(0);
+}
+
 
 void Visualize::keyboard (unsigned char key, int x, int y)
 {
     //std::cout<<"keyboard: "<<key<< " at " << x << y <<std::endl;
     lastKey=key;
 
+    keyToggle[key] = !keyToggle[key];
+
 	switch (key) {
         case 'p':
         case 'P':
-            printMatches(matches);
+            //printMatches(matches);
             break;
         case 'w':
         case 'W':
             glPolygonMode(GL_FRONT_AND_BACK,GL_LINE);
-            break;
-//        case 'v':
-//        case 'V':
-//            glPolygonMode(GL_FRONT_AND_BACK,GL_POINT);
-//            break;
-        case 's':
-        case 'S':
-            m_Scene = !m_Scene;
-            break;
-        case 'h':
-        case 'H':
-            m_Highlight = !m_Highlight;
-            break;
-        case 'c':
-        case 'C':
-            m_ColorMaterial = !m_ColorMaterial;
-            break;
-        case 'e':
-        case 'E':
-            m_Estimate = !m_Estimate;
-            break;
-        case 'a':
-        case 'A':
-            m_Ambient = !m_Ambient;
-            break;
-        case 'o':
-        case 'O':
-            m_Origin = !m_Origin;
-            break;
-        case 'n':
-        case 'N':
-            m_Normals = !m_Normals;
-            break;
-        case 'm':
-        case 'M':
-            m_Model = !m_Model;
-            break;
-        case 'b':
-        case 'B':
-            m_Buckets = !m_Buckets;
-            break;
-        case 'v':
-        case 'V':
-            m_Voxels = !m_Voxels;
             break;
         case '1':
         case '2':
@@ -382,8 +403,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             break;
             
         case 'Q':
-            glutLeaveMainLoop();
-            exit(0);
+            exitFun();
             break;
         case 'q':
             break;
@@ -462,13 +482,6 @@ void Visualize::motionW(int x, int y){
     instance->motion(x, y);
 }
 
-void Visualize::idleW(){
-    if(getInstance()->doUpdate){
-        glutPostRedisplay();
-        getInstance()->doUpdate=false;
-    }
-}
-
 
 int Visualize::mainVisualize(int argc, char **argv)
 {
@@ -490,27 +503,9 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutInitWindowSize (WINDOW_SIZE, WINDOW_SIZE);
 	glutInitWindowPosition (50, 50);
 	glutCreateWindow ("Adrian's Point Cloud Visualizer");
-	glClearColor (1.0,1.0,1.0, 1.0);
+    glClearColor (.5,119/256.0,244/256.0, 0.5);
 
-    /*
-    CGLError err;
-    CGLContextObj ctx = CGLGetCurrentContext();
 
-    // Enable the multi-threading
-    err =  CGLEnable( ctx, kCGLCEMPEngine);
-
-    if (err != kCGLNoError )
-    {
-        cout<<"no multithread available"<<endl;
-         // Multi-threaded execution is possibly not available
-         // Insert your code to take appropriate action
-    } */
-    
-    
-    // store a call to a member function
-//    std::function<void(const Foo&, int)> f_add_display = &Visualize::display;
-//    const Foo foo(314159);
-//    f_add_display(foo, 1);
     
     
     //auto ddisp = std::mem_fn(&Visualize::display);
@@ -519,22 +514,30 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutMotionFunc(motionW);
 	glutKeyboardFunc(keyboardW);
 
+    glutCloseFunc(exitFun);
+
     //glutTimerFunc();
    // glutIdleFunc(idleW);
 	//setupLighting();
 	//glDisable(GL_CULL_FACE);
 	//glEnable(GL_DEPTH_TEST);
 	//glDepthMask(GL_TRUE);
+
+
     
     glMatrixMode(GL_PROJECTION);
     gluPerspective( /* field of view in degree */ 40.0,
                    /* aspect ratio */ 1.0,
                    /* Z near */ 1.0, /* Z far */ 80.0);
 	glMatrixMode(GL_MODELVIEW);
+
+
     
     
     
     //glutMainLoop();
+
+    isInitalized=true;
     
 	return 0;
 }
@@ -554,6 +557,7 @@ void Visualize::waitKeyQuit(){
 }
 
 void Visualize::spin(){
+    if(!isInitalized) visualize();
     while(Visualize::waitKey('q')){
         glutPostRedisplay();
         glutMainLoopEvent();
@@ -561,6 +565,7 @@ void Visualize::spin(){
 }
 
 void Visualize::spin(int i){
+    if(!isInitalized) visualize();
     while(i-- > 0){
         std::chrono::milliseconds dura( 10 );
         std::this_thread::sleep_for( dura );
@@ -587,9 +592,4 @@ bool Visualize::waitKeyInst(unsigned char key){
 
 bool Visualize::waitKey(unsigned char key){
     return getInstance()->waitKeyInst(key);
-}
-
-void Visualize::update(){
-    cout<<"Visualize::update"<<endl;
-    getInstance()->doUpdate=true;
 }

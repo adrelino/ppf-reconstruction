@@ -22,17 +22,25 @@ using namespace std;
 
 namespace PointCloudManipulation {
     
-    double getPointCloudDiameter(MatrixXf m);
-    MatrixXf projectPointsAndNormals(Isometry3f P, MatrixXf C);
-    pair<MatrixXf,VectorXf> reestimateNormals(MatrixXf C);
-    MatrixXf downSample(MatrixXf C, bool useCenter);
-    MatrixXf translateCentroidToOrigin(MatrixXf C);
+    double getPointCloudDiameter(PointCloud m);
 
-    Translation3f getTranslationToCentroid(MatrixXf C);
+    PointCloud projectPointsAndNormals(Isometry3f P, PointCloud C);
+
+    Matrix3f covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius);
+
+    vector<Vector3f> estimateNormals(const vector<Vector3f> pts, const vector<Vector3f> oldNormals, const float neighRadius);
+
+    void reestimateNormals(PointCloud &C, const float neighRadius);
+
+    PointCloud downSample(PointCloud C, bool useCenter);
+
+    Translation3f getTranslationToCentroid(PointCloud C);
 
     Vector3f getCentroid(vector<Vector3f> pts);
 
-    vector<int> getClosesPoints(MatrixXf modelPoseEst, MatrixXf sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+    int nearestNeighbourIdx(vector<Vector3f> pts, Vector3f pt);
+
+    vector<int> getClosesPoints(PointCloud modelPoseEst, PointCloud sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
     float thresh);
 
 }
