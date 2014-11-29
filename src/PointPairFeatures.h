@@ -50,7 +50,7 @@ namespace PointPairFeatures{
     Poses computePoses(vector<MatrixXi> acc,PointCloud m, PointCloud s, vector<int> sceneIndexToI);
 
 
-    double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha); //always positive, needed for accumulator array discretisation
+    float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha); //always positive, needed for accumulator array discretisation
 
     Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double angleAroundXAxis);
 

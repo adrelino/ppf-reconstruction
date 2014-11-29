@@ -69,6 +69,8 @@ public:
 
     int current_object;
 
+    void drawFrustumIntrinsics();
+
 
 
 private:

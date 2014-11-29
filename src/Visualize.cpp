@@ -251,6 +251,24 @@ void Visualize::drawSpheres(vector<Vector3f> pts, double radius){
     }
 }
 
+void Visualize::drawFrustumIntrinsics(){
+//    cv::Matx33d K = cv::Matx33d::zeros();
+//    K(0,0) = 542;
+//    K(1,1) = 540;
+//    K(0,2) = 320;
+//    K(1,2) = 240;
+    double f_x =524;// K(0,0),
+    double f_y = 540; //K(1,1),
+    double c_x = 320; //K(1,2);
+    double c_y = 240; //K(1,2);
+
+    // Assuming that this is an ideal camera (c_y and c_x are at the center of the image)
+    double fovy = 2.0 * atan2(c_y, f_y) * 180 / M_PI;
+    double aspect_ratio = c_x / c_y;
+
+    drawFrustum(fovy,aspect_ratio,-0.05f);
+}
+
 void Visualize::drawMatches(Matches matches){
     Match match=matches[bucketIndex];
     drawPPfs(match.modelPPFs, model);
@@ -301,22 +319,45 @@ void Visualize::display(void)
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
 
-//            for(auto it : ms){
-//                PointCloud m = it.first;
-//                RowVector3f color = RowVector3f(0,1,0); //it.second
-//                drawPointCloud(m,color,10.0f);
-//            }
+            for(auto it : ms){
+                PointCloud m = it.first;
+                RowVector3f color = RowVector3f(0,1,0); //it.second
+                drawPointCloud(m,color,10.0f);
+            }
 
 
-//            glLineWidth(0.09f);
-//            glBegin(GL_LINE_STRIP);
-//            glColor3f(0.8,0,0.8);
-//            for(Isometry3f P : cameraPoses){
-//                Vector3f next = P.translation();
-//                glVertex3f(next.x(),next.y(),next.z());
-//                //cout<<"v"<<next<<endl;
-//            }
-//            glEnd();
+
+            glColor3f(0.8,0,0.8);
+//            float radius = 0.01f;
+//            Vector3f tLast;
+//            bool inited=false;
+            for(Isometry3f P : cameraPoses){
+                Vector3f t = -P.inverse().translation();
+                //Quaternionf q(P.inverse().linear());
+
+//                if(inited){
+//                glLineWidth(0.09f);
+//                glColor3f(1,1,1);
+//                glBegin(GL_LINES);
+//                glVertex3f(tLast.x(),tLast.y(),tLast.z());
+//                glVertex3f(t.x(),t.y(),t.z());
+//                glEnd();
+//                }
+
+                glPushMatrix();
+
+                glMultMatrixf(Isometry3f(P.linear()).matrix().data());
+                glTranslatef(t(0),t(1),t(2));
+
+                //glutWireSphere(radius,5,5);
+                //drawOrigin();
+                drawFrustumIntrinsics();
+                //drawFrustum(0.01f,4.0/3.0f,0.1f,0.5f);
+                glPopMatrix();
+//                tLast=t;
+//                inited=true;
+            }
+            //glEnd();
 
 //            for(Isometry3f P : cameraPoses){
 //                glPushMatrix();
@@ -330,7 +371,8 @@ void Visualize::display(void)
 //                    glScalef(0.1f,0.1f,0.1f);
 
 //                    drawOrigin();
-//                    drawCamera();
+//                    //drawFrustum(0.1f,4.0/3.0,0.1f,0.5f);
+//                    //drawCamera();
 
 //                glPopMatrix();
 //            }
@@ -519,9 +561,9 @@ int Visualize::mainVisualize(int argc, char **argv)
     //glutTimerFunc();
    // glutIdleFunc(idleW);
 	//setupLighting();
-	//glDisable(GL_CULL_FACE);
-	//glEnable(GL_DEPTH_TEST);
-	//glDepthMask(GL_TRUE);
+    glDisable(GL_CULL_FACE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
 
 
     

@@ -126,10 +126,10 @@ GlobalModelDescription buildGlobalModelDescription(PointCloud m){
         }
     }
     
-//    vector<double> numb;
+//    vector<float> numb;
     
 //    for (auto it : map){
-//        double x=it.second.size();
+//        float x=it.second.size();
 //        numb.push_back(x);
 //    }
     
@@ -174,10 +174,10 @@ std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalMode
         }
     }
     
-//    vector<double> numb;
+//    vector<float> numb;
     
 //    for (auto it : matches){
-//        double x=it.modelPPFs.size();
+//        float x=it.modelPPFs.size();
 //        //cout<<it.scenePPF.i<<" "<<it.scenePPF.j<<" model bucket size="<<x<<endl;
 //        numb.push_back(x);
 //    }
@@ -218,7 +218,7 @@ vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
                 continue;
             }
 
-            double alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
+            float alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
 
 
             int alphaDiscretised=alpha/dangle;
@@ -246,15 +246,15 @@ vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
     return accVec;
 }
 
-double getAngleDiffMod2Pi(double modelAlpha, double sceneAlpha){
-    double alpha = sceneAlpha - modelAlpha; //correct direction
+float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha){
+    float alpha = sceneAlpha - modelAlpha; //correct direction
 
     //cout<<"modelAlpha: "<<degrees(modelAlpha)<<endl;
     //cout<<"sceneAlpha: "<<degrees(sceneAlpha)<<endl;
     //cout<<"alpha: "<<degrees(alpha)<<endl;
 
     while(alpha<0.0) alpha += M_PI*2;
-    alpha=fmod(alpha,M_PI*2);
+    alpha=fmod(alpha,M_PI*2.0f);
 
     //now alpha is in interval 0 -> 2*pi
 
@@ -275,7 +275,7 @@ Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<in
         int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
 
 
-        double alpha=alphaD*dangle;
+        float alpha=alphaD*dangle;
 
         //ref points (just one, not both of the ppf)
         Vector3f s_m=s.pts[sr];
@@ -302,7 +302,7 @@ Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n
     //Isometry3f Tmg(ppfModel.T);
     Isometry3f Tmg = PPF::twistToLocalCoords(m_m,m_n);
 
-    Isometry3f Pest(Tgs*Rx*Tmg);
+    Isometry3f Pest = Tgs*Rx*Tmg;
 
     return Pest;
 }
@@ -328,18 +328,18 @@ bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
 
 
     //Translation
-    double diff_tra=(tra1-tra2).norm();
+    float diff_tra=(tra1-tra2).norm();
     //Rotation
-    double d = rot1.dot(rot2);
-    //double diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+    float d = rot1.dot(rot2);
+    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
     //    rot1.angularDistance(rot2);
 
     //http://math.stackexchange.com/questions/90081/quaternion-distance
-    //double thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
-    //double diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
+    //float thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
+    //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
-    double diff_rot_degrees = rad2deg(acos(2*d - 1));
+    float diff_rot_degrees = rad2deg(acos(2*d - 1));
 
     //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
     //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
@@ -550,10 +550,10 @@ void err(Isometry3f P, Isometry3f Pest){
     Vector4f rot_est(qest.x(),qest.y(),qest.z(),qest.w());
 
     Vector3f tra_diff = (tra - tra_est);
-    double tra_error=tra_diff.array().cwiseAbs().sum();
+    float tra_error=tra_diff.array().cwiseAbs().sum();
 
     Vector4f rot_diff = (rot - rot_est);
-    double rot_error=rot_diff.array().cwiseAbs().sum();
+    float rot_error=rot_diff.array().cwiseAbs().sum();
 
 //    if(rot_error>1.5){
 //        cout<<"flipping rot"<<endl;

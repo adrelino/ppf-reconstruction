@@ -69,7 +69,9 @@ int main(int argc, char * argv[])
     Isometry3f P_Iterative_ICP = Pest; //initialize with ppf coarse alignment
     PointCloud modelPoseEst;
 
-    for (int i = 0; i < 100; ++i) {  //5 ICP steps
+    int i;
+
+    for (i=0; i < 100; ++i) {  //5 ICP steps
         modelPoseEst=PointCloudManipulation::projectPointsAndNormals(P_Iterative_ICP, mSmall);
 
         vector<Vector3f> src,dst;
@@ -82,21 +84,25 @@ int main(int argc, char * argv[])
         cout<<"Iteration "<<i<<endl;
         cout<<"# Scene to Model Correspondences: "<<idxx.size()<<"=="<<src.size()<<"=="<<dst.size()<<endl;
 
-        Visualize::spin();
-
-
+        Visualize::spin(5);
 
         Isometry3f P_incemental = ICP::computeStep(src,dst,false);
+
+        if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,0.000001)){
+            break;
+        }
 
         P_Iterative_ICP = P_incemental * P_Iterative_ICP;
 
         cout<<"ICP Step "<<i<<endl;
         PointPairFeatures::err(P,P_Iterative_ICP);
 
-
-
-
     }
+
+    cout<<"ICP converged after #Steps= "<<i<<endl;
+
+
+
 
     while(Visualize::waitKey('Q')){
         glutPostRedisplay();

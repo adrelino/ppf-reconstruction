@@ -10,6 +10,7 @@
 #include <fstream>
 #include <numeric>
 #include <iostream>
+#include <iomanip>
 
 namespace LoadingSaving{
 
@@ -260,7 +261,12 @@ MatrixXi loadMatrixXi(std::string filename){
 template<typename Number>
 void saveMatrix(std::string filename, Matrix<Number,Dynamic,Dynamic> mat, string type){
     std::ofstream outputFile(filename, std::ofstream::out) ;
-    outputFile << mat.format(FullPrecision);
+    if(type=="f"){
+        //std::cout.precision(8);
+        outputFile << mat.format(8);//StreamPrecision);  #TODO: somehow 0.10793996f cant be saved correctly otherwise
+    }else{
+        outputFile << mat.format(FullPrecision);
+    }
     outputFile.close();
 
     //cout<<"Saved MatrixX"<<type<<"("<<mat.rows()<<","<<mat.cols()<<") to "<<filename<<endl;
