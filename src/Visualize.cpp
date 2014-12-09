@@ -44,6 +44,9 @@ Visualize::Visualize()
     keyToggle['a']=true;
     keyToggle['o']=true;
     keyToggle['m']=true;
+    keyToggle['l']=true; //lines for icp
+    keyToggle['t']=true; //trajectory
+    keyToggle['p']=true; //poses
 
 }
 
@@ -153,7 +156,7 @@ void Visualize::drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormal
     if(keyToggle['n']) drawNormals(m,colorNormals);
     if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
     if(keyToggle['v']) drawCubes(m.pts,ddist);
-    if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
+    //if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
 }
 
 
@@ -251,7 +254,7 @@ void Visualize::drawSpheres(vector<Vector3f> pts, double radius){
     }
 }
 
-void Visualize::drawFrustumIntrinsics(){
+void Visualize::drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane){
 //    cv::Matx33d K = cv::Matx33d::zeros();
 //    K(0,0) = 542;
 //    K(1,1) = 540;
@@ -266,7 +269,7 @@ void Visualize::drawFrustumIntrinsics(){
     double fovy = 2.0 * atan2(c_y, f_y) * 180 / M_PI;
     double aspect_ratio = c_x / c_y;
 
-    drawFrustum(fovy,aspect_ratio,-0.05f);
+    drawFrustum(fovy,aspect_ratio,-0.05f,colorLine,colorPlane);
 }
 
 void Visualize::drawMatches(Matches matches){
@@ -293,6 +296,72 @@ double Visualize::getRotationAngleApprox(double xdiff, double ydiff, double x, d
 	int ys=y>0 ? 1 : -1;
 	std::cout<<x<<"+"<<xdiff<<" "<<y<<"+"<<ydiff<<std::endl;
 	return ydiff*xs+xdiff*ys;
+}
+
+void Visualize::drawCameraPoses(vector<Isometry3f> cameraPoses, Vector4f colorLine, Vector4f colorPlane){
+
+
+//            float radius = 0.01f;
+//            Vector3f tLast;
+//            bool inited=false;
+    if(keyToggle['p']){
+    for(Isometry3f P : cameraPoses){
+        Vector3f t = -P.inverse().translation();
+        //Quaternionf q(P.inverse().linear());
+
+//                if(inited){
+//                glLineWidth(0.09f);
+//                glColor3f(1,1,1);
+//                glBegin(GL_LINES);
+//                glVertex3f(tLast.x(),tLast.y(),tLast.z());
+//                glVertex3f(t.x(),t.y(),t.z());
+//                glEnd();
+//                }
+
+        glPushMatrix();
+
+        glMultMatrixf(Isometry3f(P.linear()).matrix().data());
+        glTranslatef(t(0),t(1),t(2));
+
+        //glutWireSphere(radius,5,5);
+        //drawOrigin();
+        drawFrustumIntrinsics(colorLine,colorPlane);
+        //drawFrustum(0.01f,4.0/3.0f,0.1f,0.5f);
+        glPopMatrix();
+//                tLast=t;
+//                inited=true;
+    }
+    }
+
+    if(keyToggle['t']){
+    glBegin(GL_LINE_STRIP);
+    glLineWidth(8);
+    glColor4fv(colorLine.data());
+    for(Isometry3f P : cameraPoses){
+        Vector3f origin=Vector3f::Zero();
+        Vector3f pos = P*origin;
+        glVertex3fv(pos.data());
+    }
+    glEnd();
+    }
+
+//            for(Isometry3f P : cameraPoses){
+//                glPushMatrix();
+//                    Vector3f    tra1 = P.translation();
+//                    Quaternionf rot1(P.linear());
+//                    //glTranslatef(tra1.x(),tra1.y(),tra1.z());
+//                    //Matrix3f rot = P.linear();
+//                    //glMultMatrix(Affine3f())
+//                    glMultMatrixf((Translation3f(tra1)*rot1).matrix().data());
+//                    //glMultMatrixf(P.inverse().data()); //column major
+//                    glScalef(0.1f,0.1f,0.1f);
+
+//                    drawOrigin();
+//                    //drawFrustum(0.1f,4.0/3.0,0.1f,0.5f);
+//                    //drawCamera();
+
+//                glPopMatrix();
+//            }
 }
 
 
@@ -325,67 +394,18 @@ void Visualize::display(void)
                 drawPointCloud(m,color,10.0f);
             }
 
+            drawCameraPoses(cameraPoses,Vector4f(0.8,0,0.4,1),Vector4f(0.4,0.2,0.1,0.5));
+            drawCameraPoses(cameraPosesGroundTruth,Vector4f(0.0,1.0,0.5,1),Vector4f(0.0,.4,0.1,0.5));
 
 
-            glColor3f(0.8,0,0.8);
-//            float radius = 0.01f;
-//            Vector3f tLast;
-//            bool inited=false;
-            for(Isometry3f P : cameraPoses){
-                Vector3f t = -P.inverse().translation();
-                //Quaternionf q(P.inverse().linear());
 
-//                if(inited){
-//                glLineWidth(0.09f);
-//                glColor3f(1,1,1);
-//                glBegin(GL_LINES);
-//                glVertex3f(tLast.x(),tLast.y(),tLast.z());
-//                glVertex3f(t.x(),t.y(),t.z());
-//                glEnd();
-//                }
-
-                glPushMatrix();
-
-                glMultMatrixf(Isometry3f(P.linear()).matrix().data());
-                glTranslatef(t(0),t(1),t(2));
-
-                //glutWireSphere(radius,5,5);
-                //drawOrigin();
-                drawFrustumIntrinsics();
-                //drawFrustum(0.01f,4.0/3.0f,0.1f,0.5f);
-                glPopMatrix();
-//                tLast=t;
-//                inited=true;
-            }
-            //glEnd();
-
-//            for(Isometry3f P : cameraPoses){
-//                glPushMatrix();
-//                    Vector3f    tra1 = P.translation();
-//                    Quaternionf rot1(P.linear());
-//                    //glTranslatef(tra1.x(),tra1.y(),tra1.z());
-//                    //Matrix3f rot = P.linear();
-//                    //glMultMatrix(Affine3f())
-//                    glMultMatrixf((Translation3f(tra1)*rot1).matrix().data());
-//                    //glMultMatrixf(P.inverse().data()); //column major
-//                    glScalef(0.1f,0.1f,0.1f);
-
-//                    drawOrigin();
-//                    //drawFrustum(0.1f,4.0/3.0,0.1f,0.5f);
-//                    //drawCamera();
-
-//                glPopMatrix();
-//            }
-
-
-            if(keyToggle['m']) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            if(keyToggle['s']) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
-
-            if(keyToggle['e'] && modelT.pts.size()>0) drawPointCloud(modelT, RowVector3f(1,0,1),8.0f);//magenta
+            if(keyToggle['m'] && model.pts.size()>0) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
+            if(keyToggle['s'] && scene.pts.size()>0) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
+            if(keyToggle['e'] && modelT.pts.size()>0) drawAll(modelT,RowVector3f(1,0,1),RowVector3f(1,1,1));//magenta
 
             if(matches.size()>0) drawMatches(matches);
-            if(closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
-            if(src.size()>0) drawLines(src,dst);
+            if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
+            if(keyToggle['l'] && src.size()>0) drawLines(src,dst);
 
 
 	glPopMatrix();
@@ -606,6 +626,14 @@ void Visualize::spin(){
     }
 }
 
+void Visualize::spinLast(){
+    if(!isInitalized) visualize();
+    while(Visualize::waitKey('Q')){
+        glutPostRedisplay();
+        glutMainLoopEvent();
+    }
+}
+
 void Visualize::spin(int i){
     if(!isInitalized) visualize();
     while(i-- > 0){
@@ -624,7 +652,7 @@ bool Visualize::waitKeyInst(unsigned char key){
         //sleep(1);
         if(lastKey==key){
             lastKey=-1;
-            cout<<"ok, exit waiting = "<<endl;
+            //cout<<"ok, exit waiting = "<<endl;
             return false;
         }else{
             return true;
@@ -634,4 +662,42 @@ bool Visualize::waitKeyInst(unsigned char key){
 
 bool Visualize::waitKey(unsigned char key){
     return getInstance()->waitKeyInst(key);
+}
+
+
+void Visualize::setModel(PointCloud m){
+    getInstance()->model=m;
+}
+
+void Visualize::setScene(PointCloud s){
+    getInstance()->scene=s;
+}
+
+void Visualize::setModelTransformed(PointCloud mT){
+    getInstance()->modelT=mT;
+}
+
+void Visualize::setLines(vector<Vector3f> src, vector<Vector3f> dst){
+    getInstance()->src=src;
+    getInstance()->dst=dst;
+}
+
+void Visualize::addCloud(pair<PointCloud, RowVector3f> mypair){
+    getInstance()->ms.push_back(mypair);
+}
+
+void Visualize::addCameraPose(Isometry3f pose){
+    getInstance()->cameraPoses.push_back(pose);
+}
+
+void Visualize::setLastCameraPose(Isometry3f pose){
+    getInstance()->cameraPoses.back()=pose;
+}
+
+void Visualize::addCameraPoseGroundTruth(Isometry3f pose){
+    getInstance()->cameraPosesGroundTruth.push_back(pose);
+}
+
+void Visualize::setLastCameraPoseGroundTruth(Isometry3f pose){
+    getInstance()->cameraPosesGroundTruth.back()=pose;
 }

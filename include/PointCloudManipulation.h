@@ -32,7 +32,7 @@ namespace PointCloudManipulation {
 
     void reestimateNormals(PointCloud &C, const float neighRadius);
 
-    PointCloud downSample(PointCloud C, bool useCenter);
+    PointCloud downSample(PointCloud C, float voxelSize);
 
     Translation3f getTranslationToCentroid(PointCloud C);
 
@@ -53,6 +53,8 @@ namespace ICP {
     Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,bool withScale);
 
     //Isometry3f computeStepUnordered(MatrixXf modelPoseEst, MatrixXf sSmall, float thresh);
+
+    Isometry3f getTransformationBetweenPointClouds(PointCloud modelEst, PointCloud scene, int maxiter=100, float eps = 1e-3);
 
 }
 

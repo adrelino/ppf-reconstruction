@@ -6,7 +6,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // draw frustum
 ///////////////////////////////////////////////////////////////////////////////
-void drawFrustum(float fovY, float aspectRatio, float nearPlane)//, float farPlane)
+void drawFrustum(float fovY, float aspectRatio, float nearPlane, Vector4f colorLineV, Vector4f colorPlaneV)//, float farPlane)
 {
     float tangent = tanf(deg2rad2(fovY/2));
     float nearHeight = nearPlane * tangent;
@@ -43,9 +43,9 @@ void drawFrustum(float fovY, float aspectRatio, float nearPlane)//, float farPla
 
     // draw the edges around frustum
     glLineWidth(1);
-    glColor3f(1,1,1);
+    //glColor3f(1,1,1);
     glBegin(GL_LINES);
-    //glColor4fv(colorLine2);
+    glColor4fv(colorLineV.data());
     glVertex3f(0, 0, 0);
     //glColor4fv(colorLine1);
     glVertex3fv(vertices[0]);
@@ -83,8 +83,8 @@ void drawFrustum(float fovY, float aspectRatio, float nearPlane)//, float farPla
     glEnd();
 
     // draw near and far plane
-    //glColor4fv(colorPlane);
-    glColor3f(0,0,0);
+    glColor4fv(colorPlaneV.data());
+    //glColor3f(0,0,0);
     glBegin(GL_QUADS);
     glVertex3fv(vertices[0]);
     glVertex3fv(vertices[1]);

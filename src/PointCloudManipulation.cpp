@@ -7,6 +7,8 @@
 //
 
 #include "PointCloudManipulation.h"
+#include "Visualize.h"
+#include "PointPairFeatures.h"
 
 double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
 
@@ -57,11 +59,11 @@ PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCl
     PointCloud C2;
     C2.pts=mat2vec(pts2);
     C2.nor=mat2vec(nor2);
-    C2.cur=CandN.cur;
-    C2.pts_color=CandN.pts_color;
-    C2.neighRadius=CandN.neighRadius;
+//    C2.cur=CandN.cur;
+//    C2.pts_color=CandN.pts_color;
+//    C2.neighRadius=CandN.neighRadius;
 
-    cout<<"Projected "<<CandN.pts.size()<< "pts "<<endl;
+    //cout<<"Projected "<<CandN.pts.size()<< "pts "<<endl;
 
 
     return C2;
@@ -211,16 +213,16 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
         //cout<<"eigvalues"<<endl<<eig.eigenvalues()<<endl;
         //cout<<"eigvectors"<<endl<<eig.eigenvectors()<<endl;
 
-        Vector3f eigVals = eig.eigenvalues();
+        //Vector3f eigVals = eig.eigenvalues();
 
         //curvature
 
     //    https://github.com/PointCloudLibrary/pcl/blob/647de7bed7df7cd383e5948ff42b116e5aae0e79/features/include/pcl/features/impl/feature.hpp#L82
 
-        float curvature = eigVals(0) / eigVals.sum();
-        if(curvature<min) min=curvature;
-        if(curvature>max) max=curvature;
-        C.cur.push_back(curvature);
+//        float curvature = eigVals(0) / eigVals.sum();
+//        if(curvature<min) min=curvature;
+//        if(curvature>max) max=curvature;
+//        C.cur.push_back(curvature);
 
 
         //orient according to old normals
@@ -240,13 +242,13 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
         C.nor[i]=normal;
     }
 
-    for(int i=0;i<C.cur.size();i++){
-        float gray=C.cur[i]/max;
-        C.pts_color.push_back(Colormap::Jet(gray));
+//    for(int i=0;i<C.cur.size();i++){
+//        float gray=C.cur[i]/max;
+//        C.pts_color.push_back(Colormap::Jet(gray));
 
-    }
+//    }
 
-    C.neighRadius=neighRadius;
+  //  C.neighRadius=neighRadius;
 
 
     cout<<"min:"<<min<<" max:"<<max<<endl;
@@ -265,42 +267,51 @@ int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f> vec, Vector3f v
 }
 
 
-PointCloud PointCloudManipulation::downSample(PointCloud C, bool useCenter){
+PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
     
     //MatrixXf scaled = C/ddist;
-    unordered_map<string, vector<Vector3f> > voxels;
+    unordered_map<string, std::pair< vector<Vector3f>,vector<Vector3f> > > voxels;
     
     for (int i=0; i<C.pts.size(); i++) {
-        int x=round(C.pts[i].x()/ddist);
-        int y=round(C.pts[i].y()/ddist);
-        int z=round(C.pts[i].z()/ddist);
+        int x=floor(C.pts[i].x()/voxelSize);
+        int y=floor(C.pts[i].y()/voxelSize);
+        int z=floor(C.pts[i].z()/voxelSize);
         stringstream ss;
         ss<<x<<"|"<<y<<"|"<<z;
         string key=ss.str();
-        voxels[key].push_back(C.pts[i]);
+        //int key = (x | (y<<10) | (z<<20));
+//        if(voxels.count(key)==0){
+//            voxels[key]=make_pair()
+//        }
+        voxels[key].first.push_back(C.pts[i]);
+        voxels[key].second.push_back(C.nor[i]);
     }
     
     PointCloud C2; // contains Cmean,Nmean,Ccenter,Ncenter
-    
-    int i=0;
+    //C2.pts = vector<Vector3f>(voxels.size());
+    //C2.nor = vector<Vector3f>(voxels.size());
+    //int i=0;
     for (auto it : voxels){
         //        cout<<"key"<<it.first<<endl;
         //        cout<<"center"<<it.second.center<<endl;
         //        cout<<"pts:"<<endl;
         
-        Vector3f voxelCenterOrPtsMean=PointCloudManipulation::getCentroid(it.second);
+        Vector3f ptsMean=PointCloudManipulation::getCentroid(it.second.first);
+        C2.pts.push_back(ptsMean);
 
-        C2.pts.push_back(voxelCenterOrPtsMean);
+        //does mean normal make sense?
+        Vector3f norMean=PointCloudManipulation::getCentroid(it.second.second);
+        C2.nor.push_back(norMean);
 
 
         //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
-        int idx = nearestNeighbourIdx(C.pts,voxelCenterOrPtsMean);
-        C2.nor.push_back(C.nor[idx]);
+        //int idx = nearestNeighbourIdx(C.pts,voxelCenterOrPtsMean);
+        //C2.nor.push_back(C.nor[idx]);
 
-        i++;
+        //i++;
     }
     
-    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<ddist<<endl;
+    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<<endl;
     
     return C2;
 }
@@ -315,12 +326,16 @@ Translation3f PointCloudManipulation::getTranslationToCentroid(PointCloud C){
 }
 
 Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
-    Vector3f mean(0,0,0);
-    for (auto it : pts) {
-        mean+=it.cast<float>();
-    }
-    mean /= pts.size();
-    return mean;
+
+    Matrix3Xf m = vec2mat(pts);
+    Vector3f mean1=m.rowwise().mean();
+
+//    Vector3f mean(0,0,0);
+//    for (auto it : pts) {
+//        mean+=it.cast<float>();
+//    }
+//    mean /= pts.size();
+    return mean1;
 }
 
 //point to plane
@@ -436,28 +451,30 @@ Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool w
     return computeStep(src,dst,a,b,withScale);
 }
 
-vector<int> PointCloudManipulation::getClosesPoints(PointCloud modelPoseEst, PointCloud sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+//every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
+//note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
+vector<int> PointCloudManipulation::getClosesPoints(PointCloud srcCloud, PointCloud dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,
 float thresh){
     vector<int> corresp;
-    for (int i = 0; i < sSmall.rows(); ++i) {
-        Vector3f scenePt = sSmall.pts[i];
-        double diffMin = 9999999999999;//std::numeric_limits::infinity();
+    for (int i = 0; i < srcCloud.rows(); ++i) {
+        Vector3f srcPt = srcCloud.pts[i];
+        double diffMin = std::numeric_limits<double>::infinity();
         int idxMin;
-        for (int j = 0; j < modelPoseEst.rows(); ++j) {
-            Vector3f modelPnt = modelPoseEst.pts[j];
-            double diff = (scenePt-modelPnt).norm();
+        for (int j = 0; j < dstCloud.rows(); ++j) {
+            Vector3f dstPt = dstCloud.pts[j];
+            double diff = (srcPt-dstPt).norm();
             if(diff<diffMin){
                 diffMin=diff;
                 idxMin=j;
             }
         }
 
-        Vector3f modelPntBest = modelPoseEst.pts[idxMin];
+        Vector3f dstPtBest = dstCloud.pts[idxMin];
 
         if(diffMin<thresh){ //get rid ouf outlier correspondences
             corresp.push_back(idxMin);
-            src.push_back(modelPntBest);
-            dst.push_back(scenePt);
+            src.push_back(srcPt);
+            dst.push_back(dstPtBest);
         }
     }
 
@@ -471,5 +488,47 @@ float thresh){
 
 //    return PPP;
 //}
+
+Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud model, PointCloud scene, int maxIter, float eps){
+
+    Isometry3f P_Iterative_ICP = Isometry3f::Identity(); //initialize with ppf coarse alignment
+
+
+
+        int j = 0;
+        for (; j < maxIter; ++j) {
+            vector<Vector3f> src,dst;
+
+            PointCloud curr=PointCloudManipulation::projectPointsAndNormals(P_Iterative_ICP, model);
+            PointCloudManipulation::getClosesPoints(curr,scene,src,dst,0.04f);
+
+            //Visualize::setLines(src,dst);
+
+            //cout<<"Iteration "<<j<<endl;
+            cout<<"# Scene to Model Correspondences: "<<src.size()<<"=="<<dst.size()<<endl;
+
+            //Visualize::spin(3);
+
+
+            //cout<<"ICP "<<endl;
+
+            Isometry3f P_incemental = ICP::computeStep(src,dst,false);
+            //PointPairFeatures::printPose(P_incemental, "P incremental ICP");
+            if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,eps)){
+                break;
+            }
+            P_Iterative_ICP = P_Iterative_ICP * P_incemental;
+
+
+            //Visualize::setModelTransformed(curr);
+
+
+        }
+
+        cout<<"ICP converged after #steps="<<j<<endl;
+
+        return P_Iterative_ICP;
+
+}
 
 

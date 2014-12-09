@@ -1,22 +1,20 @@
-//
-//  mainLocalCoordinates.cpp
-//  PointPairFeatures
-//
-//  Created by Adrian Haarbach on 26.10.14.
-//  Copyright (c) 2014 Adrian Haarbach. All rights reserved.
-//
+#include <gtest/gtest.h>
+#include "testHelpers.h"
 
 #include "LoadingSaving.h"
 #include "PointPairFeatures.h"
 #include "PointCloudManipulation.h"
 #include "PPF.h"
-#include <iostream>
 
-using namespace std;
+int main(int argc, char **argv) {
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}
 
-int main(int argc, char * argv[])
-{
-    PointCloud m=PointCloudManipulation::downSample(LoadingSaving::loadPointCloud("bunny/scene.xyz"),false);
+namespace {
+
+TEST(PPFs,LocalCoordinates){
+    PointCloud m=PointCloudManipulation::downSample(LoadingSaving::loadPointCloud("bunny/scene.xyz"),ddist);
     Quaternionf q=Quaternionf::Identity();
     q = q * AngleAxisf(deg2rad(10), Vector3f::UnitX());
     q = q * AngleAxisf(deg2rad(-20),Vector3f::UnitY());
@@ -27,7 +25,7 @@ int main(int argc, char * argv[])
     Vector3f tra(.1,300,-4);
 
     Isometry3f P = Translation3f(tra)*Quaternionf(rot);
-    PointPairFeatures::printPose(P,"P_original:");
+    printPose(P,"P_original:");
     PointCloud s=PointCloudManipulation::projectPointsAndNormals(P, m);
 
     //now we simulate that there is a ppf correspondence between first row of sSmall and sSmallProjected
@@ -46,12 +44,11 @@ int main(int argc, char * argv[])
 
     Isometry3f Pest = PointPairFeatures::alignSceneToModel(s_m,s_n,m_m,m_n,alpha);
 
-    PointPairFeatures::printPose(Pest,"P_est:");
+    printPose(Pest,"P_est:");
 
-    PointPairFeatures::err(P,Pest);
-
-
-
-
+    float error=err(P,Pest);
+    EXPECT_NEAR(error,0,0.1f);
 }
 
+
+}//end NS

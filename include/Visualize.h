@@ -22,7 +22,7 @@
 #if defined (__APPLE__) || defined(MACOSX)
   //MAC
   #include <OpenGL/gl.h>
-  #include <OpenGL/glu.h>
+  //#include <OpenGL/glu.h>
   #include <GL/freeglut.h>
 #else
  //LINUX
@@ -52,16 +52,37 @@ public:
     //mimics opencv's Viz
     static void spin();
     static void spin(int iterations);
+    static void spinLast();
     //static void spinOnce(int millis);
 
     //TODO make private, make better interface
     static Visualize* getInstance();
+
+    static void setModel(PointCloud m);
+
+    static void setScene(PointCloud m);
+
+    static void setModelTransformed(PointCloud mT);
+
+    static void setLines(vector<Vector3f> src, vector<Vector3f> dst);
+
+    static void addCloud(pair<PointCloud, RowVector3f> mypair);
+
+    static void addCameraPose(Isometry3f pose);
+    static void setLastCameraPose(Isometry3f pose);
+    static void addCameraPoseGroundTruth(Isometry3f pose);
+    static void setLastCameraPoseGroundTruth(Isometry3f pose);
+
+
+
 
     KeyBucketPairList b;
     PointCloud model,scene,modelT;
     Matches matches;
     vector< pair<PointCloud, RowVector3f> > ms;
     vector<Isometry3f> cameraPoses;
+    vector<Isometry3f> cameraPosesGroundTruth;
+
 
     vector<int> closestPtsSceneToModel;
 
@@ -69,7 +90,7 @@ public:
 
     int current_object;
 
-    void drawFrustumIntrinsics();
+    void drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane);
 
 
 
@@ -127,6 +148,8 @@ private:
 
     void drawPPF(int i, int j, PointCloud m);
     void drawPPfs(Bucket, PointCloud m);
+
+    void drawCameraPoses(vector<Isometry3f> cameraPoses,Vector4f colorLine, Vector4f colorPlane);
 
 
 

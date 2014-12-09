@@ -79,8 +79,8 @@ int main(int argc, char * argv[])
     myWindow.showWidget("origin", cv::viz::WCoordinateSystem());
 
 
-    //cv::viz::Widget cloudWidget=cv::viz::Widget::fromPlyFile("bunny/bunny.ply");
-    //myWindow.showWidget("Cloud", cloudWidget);
+    cv::viz::Widget cloudWidget=cv::viz::Widget::fromPlyFile("bunny/bunny.ply");
+    myWindow.showWidget("Cloud", cloudWidget);
 
     PointCloud cloud;
 
@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
         cloud=LoadingSaving::loadPointCloud(ss.str());
         //cout<<cloud<<endl;
 
-        ss1<<"bunny/depth-poses/poses_"<<i<<".txt";
+        ss1<<"bunny/depth-poses/cloudToPLY-coarse_"<<i<<".txt";
         Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
         //P = AngleAxisf(deg2rad(-90), Vector3f::UnitX())*P;
 
@@ -115,7 +115,7 @@ int main(int argc, char * argv[])
 
        // PointPairFeatures::printPose(P,ss2.str());
 
-        cloud=PointCloudManipulation::downSample(cloud,false);
+        cloud=PointCloudManipulation::downSample(cloud,0.01f);
 
         cloud=PointCloudManipulation::projectPointsAndNormals(P, cloud);
 
@@ -150,9 +150,9 @@ int main(int argc, char * argv[])
         cv::viz::WPaintedCloud cloudWidget(cloudCv);
         myWindow.showWidget(ss2.str(), cloudWidget);
 
-        cv::Mat normalsCv = eig2cv(cloud,true);
-        cv::viz::WCloudNormals cloudNormals(cloudCv,normalsCv,1,0.03,cv::viz::Color::cyan());
-        myWindow.showWidget("normals",cloudNormals);
+        //cv::Mat normalsCv = eig2cv(cloud,true);
+        //cv::viz::WCloudNormals cloudNormals(cloudCv,normalsCv,1,0.03,cv::viz::Color::cyan());
+        //myWindow.showWidget("normals",cloudNormals);
 
 
 

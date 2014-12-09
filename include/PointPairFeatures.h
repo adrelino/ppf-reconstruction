@@ -61,14 +61,14 @@ namespace PointPairFeatures{
     Poses averagePosesInClusters(vector<Poses>);
 
 
-    void printPose(Pose Pest,string title="");
+//    void printPose(Pose Pest,string title="");
 
-    void printPose(Isometry3f P,string title="");
+//    void printPose(Isometry3f P,string title="");
 
-    void printPoses(Poses vec);
+//    void printPoses(Poses vec);
 
-    void err(Isometry3f P, Pose Pest);
-    void err(Isometry3f P, Isometry3f Pest);
+//    float err(Isometry3f P, Pose Pest);
+//    float err(Isometry3f P, Isometry3f Pest);
 
     Poses sortPoses(Poses poses);
 

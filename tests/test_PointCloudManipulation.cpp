@@ -1,50 +1,12 @@
 #include <gtest/gtest.h>
-//#include <opencv2/core/core.hpp>
-
-// our own testing code
 #include "testHelpers.h"
 
-#include "../src/LoadingSaving.h"
-#include "../src/PointPairFeatures.h"
-
-#include "../src/PointCloudManipulation.h"
+#include "LoadingSaving.h"
+#include "PointCloudManipulation.h"
 
 namespace{
 
 using namespace std;
-//using namespace cv;
-//using namespace Eigen;
-
-//TEST(LoadingSaving, cv) {
-//  float A[3][4] = {
-//    {47.000000000, 14.000000000, 9.000000000, 16.000000000},
-//    {38.000000000, 39.000000000, 37.000000000, 45.000000000},
-//    {45.000000000, 42.000000000, 34.000000000, 27.000000000},
-//  };
-//  Mat mA = Mat(3, 4, CV_32FC1, &A);
-
-//  //mA[0][0] -=1;
-
-//  float expectedRes[3][4] = {
-//    {47.000000000, 14.000000000, 9.000000000, 16.000000000},
-//    {38.000000000, 39.000000000, 37.000000000, 45.000000000},
-//    {45.000000000, 42.000000000, 34.000000000, 27.000000000},
-//  };
-//  Mat mExpectedRes = Mat(3, 4, CV_32FC1, &expectedRes);
-//  //cout<<mA<<endl;
-//  areMatricesEqual(mExpectedRes, mA);
-//}
-
-TEST(Eigen, SymmetricMatrixTranspose) {
-    Eigen::Matrix2i A, B;
-
-    A << 1, 3,
-         3, 4;
-    B = A.transpose();
-
-    EXPECT_EQ_MATRIX(A,B);
-
-}
 
 TEST(LoadingSaving, MatrixXf) {
   MatrixXf mA = MatrixXf::Random(5,5);
@@ -73,73 +35,6 @@ TEST(LoadingSaving, Matrix4f) {
   Matrix4f mB=LoadingSaving::loadMatrix4f("Matrix4f");
   EXPECT_FLOAT_EQ_MATRIX(mA,mB)
 }
-
-TEST(Quaternion, test_avg_quat) {
-  //cout<<'Testing un-weighted quaternion averaging'<<endl;
-  // Average 100 times
-  int numTrials = 100;
-  int perturb = 5;
-
-  double errNaiveSum = 0;
-  double errMarkleySum = 0;
-
-  for(int i=0; i<numTrials; i++){
-      Vector4f qinit = Vector4f::Random();
-      qinit = qinit.normalized();
-
-      Poses poses;
-      for(int j = 0; j< 10; j++){
-          Vector4f q2(qinit);
-          q2 += Vector4f::Random()*perturb/2.0; //matlab : 0->1, eigen -1->1
-          poses.push_back(std::make_pair(Isometry3f(Quaternionf(q2)),1));
-      }
-
-      Quaternionf Qavg = PointPairFeatures::avg_quaternion_markleyQ(poses);
-
-      //cout<<Qavg.coeffs()<<endl;
-  }
-
-}
-
-//TEST(Quaternion, simple){
-//    MatrixXf Q2 = LoadingSaving::loadMatrixXf("Q2");
-//    Vector4f Qavg = PointPairFeatures::avg_quaternion_markley(Q2.adjoint());
-
-//    Vector4f QavgExp(LoadingSaving::loadMatrixXf("Qavg").data());
-
-//    if(Qavg(0)*QavgExp(0)<0){
-//        Qavg*=-1;
-//    }
-
-//    cout<<Qavg.transpose()<<endl;
-//    cout<<QavgExp.transpose()<<endl;
-
-
-//    EXPECT_NEAR_MATRIX(Qavg.cwiseAbs(), QavgExp.cwiseAbs(),1e-2);
-//}
-
-//TEST(Quaternion, poses){
-//    MatrixXf Q2 = LoadingSaving::loadMatrixXf("Q2");
-
-//    Poses poses;
-//    for(int j = 0; j< Q2.cols(); j++){
-//       Vector4f q2(Q2.col(j).cast<double>());
-//       poses.push_back(std::make_pair(Isometry3f(Quaternionf(q2)),1));
-//    }
-//    Vector4f Qavg = PointPairFeatures::avg_quaternion_markley(poses);
-
-//    Vector4f QavgExp(LoadingSaving::loadMatrixXf("Qavg").data());
-
-//    if(Qavg(0)*QavgExp(0)<0){
-//        Qavg*=-1;
-//    }
-
-//    cout<<Qavg.transpose()<<endl;
-//    cout<<QavgExp.transpose()<<endl;
-
-
-//    areMatricesEqual<float>(Qavg.cwiseAbs(), QavgExp.cwiseAbs(),1e-2);
-//}
 
 //TEST(EigenValues,eigValues){
 //    MatrixXd A = LoadingSaving::loadMatrixXd("A");
@@ -319,6 +214,37 @@ TEST(floating,numnber){
     //cout<<b41Test<<endl;
 
     EXPECT_FLOAT_EQ(b41,b41Test);
+}
+
+TEST(NewLayout,ICP){
+    PointCloud C=LoadingSaving::loadPointCloud("bunny/bunny_smoothNormals.xyz",100);
+
+    Quaternionf q=Quaternionf::Identity();
+    q = q * AngleAxisf(deg2rad(-1), Vector3f::UnitX());
+    q = q * AngleAxisf(deg2rad(2),Vector3f::UnitY());
+    q = q * AngleAxisf(deg2rad(-3),Vector3f::UnitZ());
+
+    Vector4f rot(q.x(),q.y(),q.z(),q.w());
+    //Vector4f rot(.2,.2,.2,.4);
+    //Vector3f tra(0,0,0);//
+    Vector3f tra(.01,-0.01,-0.005);//,0.5,0.01);
+
+    Isometry3f P = Translation3f(tra)*Quaternionf(rot);
+    printPose(P,"P_original:");
+    PointCloud sSmall=PointCloudManipulation::projectPointsAndNormals(P, C);
+
+    Isometry3f P_icp=ICP::getTransformationBetweenPointClouds(C,sSmall);
+
+    printPose(P_icp,"P_icp:");
+
+    float error=err(P,P_icp);
+
+    EXPECT_LT(error,0.1f) << "Mean Pose error";
+
+
+    //EXPECT_TRUE(P.data().isApprox(P_icp.data())) << "P_icp is not the original one";
+
+
 }
 
 } //namespace

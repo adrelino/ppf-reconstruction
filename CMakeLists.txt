@@ -62,15 +62,15 @@ include_directories(src/viz/)
 find_package(GTest)
 
 
+file(GLOB HEADERS
+    include/*.h
+    include/*.hpp
+)
 
-set(SOURCE_FILES
-    src/Constants.h
-    src/RandomN.h
-    src/pointcloud.cpp
-
+#file(GLOB SOURCES src/*.cpp)
+set(SOURCES
     src/LoadingSaving.cpp
     src/PointCloudManipulation.cpp
-
     src/PPF.cpp
     src/PointPairFeatures.cpp
 )
@@ -81,37 +81,43 @@ set(VIZ
     src/viz/frustum.h
 )
 
-##no dependencies
-add_executable(
-    poseDiffTest
-    src/mainPoseDiff.cpp
-    ${SOURCE_FILES}
-)
-
-add_executable(
-    localCoords
-    src/mainLocalCoordinates.cpp
-    ${SOURCE_FILES}
-)
-
 ##opengl + glut dependencies
 add_executable(
-    main
-    src/main.cpp
-    ${SOURCE_FILES}
+    modelToScene
+    src/main_modelToScene.cpp
+    ${HEADERS}
+    ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(main ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
-add_custom_command(TARGET main PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:main>/bunny)
+target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:modelToScene>/bunny)
 
 add_executable(
-    frameToModel
-    src/main_frameToModel.cpp
-    ${SOURCE_FILES}
+    frameToModel-PPF-coarse
+    src/main_frameToModel-PPF-coarse.cpp
+    ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(frameToModel ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
-add_custom_command(TARGET frameToModel PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel>/bunny)
+target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/bunny)
+
+add_executable(
+    frameToModel-ICP-refine
+    src/main_frameToModel-ICP-refine.cpp
+    ${SOURCES}
+    ${VIZ}
+)
+target_link_libraries(frameToModel-ICP-refine ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+add_custom_command(TARGET frameToModel-ICP-refine PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-ICP-refine>/bunny)
+
+add_executable(
+    frameToFrame
+    src/main_frameToFrame.cpp
+    ${SOURCES}
+    ${VIZ}
+)
+target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToFrame>/bunny)
 
 
 
@@ -121,27 +127,27 @@ find_package(OpenCV)
 if (TRUE)#OPENCV_FOUND)
 include_directories(${OPENCV_INCLUDE_DIRS})
     add_executable(
-        viz
+        opencv-viz1
         MACOSX_BUNDLE
-        src/mainOpenCVViz.cpp
+        src/viz-opencv/mainOpenCVViz.cpp
     )
-    target_link_libraries(viz ${OpenCV_LIBS})
+    target_link_libraries(opencv-viz1 ${OpenCV_LIBS})
 
     add_executable(
-        viz2
+        opencv-viz2
         MACOSX_BUNDLE
-        src/mainTransformations.cpp
+        src/viz-opencv/mainTransformations.cpp
     )
-    target_link_libraries(viz2 ${OpenCV_LIBS})
+    target_link_libraries(opencv-viz2 ${OpenCV_LIBS})
 
     add_executable(
-        sequence
+        opencv-seq
         MACOSX_BUNDLE
-        src/mainSequence.cpp
-        ${SOURCE_FILES}
+        src/viz-opencv/mainSequence.cpp
+        ${SOURCES}
     )
-    target_link_libraries(sequence ${OpenCV_LIBS})
-    add_custom_command(TARGET sequence PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:sequence>/bunny)
+    target_link_libraries(opencv-seq ${OpenCV_LIBS})
+    add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
 else()
   message("OpenCV was not found - main reliing on opencv viz will not be built")
 endif()
@@ -151,13 +157,32 @@ find_package(GTest)
 if (GTEST_FOUND)
 include_directories(${GTEST_INCLUDE_DIRS})
   add_executable(
-    runTests
-    ${SOURCE_FILES}
-    tests/runTests.cpp
+    test_PointCloudManipulation
+    ${SOURCES}
+    tests/test_PointCloudManipulation.cpp
     tests/testHelpers.h
     )
-  target_link_libraries(runTests ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-  add_custom_command(TARGET runTests PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:runTests>/bunny)
+  target_link_libraries(test_PointCloudManipulation ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+  add_custom_command(TARGET test_PointCloudManipulation PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointCloudManipulation>/bunny)
+
+  add_executable(
+    test_PointPairFeatures
+    ${SOURCES}
+    tests/test_PointPairFeatures.cpp
+    tests/testHelpers.h
+    )
+  target_link_libraries(test_PointPairFeatures ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+  add_custom_command(TARGET test_PointPairFeatures PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointPairFeatures>/bunny)
+
+  add_executable(
+    test_PoseClustering
+    ${SOURCES}
+    tests/test_PoseClustering.cpp
+    tests/testHelpers.h
+    )
+  target_link_libraries(test_PoseClustering ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+  add_custom_command(TARGET test_PoseClustering PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PoseClustering>/bunny)
+
 else()
   message("GTest was not found - testcases can and will not be build")
 endif()

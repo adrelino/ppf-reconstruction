@@ -35,13 +35,42 @@ static vector<Vector3f> mat2vec(Matrix3Xf mat){
 class PointCloud
 {
 public:
-    PointCloud();
+    PointCloud(){};
+    //PointCloud(PointCloud &c);
+
+//    PointCloud(int n){
+//        pts = std::vector<Vector3f>(n);
+//        nor = std::vector<Vector3f>(n);
+//        pts_color = std::vector<RowVector3f>(n);
+//    }
+
+    static PointCloud fromOther(PointCloud &c){  //copy constructor
+        PointCloud a;
+        a.pts=c.pts;
+        a.nor=c.nor;
+        a.pts_color=c.pts_color;
+        return a;
+    }
+
+//    PointCloud& operator=(PointCloud other) {
+//        std::cout << "copy assignment of A\n";
+//        std::swap(pts, other.pts);
+//        std::swap(nor, other.nor);
+//        return *this;
+//    }
+
+//        PointCloud& operator=() {
+//            std::cout << "copy assignment of A\n";
+//            std::swap(pts, other.pts);
+//            std::swap(nor, other.nor);
+//            return *this;
+//        }
 
     std::vector<Vector3f> pts;
     std::vector<Vector3f> nor;
-    std::vector<float> cur;
+//    std::vector<float> cur;
     std::vector<RowVector3f> pts_color;
-    float neighRadius;
+//    float neighRadius;
 
     int rows(){
         return pts.size();
@@ -53,6 +82,14 @@ public:
 
     Matrix3Xf norMat(){
         return vec2mat(nor);
+    }
+
+    void append(PointCloud b){
+        pts.insert(pts.end(), b.pts.begin(), b.pts.end());
+        nor.insert(nor.end(), b.nor.begin(), b.nor.end());
+        pts_color.insert(pts_color.end(), b.pts_color.begin(), b.pts_color.end());
+
+
     }
 };
 

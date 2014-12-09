@@ -370,30 +370,6 @@ bool isPoseCloseToIdentity(Isometry3f P1, float eps){
 
 }
 
-void printPose(Pose pose,string title){
-    if(title!="") title+=" ";
-    cout<< title <<"score : "<<pose.second<<endl;
-    printPose(pose.first);
-}
-
-
-void printPose(Isometry3f P,string title){
-    //cout<<P.matrix()<<endl;
-    Vector3f tra(P.translation());
-    Quaternionf q(P.linear());
-    Vector4f rot(q.x(),q.y(),q.z(),q.w());
-    //cout<<setprecision(3);
-    if(title!="") cout<<title<<endl;
-    cout<<"tra: "<<tra.transpose()<<endl;
-    cout<<"rot: "<<rot.transpose()<<endl;
-}
-
-void printPoses(Poses vec){
-    for(auto pose : vec){
-        printPose(pose);
-    }
-}
-
 vector<Poses> clusterPoses (Poses vec){
 
    vec=sortPoses(vec);
@@ -532,50 +508,6 @@ Poses averagePosesInClusters(vector<Poses> clusters){
 
 
     return vec;
-}
-
-void err(Isometry3f P, Pose PoseEst){
-    cout<<"//------- Error between P_gold and P_est with "<<PoseEst.second<<" votes --------\\"<<endl;
-    Isometry3f Pest=PoseEst.first;
-    err(P,Pest);
-}
-
-void err(Isometry3f P, Isometry3f Pest){
-    Vector3f tra(P.translation());
-    Quaternionf q(P.linear());
-    Vector4f rot(q.x(),q.y(),q.z(),q.w());
-
-    Vector3f tra_est(Pest.translation());
-    Quaternionf qest(Pest.linear());
-    Vector4f rot_est(qest.x(),qest.y(),qest.z(),qest.w());
-
-    Vector3f tra_diff = (tra - tra_est);
-    float tra_error=tra_diff.array().cwiseAbs().sum();
-
-    Vector4f rot_diff = (rot - rot_est);
-    float rot_error=rot_diff.array().cwiseAbs().sum();
-
-//    if(rot_error>1.5){
-//        cout<<"flipping rot"<<endl;
-//        rot_est*=-1;
-//        rot_diff = (rot - rot_est);
-//        rot_error=rot_diff.array().cwiseAbs().sum();
-//    }
-
-
-    //cout<<setprecision(3);
-    cout<<"tra_ori: "<<tra.transpose()<<endl;
-    cout<<"tra_est: "<<tra_est.transpose()<<endl;
-    //cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
-    cout<<"tra_error:----------------------------------------------> "<<tra_error<<endl;
-
-    cout<<"rot_ori: "<<rot.transpose()<<endl;
-    cout<<"rot_est: "<<rot_est.transpose()<<endl;
-    //cout<<"rot_dif: "<<rot_diff.transpose()<<endl;
-    cout<<"rot_error:----------------------------------------------> "<<rot_error<<endl;
-
-    //cout<<"P: "<<endl<<P.matrix()<<endl;
-    //cout<<"P_est: "<<endl<<Pest.matrix()<<endl;
 }
 
 } //end namespace
