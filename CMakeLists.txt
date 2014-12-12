@@ -137,8 +137,10 @@ include_directories(${OPENCV_INCLUDE_DIRS})
         opencv-viz2
         MACOSX_BUNDLE
         src/viz-opencv/mainTransformations.cpp
+    ${SOURCES}
+    ${VIZ}
     )
-    target_link_libraries(opencv-viz2 ${OpenCV_LIBS})
+    target_link_libraries(opencv-viz2 ${OpenCV_LIBS} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
     add_executable(
         opencv-seq

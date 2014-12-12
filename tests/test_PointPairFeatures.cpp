@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
 }
 
 namespace {
-
+/*
 TEST(PPFs,LocalCoordinates){
     PointCloud m=PointCloudManipulation::downSample(LoadingSaving::loadPointCloud("bunny/scene.xyz"),ddist);
     Quaternionf q=Quaternionf::Identity();
@@ -48,7 +48,21 @@ TEST(PPFs,LocalCoordinates){
 
     float error=err(P,Pest);
     EXPECT_NEAR(error,0,0.1f);
+}*/
+
+TEST(Trans,inter){
+    Isometry3f P(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_4.txt"));
+    Isometry3f Pn(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_5.txt"));
+
+    Isometry3f P_inter=Pn*P.inverse();
+    Isometry3f P_est=P_inter*P;
+
+    err(Pn,P_est,true);
+
 }
 
+TEST(bla,blu){
+
+}
 
 }//end NS

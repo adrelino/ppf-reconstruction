@@ -6,6 +6,8 @@
 using namespace Eigen;
 using namespace std;
 
+#include <opencv2/core.hpp>
+
 //typedef struct {float x; float y; float z;} float3;
 //inline std::ostream& operator<<(std::ostream& os, const float3& v) {
 //  os << v.x << " " << v.y << " " << v.z << std::endl;
@@ -43,6 +45,38 @@ public:
 //        nor = std::vector<Vector3f>(n);
 //        pts_color = std::vector<RowVector3f>(n);
 //    }
+
+    static PointCloud fromDepthImage(cv::Mat depth, cv::Mat mask){
+        //mimic depth2cloudAndNormals.m matlab file
+
+        int m=depth.rows; //Y
+        int n=depth.cols; //X
+
+        float fx = 542;
+        float fy=540.5;
+        float cx=n/2;
+        float cy=m/2;
+
+
+
+        vector<Eigen::Vector3f> pts;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if(mask.at<bool>(i,j)){
+                    float Z = depth.at<float>(i,j);
+                    float X = (j-cx)*Z*(1/fx);
+                    float Y = (i-cy)*Z*(1/fy);
+                    pts.push_back(Vector3f(X,Y,Z));
+                }
+            }
+        }
+
+        PointCloud C;
+        C.pts=pts;
+
+        return C;
+    }
 
     static PointCloud fromOther(PointCloud &c){  //copy constructor
         PointCloud a;

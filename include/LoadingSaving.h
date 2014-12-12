@@ -21,13 +21,16 @@ namespace LoadingSaving {
     PointCloud loadPLY(const std::string filename, bool withNormals=true);
     void savePLY(const std::string filename, PointCloud PC);
 
-
+    //load exr depth map produced by blender and project it to 3d pts
+    PointCloud loadExr(const std::string filename);
 
     MatrixXi loadMatrixXi(std::string filename);
     MatrixXf loadMatrixXf(std::string filename);
     MatrixXd loadMatrixXd(std::string filename);
 
     PointCloud loadPointCloud(std::string filename, int ptLimit=-1);
+    void writePointCloud(std::string filename, PointCloud C);
+
 
     Matrix4f loadMatrix4f(std::string filename);
 

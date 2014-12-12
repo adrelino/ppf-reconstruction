@@ -59,6 +59,7 @@ PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCl
     PointCloud C2;
     C2.pts=mat2vec(pts2);
     C2.nor=mat2vec(nor2);
+    C2.pts_color=CandN.pts_color;
 //    C2.cur=CandN.cur;
 //    C2.pts_color=CandN.pts_color;
 //    C2.neighRadius=CandN.neighRadius;
@@ -190,8 +191,13 @@ vector<Vector3f> PointCloudManipulation::estimateNormals(vector<Vector3f> pts, c
 }
 
 void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighRadius){
-    float min=std::numeric_limits<float>::max();
-    float max=std::numeric_limits<float>::min();
+//    float min=std::numeric_limits<float>::max();
+//    float max=std::numeric_limits<float>::min();
+
+    if(C.nor.size()==0){
+        cout<<"reestimateNormals, no previous normals"<<endl;
+        C.nor=vector<Vector3f>(C.pts.size());
+    }
 
     for (int i=0; i<C.pts.size(); i++) {
         Vector3f p1=C.pts[i];
@@ -234,12 +240,21 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
                 normal*=-1;
                 //normal.normalize();
             }
-        }else{ //TODO; orient according to viewpoint or away from given viewpont .... or even better: outwards on a surface
+            C.nor[i]=normal;
 
+        }else{ //TODO; orient according to viewpoint or away from given viewpont .... or even better: outwards on a surface
+            Vector3f oldNormal(0,0,-1); //positive z axis
+            double angle=acos(oldNormal.dot(normal));
+            cout<<"angle: "<<angle<<endl;
+            if(angle>=M_PI_2){
+                //cout<<"otherside"<<endl;
+                normal*=-1;
+                //normal.normalize();
+            }
+            C.nor.push_back(normal);
         }
         
         //cout<<normal<<endl;
-        C.nor[i]=normal;
     }
 
 //    for(int i=0;i<C.cur.size();i++){
@@ -251,7 +266,7 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
   //  C.neighRadius=neighRadius;
 
 
-    cout<<"min:"<<min<<" max:"<<max<<endl;
+   // cout<<"min:"<<min<<" max:"<<max<<endl;
     
     cout <<"Reestimated Normals and Curvature using PCA and Neighbours in a "<<neighRadius<<"m ball"<<endl;
 }
@@ -271,6 +286,8 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
     
     //MatrixXf scaled = C/ddist;
     unordered_map<string, std::pair< vector<Vector3f>,vector<Vector3f> > > voxels;
+
+    bool withNormals=C.nor.size()>0;
     
     for (int i=0; i<C.pts.size(); i++) {
         int x=floor(C.pts[i].x()/voxelSize);
@@ -284,7 +301,7 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
 //            voxels[key]=make_pair()
 //        }
         voxels[key].first.push_back(C.pts[i]);
-        voxels[key].second.push_back(C.nor[i]);
+        if(withNormals) voxels[key].second.push_back(C.nor[i]);
     }
     
     PointCloud C2; // contains Cmean,Nmean,Ccenter,Ncenter
@@ -300,8 +317,10 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
         C2.pts.push_back(ptsMean);
 
         //does mean normal make sense?
+        if(withNormals){
         Vector3f norMean=PointCloudManipulation::getCentroid(it.second.second);
         C2.nor.push_back(norMean);
+        }
 
 
         //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
@@ -311,7 +330,7 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
         //i++;
     }
     
-    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<<endl;
+    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<< " withNormals="<<withNormals<<endl;
     
     return C2;
 }

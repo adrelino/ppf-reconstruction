@@ -166,5 +166,4 @@ static float err(Isometry3f P, Pose PoseEst){
 
 //}
 
-
 #endif

@@ -12,6 +12,10 @@
 #include <iostream>
 #include <iomanip>
 
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
+
 namespace LoadingSaving{
 
 //pair<vector<Vector3f>,vector<Vector3f>> loadMatrixPointsWithNormals(std::string filename){
@@ -39,6 +43,14 @@ namespace LoadingSaving{
 
 //    return make_pair(pts,nor);
 //}
+
+PointCloud loadExr(const string filename){
+   // cv::Mat depth = cv::imread(filename,cv::IMREAD_GRAYSCALE);
+    //cv::cvtColor(depth,depth,CV_RGB2GRAY);   // like single-channel png's
+    //depth.convertTo( depth, CV_32FC1, 0.001 ); // convert to meters
+
+    //cv::Mat depth = cv::imread( dir + "/depth_" + ss.str() + ".exr",-1);
+}
 
 PointCloud loadPLY(const std::string filename, bool withNormals)
 {
@@ -170,6 +182,26 @@ PointCloud loadPointCloud(std::string filename, int ptLimit){
     C.nor=nor;
 
     return C;
+}
+
+void writePointCloud(std::string filename, PointCloud C){
+    Matrix3Xf A = C.ptsMat();
+    MatrixXf D;
+
+    if(C.nor.size()>0){
+        Matrix3Xf B = C.norMat();
+
+        D = MatrixXf(A.rows()+B.rows(), A.cols());
+        D << A,
+             B;
+    }else{
+        D = A;
+    }
+
+
+    MatrixXf DD = D.transpose();
+
+    saveMatrixXf(filename,DD);
 }
 
 template<typename Number>

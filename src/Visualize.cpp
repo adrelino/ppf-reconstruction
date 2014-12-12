@@ -390,7 +390,8 @@ void Visualize::display(void)
 
             for(auto it : ms){
                 PointCloud m = it.first;
-                RowVector3f color = RowVector3f(0,1,0); //it.second
+                //RowVector3f color = it.second;//RowVector3f(0,1,0); //it.second
+                RowVector3f color;
                 drawPointCloud(m,color,10.0f);
             }
 

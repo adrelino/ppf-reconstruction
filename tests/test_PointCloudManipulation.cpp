@@ -36,6 +36,7 @@ TEST(LoadingSaving, Matrix4f) {
   EXPECT_FLOAT_EQ_MATRIX(mA,mB)
 }
 
+
 //TEST(EigenValues,eigValues){
 //    MatrixXd A = LoadingSaving::loadMatrixXd("A");
 
