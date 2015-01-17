@@ -1,3 +1,8 @@
+#todo
+#fix normal estimation from depth images
+#reject frames if icp line lenght is too big
+#global optimization
+
 project(point-pair-features)
 
 cmake_minimum_required(VERSION 2.8)
@@ -59,7 +64,10 @@ include_directories(EIGEN3_INCLUDE_DIR)   # TODO check: is not set, but still wo
 
 include_directories(include/)
 include_directories(src/viz/)
-find_package(GTest)
+
+# OpenCV dependencies
+find_package(OpenCV REQUIRED)
+include_directories(${OPENCV_INCLUDE_DIRS})
 
 
 file(GLOB HEADERS
@@ -89,7 +97,7 @@ add_executable(
     ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:modelToScene>/bunny)
 
 add_executable(
@@ -98,7 +106,7 @@ add_executable(
     ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/bunny)
 
 add_executable(
@@ -107,7 +115,7 @@ add_executable(
     ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(frameToModel-ICP-refine ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+target_link_libraries(frameToModel-ICP-refine ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 add_custom_command(TARGET frameToModel-ICP-refine PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-ICP-refine>/bunny)
 
 add_executable(
@@ -116,43 +124,38 @@ add_executable(
     ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} )
+target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToFrame>/bunny)
 
 
 
 
-# OpenCV dependencies
-find_package(OpenCV)
-if (TRUE)#OPENCV_FOUND)
-include_directories(${OPENCV_INCLUDE_DIRS})
-    add_executable(
-        opencv-viz1
-        MACOSX_BUNDLE
-        src/viz-opencv/mainOpenCVViz.cpp
-    )
-    target_link_libraries(opencv-viz1 ${OpenCV_LIBS})
 
-    add_executable(
-        opencv-viz2
-        MACOSX_BUNDLE
-        src/viz-opencv/mainTransformations.cpp
+add_executable(
+    opencv-viz1
+    MACOSX_BUNDLE
+    src/viz-opencv/mainOpenCVViz.cpp
+)
+target_link_libraries(opencv-viz1 ${OpenCV_LIBS})
+
+add_executable(
+    opencv-viz2
+    MACOSX_BUNDLE
+    src/viz-opencv/mainTransformations.cpp
+${SOURCES}
+${VIZ}
+)
+target_link_libraries(opencv-viz2 ${OpenCV_LIBS} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+
+add_executable(
+    opencv-seq
+    MACOSX_BUNDLE
+    src/viz-opencv/mainSequence.cpp
     ${SOURCES}
-    ${VIZ}
-    )
-    target_link_libraries(opencv-viz2 ${OpenCV_LIBS} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+)
+target_link_libraries(opencv-seq ${OpenCV_LIBS})
+add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
 
-    add_executable(
-        opencv-seq
-        MACOSX_BUNDLE
-        src/viz-opencv/mainSequence.cpp
-        ${SOURCES}
-    )
-    target_link_libraries(opencv-seq ${OpenCV_LIBS})
-    add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
-else()
-  message("OpenCV was not found - main reliing on opencv viz will not be built")
-endif()
 
 ## Gtest dependencies
 find_package(GTest)

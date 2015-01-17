@@ -89,6 +89,11 @@ static RowVector3f Jet(float gray){
     return RowVector3f(red(gray),green(gray),blue(gray));
 }
 
+static Vector4f RED1=Vector4f(0.8,0,0.4,1);
+static Vector4f RED2=Vector4f(0.4,0.0,0.1,0.5);
+static Vector4f GREEN1=Vector4f(0.0,1.0,0.5,1);
+static Vector4f GREEN2=Vector4f(0.0,.4,0.1,0.5);
+
 }
 
 //namespace PosePrint{
@@ -162,6 +167,46 @@ static float err(Isometry3f P, Pose PoseEst){
     cout<<"//------- Error between P_gold and P_est with "<<PoseEst.second<<" votes --------\\"<<endl;
     Isometry3f Pest=PoseEst.first;
     return err(P,Pest);
+}
+
+// parameter processing
+template<typename T> bool getParam(std::string param, T &var, int argc, char **argv)
+{
+    const char *c_param = param.c_str();
+    for(int i=argc-1; i>=1; i--)
+    {
+        if (argv[i][0]!='-') continue;
+        if (strcmp(argv[i]+1, c_param)==0)
+        {
+            if (!(i+1<argc)) continue;
+            std::stringstream ss;
+            ss << argv[i+1];
+            ss >> var;
+            std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
+            return (bool)ss;
+        }
+    }
+    std::cout<<"PARAM[DEF]: "<<param<<" : "<<var<<std::endl;
+    return false;
+}
+
+// parameter processing: template specialization for T=bool
+template<> inline bool getParam<bool>(std::string param, bool &var, int argc, char **argv)
+{
+    const char *c_param = param.c_str();
+    for(int i=argc-1; i>=1; i--)
+    {
+        if (argv[i][0]!='-') continue;
+        if (strcmp(argv[i]+1, c_param)==0)
+        {
+            if (!(i+1<argc) || argv[i+1][0]=='-') { var = true; return true; }
+            std::stringstream ss;
+            ss << argv[i+1];
+            ss >> var;
+            return (bool)ss;
+        }
+    }
+    return false;
 }
 
 //}

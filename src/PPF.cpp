@@ -73,6 +73,16 @@ int PPF::hashKey()
     return hashKey;
 }
 
+/*
+
+          Eigen::Vector3f model_point_transformed = transform_mg * model_point;
+          float angle = atan2f ( -model_point_transformed(2), model_point_transformed(1));
+          if (sin (angle) * model_point_transformed(2) < 0.0f)
+            angle *= (-1);
+          p.alpha_m = -angle;
+
+          */
+
 double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
     //cout<<"m1="<<m1<<" n1="<<n1<<endl;
 
@@ -95,7 +105,11 @@ double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
     Vector3f m22P=T*m2;
     //cout<<"mm2="<<m22P.transpose()<<endl;
     
-    double alpha=atan2(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
+    double alpha=atan2f(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
+//    if (sin (angle) * model_point_transformed(2) < 0.0f)
+//      angle *= (-1);
+//    p.alpha_m = -angle;
+
     return alpha;
     
 
@@ -105,23 +119,40 @@ double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
 
 }
 
+/*
+ *  * #include <pcl/features/ppf.h>
+
+ *           // Calculate alpha_m angle
+          Eigen::Vector3f model_reference_point = input_->points[i].getVector3fMap (),
+                          model_reference_normal = normals_->points[i].getNormalVector3fMap (),
+                          model_point = input_->points[j].getVector3fMap ();
+          float rotation_angle = acosf (model_reference_normal.dot (Eigen::Vector3f::UnitX ()));
+          bool parallel_to_x = (model_reference_normal.y() == 0.0f && model_reference_normal.z() == 0.0f);
+          Eigen::Vector3f rotation_axis = (parallel_to_x)?(Eigen::Vector3f::UnitY ()):(model_reference_normal.cross (Eigen::Vector3f::UnitX ()). normalized());
+          Eigen::AngleAxisf rotation_mg (rotation_angle, rotation_axis);
+          Eigen::Affine3f transform_mg (Eigen::Translation3f ( rotation_mg * ((-1) * model_reference_point)) * rotation_mg);
+*/
+
 Isometry3f PPF::twistToLocalCoords(Vector3f m, Vector3f n){
     //cout<<"m="<<endl<<m.transpose()<<endl;
     //cout<<"n="<<endl<<n.transpose()<<endl;
-
-    Vector3f xAxis(1,0,0);
 
     //Vector3f axis = (0.5*(n+xAxis)).transpose(); //Vector3f(1,0,0)
     //cout<<"axis="<<endl<<axis.transpose()<<endl;
     //AngleAxisf rot(M_PI, axis);
 
-    double angle = acos(xAxis.dot(n));
-    Vector3f orthogonalAxis = (n.cross(xAxis).normalized());  //TODO: same as half of both normals as axis, rotate for 180 degrees
+    double rotation_angle = acos(Eigen::Vector3f::UnitX().dot(n));
+
+    bool parallel_to_x = (n.y() == 0.0f && n.z() == 0.0f);
+
+    Vector3f rotation_axis = (parallel_to_x) ? (Eigen::Vector3f::UnitY ()):(n.cross(Eigen::Vector3f::UnitX())).normalized();  //TODO: same as half of both normals as axis, rotate for 180 degrees
 
 
-    AngleAxisf rot(angle, orthogonalAxis);
+    AngleAxisf rot(rotation_angle, rotation_axis);
     Translation3f tra(-m);
-
-
     return Isometry3f(rot*tra);
+
+   // Eigen::AngleAxisf rotation_mg (rotation_angle, rotation_axis);
+   // Eigen::Isometry3f transform_mg (Eigen::Translation3f ( rotation_mg * ((-1) * m)) * rotation_mg);
+    //return transform_mg;
 }

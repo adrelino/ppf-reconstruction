@@ -50,18 +50,18 @@ TEST(PPFs,LocalCoordinates){
     EXPECT_NEAR(error,0,0.1f);
 }*/
 
-TEST(Trans,inter){
-    Isometry3f P(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_4.txt"));
-    Isometry3f Pn(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_5.txt"));
+//TEST(Trans,inter){
+//    Isometry3f P(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_4.txt"));
+//    Isometry3f Pn(LoadingSaving::loadMatrix4f("bunny/depth-poses/cloudToPLY-coarse_5.txt"));
 
-    Isometry3f P_inter=Pn*P.inverse();
-    Isometry3f P_est=P_inter*P;
+//    Isometry3f P_inter=Pn*P.inverse();
+//    Isometry3f P_est=P_inter*P;
 
-    err(Pn,P_est,true);
+//    err(Pn,P_est,true);
 
-}
+//}
 
-TEST(bla,blu){
+TEST(Normals,nor){
 
 }
 

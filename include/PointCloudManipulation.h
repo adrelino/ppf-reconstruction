@@ -37,6 +37,8 @@ namespace PointCloudManipulation {
     Translation3f getTranslationToCentroid(PointCloud C);
 
     Vector3f getCentroid(vector<Vector3f> pts);
+    Vector3f getNormal(vector<Vector3f> pts);
+
 
     int nearestNeighbourIdx(vector<Vector3f> pts, Vector3f pt);
 

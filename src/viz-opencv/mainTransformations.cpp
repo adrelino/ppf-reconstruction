@@ -10,9 +10,6 @@
 
 #include <iostream>
 #include <fstream>
-
-#include "OpenCVHelpers.h"
-
 #include <eigen3/Eigen/Dense>
 
 #include "pointcloud.h"
@@ -92,108 +89,51 @@ int main(int argc, char **argv)
 
     //viz::WCloud cloud_widget(bunny_cloud, viz::Color::green());
 
-    stringstream ss;
-    ss<<"000000"<<endl;
-    std::string dir = "bunny/Bunny_RealData";
-    //std::string dir = "bunny/";///Bunny_Sphere";
+    //std::string dir = "bunny/Bunny_RealData";
+    std::string dir = "bunny/Bunny_Sphere";
 
-    OpenCVHelpers::getParam("dir", dir, argc, argv);
+    getParam("dir", dir, argc, argv);
 
+    vector<string> images = LoadingSaving::getAllImagesFromFolder(dir,"depth");
+    vector<string> clouds = LoadingSaving::getAllTextFilesFromFolder(dir,"cloudXYZ");
 
-    //cv::Mat depth = cv::imread( dir + "/depth_" + ss.str() + ".exr",IMREAD_GRAYSCALE);
+    bool hasClouds = clouds.size()==images.size();
 
+    std::cout<<"#images:"<<images.size()<<" #clouds:"<<clouds.size();
 
-    vector<string> images = OpenCVHelpers::getAllImagesFromFolder(dir,"depth");
-    vector<string> clouds = OpenCVHelpers::getAllTextFilesFromFolder(dir,"cloudXYZ");
+    vector<string> intrinsics = LoadingSaving::getAllTextFilesFromFolder(dir,"Intrinsic");
 
-    std::cout<<" #images"<<images.size();
-
-
-    //std::string filename = "/bunny/Bunny_Sphere/depth_000000.exr";
+    Matrix3f K = LoadingSaving::loadMatrix3f(intrinsics[0]);
 
     int i=0;
     for(std::string filename : images){
         cout<<filename;
 
-    std::ifstream ifs(filename.c_str());
 
-    if (!ifs.is_open())
-    {
-      printf("Cannot open file...\n");
-    }
 
-    cv::Mat depth = cv::imread(filename,IMREAD_UNCHANGED);
-    int type=depth.type();
-    int nc=depth.channels();
-    //cout<<"type: "<<OpenCVHelpers::getImageType(type)<<" channels:"<<nc<<endl;
+        PointCloud C = LoadingSaving::loadPointCloudFromDepthMap(filename,K,true);
 
-    cv::Mat mask; //is 1 at the object, 0 outside
+        if(hasClouds){
+            string cloudName = clouds[i++];
+            PointCloud CGroundTruth=LoadingSaving::loadPointCloud(cloudName);
+            //PointCloud CGroundTruth_small = PointCloudManipulation::downSample(CGroundTruth,ddist);
+            //PointCloudManipulation::reestimateNormals(CGroundTruth_small,ddist);
+            Visualize::setModel(CGroundTruth);
+        }
 
-    if(type==CV_16U && nc==1){ //depth_0.png from kinect cam, 0 means no measure, depth in mm (470 means 0.47m);
-        mask = (depth != 0);
-    }else if(type==CV_32FC3 && nc==3){ //depth_000000.exr made from blender, inf means no measure, depth in mm
-        cv::cvtColor(depth,depth,COLOR_BGR2GRAY);
-        mask = (depth != std::numeric_limits<float>::infinity());
-    }else{
-        cout<<"unsupported depth image type"<<endl;
-    }
+        //PointCloud C_small = PointCloudManipulation::downSample(C,ddist);
+        //PointCloudManipulation::reestimateNormals(C_small,ddist);
 
-    depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
+        Visualize::setScene(C);
+
+
+        //stringstream ss;
+        //ss<<cloudName<<".comp";
+        //LoadingSaving::writePointCloud(ss.str(),C);
 
 
 
-
-
-    //cout<<"mask type: "<<OpenCVHelpers::getImageType(mask.type())<<" channels:"<<mask.channels()<<endl;
-
-
-    //OpenCVHelpers::showImage("mask",mask);
-
-
-
-    //OpenCVHelpers::showImage("showImage",depth);
-
-    //OpenCVHelpers::imagesc("imagesc",depth,mask);
-
-    //cv::cvtColor(depth,depth,CV_RGB2GRAY);   // like single-channel png's
-
-
-
-
-
-    //It is now straightforward to create masks for the objects:
-
-    //cv::Mat mask = ( depth < 10 );
-
-
-    OpenCVHelpers::showDepthImage("showDepthImage",depth,mask,true);
-    std::cout<<std::endl;
-
-    cv::waitKey(2);
-
-
-
-
-
-    string cloudName = clouds[i++];
-
-    PointCloud CGroundTruth=LoadingSaving::loadPointCloud(cloudName);
-    PointCloud CGroundTruth_small = PointCloudManipulation::downSample(CGroundTruth,ddist);
-    PointCloudManipulation::reestimateNormals(CGroundTruth_small,ddist);
-
-    PointCloud C_small = PointCloudManipulation::downSample(C,ddist);
-    PointCloudManipulation::reestimateNormals(C_small,ddist);
-
-    Visualize::setScene(C_small);
-    Visualize::setModel(CGroundTruth_small);
-
-    //stringstream ss;
-    //ss<<cloudName<<".comp";
-    //LoadingSaving::writePointCloud(ss.str(),C);
-
-
-
-    Visualize::spin();
+        Visualize::spin();
     }
 
 

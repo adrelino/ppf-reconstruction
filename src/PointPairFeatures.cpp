@@ -58,11 +58,11 @@ Isometry3f getTransformationBetweenPointClouds(TrainedModel model, PointCloud sS
 
     Isometry3f P_meaned = Pests[0].first;
 
-    cout<<"Pmean "<<P_meaned.matrix()<<endl;
+    //cout<<"Pmean "<<P_meaned.matrix()<<endl;
 
     Isometry3f P_demeaned = Isometry3f(model.centroid).inverse() * P_meaned;
 
-    cout<<"Pdemean "<<P_demeaned.matrix()<<endl;
+    //cout<<"Pdemean "<<P_demeaned.matrix()<<endl;
 
     return P_demeaned;
 }
@@ -262,7 +262,7 @@ float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha){
 }
 
 Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<int> sceneIndexToI){
-    cout<<"PointPairFeatures::computePoses"<<endl;
+    //cout<<"PointPairFeatures::computePoses"<<endl;
 
     Poses vec;
 
@@ -331,12 +331,12 @@ bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
     float diff_tra=(tra1-tra2).norm();
     //Rotation
     float d = rot1.dot(rot2);
-    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+    float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
-    //    rot1.angularDistance(rot2);
+    float diff_rot2 = rot1.angularDistance(rot2);
 
     //http://math.stackexchange.com/questions/90081/quaternion-distance
-    //float thresh_rot=0.25; //0same, 1 180deg ////M_PI/10.0; //180/15 = 12
+    //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
     //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
     float diff_rot_degrees = rad2deg(acos(2*d - 1));
@@ -403,11 +403,11 @@ vector<Poses> clusterPoses (Poses vec){
         }
     }
 
-    cout<<"Produced "<<clusters.size()<<" clusters with each #poses:"<<endl;
-    for(auto cluster : clusters){
-        cout<<cluster.size()<<endl;
-        printPoses(cluster);
-    }
+//    cout<<"Produced "<<clusters.size()<<" clusters with each #poses:"<<endl;
+//    for(auto cluster : clusters){
+//        cout<<cluster.size()<<endl;
+//        printPoses(cluster);
+//    }
 
     
     return clusters;

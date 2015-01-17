@@ -10,12 +10,22 @@
 #include "viz/frustum.h"
 #include <iostream>
 
+#include "LoadingSaving.h"
+
 using namespace std;
 
 
 Visualize* Visualize::instance = 0;
 
 bool Visualize::isInitalized = false;
+
+void Visualize::readPose(){
+    cout<<"Read current viewing pose"<<endl;
+    Vector3f angles= LoadingSaving::loadVector3f("viz-angles.txt");
+    angle=angles.x(); angle2=angles.y(); angle3=angles.z();
+    Vector3f zoomAndTransl = LoadingSaving::loadVector3f("viz-zoomAndTransl.txt");
+    zoom = zoomAndTransl.x(); offsetX=zoomAndTransl.y(); offsetY = zoomAndTransl.z();
+}
 
 Visualize* Visualize::getInstance(){
     if(instance == 0){
@@ -47,6 +57,7 @@ Visualize::Visualize()
     keyToggle['l']=true; //lines for icp
     keyToggle['t']=true; //trajectory
     keyToggle['p']=true; //poses
+   // readPose();
 
 }
 
@@ -109,9 +120,19 @@ void Visualize::drawOrigin(){
 }
 
 void Visualize::drawNormals(PointCloud m, RowVector3f color){
+    if(m.nor.size()==0) return;
     glLineWidth(0.02f);
+    bool colorPerVertex=false;
+
+    int nCol=m.nor_color.size();
+    if(nCol>1 && nCol==m.pts.size()){
+       colorPerVertex=true;
+    }else if(nCol==1){
+       color = m.nor_color[0];
+    }
+
     glBegin(GL_LINES);
-    glColor3f(color(0),color(1),color(2));
+    glColor3fv(color.data());
     for (int i=0; i<m.pts.size(); i++) {
         Vector3f p=m.pts[i];
         Vector3f n=m.nor[i];
@@ -120,6 +141,7 @@ void Visualize::drawNormals(PointCloud m, RowVector3f color){
         n/=100;
         Vector3f q=p+n;
         
+        if(colorPerVertex) glColor3fv(m.nor_color[i].data());
         glVertex3f(p(0),p(1),p(2));
         glVertex3f(q(0),q(1),q(2));
     }
@@ -127,11 +149,13 @@ void Visualize::drawNormals(PointCloud m, RowVector3f color){
     
 }
 
-void Visualize::drawPointCloud(PointCloud m, RowVector3f color, float pointSize){
+void Visualize::drawPointCloud(PointCloud m, RowVector3f color, RowVector3f colorNormals, float pointSize){
     if(m.pts_color.size()==0){
         m.pts_color.push_back(color);
     }
     drawPoints(m.pts,m.pts_color,pointSize);
+    if(keyToggle['n']) drawNormals(m,colorNormals);
+
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
@@ -151,9 +175,8 @@ void Visualize::drawPoints(vector<Vector3f> pts, vector<RowVector3f> color, floa
 }
 
 void Visualize::drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormals){
-    drawPointCloud(m, color);
+    drawPointCloud(m, color, colorNormals);
     
-    if(keyToggle['n']) drawNormals(m,colorNormals);
     if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
     if(keyToggle['v']) drawCubes(m.pts,ddist);
     //if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
@@ -238,7 +261,11 @@ void Visualize::drawCubes(vector<Vector3f> pts, double size){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
-        glTranslatef(pts[i].x(),pts[i].y(),pts[i].z());
+        float x=floor(pts[i].x()/ddist)*ddist+ddist/2.0;
+        float y=floor(pts[i].y()/ddist)*ddist+ddist/2.0;
+        float z=floor(pts[i].z()/ddist)*ddist+ddist/2.0;
+
+        glTranslatef(x,y,z);
         glutWireCube(size);
         glPopMatrix();
     }
@@ -372,7 +399,7 @@ void Visualize::display(void)
 
 
 	glPushMatrix();
-    glTranslatef(0, 0, -6);
+    glTranslatef(0, 0, -15);
     
     glRotatef(angle3, 0.0, 0.0, 1.0);
     glRotatef(angle2, 1.0, 0.0, 0.0);
@@ -388,25 +415,23 @@ void Visualize::display(void)
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
 
-            for(auto it : ms){
-                PointCloud m = it.first;
-                //RowVector3f color = it.second;//RowVector3f(0,1,0); //it.second
-                RowVector3f color;
-                drawPointCloud(m,color,10.0f);
-            }
+            drawCameraPoses(cameraPoses,Colormap::RED1,Colormap::RED2);
+            drawCameraPoses(cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
 
-            drawCameraPoses(cameraPoses,Vector4f(0.8,0,0.4,1),Vector4f(0.4,0.2,0.1,0.5));
-            drawCameraPoses(cameraPosesGroundTruth,Vector4f(0.0,1.0,0.5,1),Vector4f(0.0,.4,0.1,0.5));
-
-
-
-            if(keyToggle['m'] && model.pts.size()>0) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
+            if(keyToggle['m'] && model.pts.size()>0) drawAll(model,Map<RowVector3f>(Colormap::GREEN2.data()),Map<RowVector3f>(Colormap::GREEN1.data())); //green
+            //if(keyToggle['m'] && model.pts.size()>0) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
             if(keyToggle['s'] && scene.pts.size()>0) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
             if(keyToggle['e'] && modelT.pts.size()>0) drawAll(modelT,RowVector3f(1,0,1),RowVector3f(1,1,1));//magenta
 
             if(matches.size()>0) drawMatches(matches);
             if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
             if(keyToggle['l'] && src.size()>0) drawLines(src,dst);
+
+            if(keyToggle['c']){
+                for(auto it : ms){
+                    drawPointCloud(it,RowVector3f(0.5,0.5,0.5),RowVector3f(0.8,0.8,0.8));
+                }
+            }
 
 
 	glPopMatrix();
@@ -478,7 +503,16 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             if(bucketIndex>=1) bucketIndex--;
             bucketInfo();
             break;
-            
+        case 'S': {
+            cout<<"Save current viewing pose"<<endl;
+            Vector3f angles(angle,angle2,angle3);
+            Vector3f zoomAndTransl(zoom,offsetX,offsetY);
+            LoadingSaving::saveMatrixXf("viz-angles.txt",angles);
+            LoadingSaving::saveMatrixXf("viz-zoomAndTransl.txt",zoomAndTransl);
+            }break;
+        case 'R': {
+            readPose();
+            }break;
         default:
             break;
 	}
@@ -645,6 +679,15 @@ void Visualize::spin(int i){
     }
 }
 
+void Visualize::spinToggle(int i){
+    if(!isInitalized) visualize();
+    if(getInstance()->keyToggle['r']){
+        spin(i);
+    }else{
+        spin();
+    }
+}
+
 bool Visualize::waitKeyInst(unsigned char key){
     //cout<<"waiting for "<<key<<endl;
     std::chrono::milliseconds dura( 10 );
@@ -683,8 +726,12 @@ void Visualize::setLines(vector<Vector3f> src, vector<Vector3f> dst){
     getInstance()->dst=dst;
 }
 
-void Visualize::addCloud(pair<PointCloud, RowVector3f> mypair){
+void Visualize::addCloud(PointCloud mypair){
     getInstance()->ms.push_back(mypair);
+}
+
+void Visualize::setLastCloud(PointCloud mypair){
+    getInstance()->ms.back()=mypair;
 }
 
 void Visualize::addCameraPose(Isometry3f pose){

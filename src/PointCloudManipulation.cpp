@@ -69,57 +69,6 @@ PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCl
 
     return C2;
 
-//    int r=CandN.rows();
-//    int c=CandN.cols();
-//    MatrixXf C=CandN.block(0, 0, r, 3);
-//    MatrixXf N=CandN.block(0, 3, r, 3);
-    
-//    VectorXf I=VectorXf::Ones(r);
-//    VectorXf Z=VectorXf::Zero(r);
-    
-    
-//    MatrixXf Ch(C.rows(), C.cols()+I.cols());
-//    Ch << C, I;
-//    //cout<<"N="<<N<<endl;
-    
-    
-//    MatrixXf Nh(N.rows(), N.cols()+Z.cols());
-//    Nh << N, Z;
-    
-//    MatrixXf m=P.matrix();
-//    //cout<<"P="<<m<<endl;
-    
-//    MatrixXf C2=m*Ch.transpose();
-    
-//    //cout<<"C2="<<C2.transpose().row(0)<<endl;
-    
-//    MatrixXf N2=m*Nh.transpose();
-//    //cout<<"N2="<<N2.transpose().row(0)<<endl;
-    
-//    MatrixXf C2i=C2.transpose().block(0, 0, r, 3);
-//    //cout<<"C2i="<<C2i<<endl;
-    
-//    MatrixXf N2i=N2.transpose().block(0, 0, r, 3);
-//    //cout<<"N2i="<<N2i<<endl;
-    
-    
-    
-    
-//    MatrixXf CandN2(r, 6);
-//    CandN2 << C2i, N2i;
-    
-    
-//    //cout<<"C"<<C<<endl;
-//    //cout<<"m"<<m<<"*"<<C.transpose();
-    
-//    //MatrixXf C2=P * C.transpose();
-//    //MatrixXf N2=P.linear() * N.transpose();
-    
-//    //cout<<C2<<endl;
-//    //cout<<N2<<endl;
-    
-    
-//    return CandN2;
 }
 
 Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius){
@@ -243,7 +192,7 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
             C.nor[i]=normal;
 
         }else{ //TODO; orient according to viewpoint or away from given viewpont .... or even better: outwards on a surface
-            Vector3f oldNormal(0,0,-1); //positive z axis
+            Vector3f oldNormal(0,0,1); //positive z axis
             double angle=acos(oldNormal.dot(normal));
             cout<<"angle: "<<angle<<endl;
             if(angle>=M_PI_2){
@@ -285,9 +234,9 @@ int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f> vec, Vector3f v
 PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
     
     //MatrixXf scaled = C/ddist;
-    unordered_map<string, std::pair< vector<Vector3f>,vector<Vector3f> > > voxels;
+    unordered_map<string, vector<Vector3f> > voxels;
 
-    bool withNormals=C.nor.size()>0;
+    //bool withNormals=C.nor.size()>0;
     
     for (int i=0; i<C.pts.size(); i++) {
         int x=floor(C.pts[i].x()/voxelSize);
@@ -300,8 +249,8 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
 //        if(voxels.count(key)==0){
 //            voxels[key]=make_pair()
 //        }
-        voxels[key].first.push_back(C.pts[i]);
-        if(withNormals) voxels[key].second.push_back(C.nor[i]);
+        voxels[key].push_back(C.pts[i]);
+        //if(withNormals) voxels[key].second.push_back(C.nor[i]);
     }
     
     PointCloud C2; // contains Cmean,Nmean,Ccenter,Ncenter
@@ -309,18 +258,20 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
     //C2.nor = vector<Vector3f>(voxels.size());
     //int i=0;
     for (auto it : voxels){
-        //        cout<<"key"<<it.first<<endl;
-        //        cout<<"center"<<it.second.center<<endl;
-        //        cout<<"pts:"<<endl;
+        int npts = it.second.size();
+
+                cout<<"key"<<it.first<<" #pts:"<<npts<<endl;
+
+         if(npts<20) continue;
         
-        Vector3f ptsMean=PointCloudManipulation::getCentroid(it.second.first);
+        Vector3f ptsMean=PointCloudManipulation::getCentroid(it.second);
         C2.pts.push_back(ptsMean);
 
         //does mean normal make sense?
-        if(withNormals){
-        Vector3f norMean=PointCloudManipulation::getCentroid(it.second.second);
+        //if(withNormals){
+        Vector3f norMean=PointCloudManipulation::getNormal(it.second);
         C2.nor.push_back(norMean);
-        }
+        //}
 
 
         //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
@@ -330,7 +281,7 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
         //i++;
     }
     
-    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<< " withNormals="<<withNormals<<endl;
+    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<<endl;
     
     return C2;
 }
@@ -355,6 +306,22 @@ Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
 //    }
 //    mean /= pts.size();
     return mean1;
+}
+
+Vector3f PointCloudManipulation::getNormal(vector<Vector3f> pts){
+    //http://forum.kde.org/viewtopic.php?f=74&t=110265
+    Matrix3Xf mat = vec2mat(pts);
+
+    MatrixXf centered = mat.colwise() - mat.rowwise().mean();
+    Matrix3f cov = centered * centered.adjoint();
+
+    SelfAdjointEigenSolver<Matrix3f> eig(cov);
+    Vector3f no = eig.eigenvectors().col(0);
+    if (no(2) > 0) no = -no;
+
+    no.normalize();
+
+    return no;
 }
 
 //point to plane

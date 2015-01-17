@@ -52,7 +52,9 @@ public:
     //mimics opencv's Viz
     static void spin();
     static void spin(int iterations);
+    static void spinToggle(int iterations);
     static void spinLast();
+
     //static void spinOnce(int millis);
 
     //TODO make private, make better interface
@@ -66,10 +68,12 @@ public:
 
     static void setLines(vector<Vector3f> src, vector<Vector3f> dst);
 
-    static void addCloud(pair<PointCloud, RowVector3f> mypair);
+    static void addCloud(PointCloud mypair);
+    static void setLastCloud(PointCloud mypair);
 
     static void addCameraPose(Isometry3f pose);
     static void setLastCameraPose(Isometry3f pose);
+
     static void addCameraPoseGroundTruth(Isometry3f pose);
     static void setLastCameraPoseGroundTruth(Isometry3f pose);
 
@@ -79,7 +83,7 @@ public:
     KeyBucketPairList b;
     PointCloud model,scene,modelT;
     Matches matches;
-    vector< pair<PointCloud, RowVector3f> > ms;
+    vector<PointCloud> ms;
     vector<Isometry3f> cameraPoses;
     vector<Isometry3f> cameraPosesGroundTruth;
 
@@ -92,13 +96,14 @@ public:
 
     void drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane);
 
+    bool keyToggle[256];
 
 
 private:
     Visualize(); // singleton, acces via factory
 
-    bool keyToggle[256];
 
+    void readPose();
     static bool isInitalized;
 
 
@@ -108,10 +113,12 @@ private:
     GLfloat angle2;   /* in degrees */
     GLfloat angle3;   /* in degrees */
     GLfloat zoom;
+    GLfloat offsetY;
+    GLfloat offsetX;
+
     int mouseButton;
     int moving, startx, starty;
     
-    GLfloat offsetY,offsetX;
     
     const static int WINDOW_SIZE = 800;
     
@@ -138,7 +145,7 @@ private:
     void drawOrigin();
 
     void drawNormals(PointCloud m, RowVector3f color);
-    void drawPointCloud(PointCloud C, RowVector3f color, float pointSize = 4.0f);
+    void drawPointCloud(PointCloud C, RowVector3f color, RowVector3f colorNormals, float pointSize = 4.0f);
 
     void drawPoints(vector<Vector3f> pts, vector<RowVector3f> color, float pointSize = 4.0f);
     void drawLines(vector<int> vertices);
