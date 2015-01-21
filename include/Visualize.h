@@ -68,11 +68,15 @@ public:
 
     static void setLines(vector<Vector3f> src, vector<Vector3f> dst);
 
-    static void addCloud(PointCloud mypair);
-    static void setLastCloud(PointCloud mypair);
+    static void addCloud(PointCloud &mypair);
+    static void setLastCloud(PointCloud &mypair);
+    static void setClouds(vector<PointCloud> &mypair);
+
 
     static void addCameraPose(Isometry3f pose);
     static void setLastCameraPose(Isometry3f pose);
+    static void setCameraPoses(vector<Isometry3f> pose);
+
 
     static void addCameraPoseGroundTruth(Isometry3f pose);
     static void setLastCameraPoseGroundTruth(Isometry3f pose);

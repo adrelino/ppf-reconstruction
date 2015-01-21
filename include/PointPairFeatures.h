@@ -24,10 +24,11 @@ using namespace std;
 
 namespace PointPairFeatures{
 
-    Isometry3f getTransformationBetweenPointClouds(PointCloud m, PointCloud s);
+    Poses getTransformationBetweenPointClouds(PointCloud m, PointCloud s, bool useVersion2=true);
+
 
     //trained model contains m, traToCentroid, as well as GlobalModelDescription (discretised ppf's buckets)
-    Isometry3f getTransformationBetweenPointClouds(TrainedModel trainedModel,PointCloud s);
+    //Isometry3f getTransformationBetweenPointClouds(TrainedModel trainedModel,PointCloud s);
 
     //long numberOfSceneRefPts,Nm;
     //vector<int> sceneIndexToI;
@@ -47,7 +48,7 @@ namespace PointPairFeatures{
     GlobalModelDescription buildGlobalModelDescription(PointCloud m);
     MatchesWithSceneRefIdx matchSceneAgainstModel(PointCloud s, GlobalModelDescription model);
     vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
-    Poses computePoses(vector<MatrixXi> acc,PointCloud m, PointCloud s, vector<int> sceneIndexToI);
+    Poses computePoses(vector<MatrixXi> acc,PointCloud m, PointCloud s, vector<int> sceneIndexToI=vector<int>(0));
 
 
     float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha); //always positive, needed for accumulator array discretisation

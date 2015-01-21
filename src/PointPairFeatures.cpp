@@ -16,55 +16,133 @@
 
 namespace PointPairFeatures{
 
+
+vector<MatrixXi> votingDense(PointCloud mSmall, PointCloud sSmall){
+    //they are sorted
+    vector<PPF> s1 = mSmall.getPPFFeatures();
+    vector<PPF> s2 = sSmall.getPPFFeatures();
+
+
+    //vector<uint32_t> votes;
+
+
+    int Nm = mSmall.pts.size();
+    int Ns = sSmall.pts.size();
+
+
+    vector<MatrixXi> accVec;
+
+    for (int i=0; i<Ns; i++) {
+        accVec.push_back(MatrixXi::Zero(Nm,nangle));
+    }
+
+    //i and j start 0 i.e first element
+     int i = 0 , j= 0;
+
+     //while either of the two indices reaches end
+     while ( i < s1.size() && j < s2.size() )
+     {
+      //if first array element is lesser, advance that index by one
+      if( s1[i] < s2[j] )
+      {
+       i++;
+      }
+      //both elements are same, print it, and advance both the pointers
+      else if (s1[i]==s2[j])
+      {
+       int sr=s2[j].i;
+       float alpha_scene=s2[j].alpha;
+
+       for(int k = i; s1[k]==s2[j]; k++){ //iterate over multiple same keys in model
+
+           float alpha=getAngleDiffMod2Pi(s1[k].alpha,alpha_scene);
+           int alphaDiscretised=alpha/dangle;
+
+           int mr=s1[k].i;
+
+           //long r=accVec[sr].rows();
+           //long c=accVec[sr].cols();
+
+           accVec[sr](mr,alphaDiscretised)=accVec[sr](mr,alphaDiscretised)+1;
+
+           //int vote = (s2[j].i | (s1[k].i << 12) | (alpha << 24));
+           //votes.push_back(vote);
+       }
+       i++;
+       j++;
+      }       //otherwise advance second index
+      else //if( s1[i] > s2[j] )
+      {
+       j++;
+      }
+
+    }
+
+    return accVec;
+}
+
+
+
+
 TrainedModel trainModel(PointCloud mSmallOriginal){
     //demean model to make rotation more invariant
-    Translation3f traCentroid=Translation3f::Identity();// PointCloudManipulation::getTranslationToCentroid(mSmallOriginal);
+    //Translation3f traCentroid=Translation3f::Identity();// PointCloudManipulation::getTranslationToCentroid(mSmallOriginal);
 
     //cout<<"trainModel centroid"<<traCentroid.vector()<<endl;
-    PointCloud mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmallOriginal);
+    //PointCloud mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmallOriginal);
 
-    GlobalModelDescription map =  buildGlobalModelDescription(mSmall);
+    GlobalModelDescription map =  buildGlobalModelDescription(mSmallOriginal);
 
     TrainedModel trainedModel;
-    trainedModel.centroid=traCentroid;
-    trainedModel.mSmall=mSmall;
+    //trainedModel.centroid=traCentroid;
+    trainedModel.mSmall=mSmallOriginal;
     trainedModel.modelDescr=map;
 
     return trainedModel;
 }
 
 
-Isometry3f getTransformationBetweenPointClouds(PointCloud mSmallOriginal, PointCloud sSmall){
+Poses getTransformationBetweenPointClouds(PointCloud mSmall, PointCloud sSmall, bool useVersion2){
 
-    TrainedModel trainedModel = trainModel(mSmallOriginal);
 
-    return getTransformationBetweenPointClouds(trainedModel,sSmall);
-}
 
-Isometry3f getTransformationBetweenPointClouds(TrainedModel model, PointCloud sSmall){
+    Poses Pests;
 
-    GlobalModelDescription map = model.modelDescr;
-    PointCloud mSmall = model.mSmall;
+    if(useVersion2){
+        vector<MatrixXi> accVec = votingDense(mSmall,sSmall);
+        Pests = computePoses(accVec, mSmall, sSmall);
+    }else{
+        TrainedModel model = trainModel(mSmall);
 
-    MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
+        GlobalModelDescription map = model.modelDescr;
+        PointCloud mSmall = model.mSmall;
 
-    vector<MatrixXi> accVec = voting(pair,mSmall.pts.size());
+        MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
 
-    Poses Pests = computePoses(accVec, mSmall, sSmall,pair.second);
+        vector<MatrixXi> accVec = voting(pair,mSmall.pts.size());
+        Pests = computePoses(accVec, mSmall, sSmall,pair.second);
+    }
+
 
     vector<Poses> clusters = clusterPoses(Pests);
 
     Pests = averagePosesInClusters(clusters);
 
-    Isometry3f P_meaned = Pests[0].first;
+    //cout<<"getTransformationBetweenPointClouds with pose scores";
+    for(int i=0; i<Pests.size();i++){
+        cout<<Pests[i].second<<",";
+    }
+    cout<<endl;
+
+    //Isometry3f P_meaned = Pests[0].first;
 
     //cout<<"Pmean "<<P_meaned.matrix()<<endl;
 
-    Isometry3f P_demeaned = Isometry3f(model.centroid).inverse() * P_meaned;
+    //Isometry3f P_demeaned = Isometry3f(model.centroid).inverse() * P_meaned;
 
     //cout<<"Pdemean "<<P_demeaned.matrix()<<endl;
 
-    return P_demeaned;
+    return Pests; //P_demeaned;
 }
 
 
@@ -120,7 +198,7 @@ GlobalModelDescription buildGlobalModelDescription(PointCloud m){
 
             numPPFs++;
             
-            PPF ppf(m,i,j);
+            PPF ppf(m.pts,m.nor,i,j);
             
             map[ppf.hashKey()].push_back(ppf); //calls the hasher function
         }
@@ -153,13 +231,14 @@ std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalMode
 
     for (int index=0; index<numberOfSceneRefPts; index++) {
 
-        int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
+        //int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
+        int i = (index/(numberOfSceneRefPts*1.0f)) * Sm;
         sceneIndexToI.push_back(i);
         
         for (int j=0; j<s.rows(); j++) {
             if(i==j) continue;
                         
-            PPF ppf(s,i,j);
+            PPF ppf(s.pts,s.nor,i,j);
             ppf.index=index;
             
             auto it = model.find(ppf.hashKey());
@@ -195,6 +274,7 @@ std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalMode
 vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
     vector<MatrixXi> accVec;
     int numberOfSceneRefPts=matches.second.size();
+
     for (int i=0; i<numberOfSceneRefPts; i++) {
         MatrixXi acc=MatrixXi::Zero(Nm,nangle);
         accVec.push_back(acc);
@@ -205,7 +285,9 @@ vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
     
     
     for (auto it : matches.first){
+
         int sr=it.scenePPF.index;
+
         if(std::isnan(it.scenePPF.alpha)){
             cout<<sr<<" sr isnan"<<endl;
             continue;
@@ -219,8 +301,6 @@ vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
             }
 
             float alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
-
-
             int alphaDiscretised=alpha/dangle;
 
             long r=accVec[sr].rows();
@@ -269,7 +349,8 @@ Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<in
     for (int index=0; index<accVec.size(); index++) {
         MatrixXi acc=accVec[index];
 
-        int sr=sceneIndexToI[index];
+        int sr=index;
+        if(sceneIndexToI.size()>0) sr=sceneIndexToI[index];
         int mr;
         int alphaD;
         int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene

@@ -45,7 +45,11 @@ namespace LoadingSaving {
     void saveMatrix3f(std::string filename, Matrix3f mat);
 
 
-    void saveVector(std::string filename, vector<double> vec);
+    //template<typename Number>
+    void saveVector(std::string filename, vector<bool> vec);
+
+    //template<typename Number>
+    vector<bool> loadVector(std::string filename);
 
     vector<string> getAllImagesFromFolder(string dirStr, string prefix);
     vector<string> getAllTextFilesFromFolder(string dirStr, string prefix);

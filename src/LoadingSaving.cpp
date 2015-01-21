@@ -380,19 +380,44 @@ void saveMatrixXd(std::string filename, MatrixXd mat){return saveMatrix<double>(
 void saveMatrixXf(std::string filename, MatrixXf mat){return saveMatrix<float>(filename,mat,"f");}
 void saveMatrixXi(std::string filename, MatrixXi mat){return saveMatrix<int>(filename,mat,"i");}
 
-void saveVector(std::string filename, vector<double> vec){
-    
+
+template<typename Number>
+void saveVector(std::string filename, vector<Number> vec){
+
     std::ofstream outputFile(filename, std::ofstream::out) ;
-    
+
     for (auto it : vec){
         outputFile << it <<endl;
     }
-    
+
     outputFile.close( );
-    
+
     cout<<"Wrote "<<vec.size()<<" numbers to "<<filename<<endl;
 }
+void saveVector(std::string filename, vector<bool> vec){saveVector<bool>(filename,vec);}
 
+
+template<typename Number>
+vector<Number> loadVector(std::string filename){
+
+    vector<Number> vec;
+
+    std::ifstream file(filename,std::ifstream::in);
+    if( file.fail() == true )
+    {
+        cerr << filename << " could not be opened" << endl;
+        return vec;
+    }
+
+    Number elem;
+    while(file >> elem){
+        vec.push_back(elem);
+    }
+
+    return vec;
+}
+
+vector<bool> loadVector(std::string filename){return loadVector<bool>(filename);}
 
 
 string getOSSeparator() {

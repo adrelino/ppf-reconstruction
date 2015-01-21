@@ -24,7 +24,7 @@ namespace PointCloudManipulation {
     
     double getPointCloudDiameter(PointCloud m);
 
-    PointCloud projectPointsAndNormals(Isometry3f P, PointCloud C);
+    //PointCloud projectPointsAndNormals(Isometry3f P, PointCloud C);
 
     Matrix3f covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius);
 

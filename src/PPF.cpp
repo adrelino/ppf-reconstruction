@@ -11,26 +11,68 @@
 #include <eigen3/Eigen/Geometry>
 #include <math.h>
 
+PPF2 PPF::makePPF2(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j){
+    PPF2 ppf;
+    ppf.i=i;
+    //ppf.j=j;
+
+    Vector3f m1=pts[i];
+    Vector3f n1=nor[i];
+    Vector3f m2=pts[j];
+    Vector3f n2=nor[j];
+
+    Vector3f dist = m1-m2;
+    Vector3f dn=dist.normalized();
+
+    //discretise
+    uint8_t d,n1d,n2d,n1n2;  //all of these are <255
+    d = dist.norm()/ddist; //Euclidean distance
+    n1d = acos(n1.dot(dn))/dangle;
+    n2d = acos(n2.dot(dn))/dangle;
+    n1n2 = acos(n1.dot(n2))/dangle;
+
+    //hashkey
+    //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
+    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
+    ppf.k = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
+
+    //calculate angle
+    ppf.alpha = planarRotAngle(m1,n1,m2);
+
+    return ppf;
+
+}
+
+PPF::PPF(){
+    //cout<<"default const"<<endl;
+}
+
 //Constructor
-PPF::PPF(PointCloud C, int i, int j){
+PPF::PPF(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j){
     this->i=i;
-    this->j=j;
+    //this->j=j;
 
     //TODO
     //Vector<uint8_t,4> fd;
 
-    Vector3f m1=C.pts[i];
-    Vector3f n1=C.nor[i];
-    Vector3f m2=C.pts[j];
-    Vector3f n2=C.nor[j];
+    Vector3f m1=pts[i];
+    Vector3f n1=nor[i];
+    Vector3f m2=pts[j];
+    Vector3f n2=nor[j];
 
     Vector4f f = computePPF(m1,n1,m2,n2);
 
     //discretise
+    uint8_t d,n1d,n2d,n1n2;  //all of these are <255
     d=f.x()/ddist;
     n1d=f.y()/dangle;
     n2d=f.z()/dangle;
     n1n2=f.w()/dangle;
+
+    //hashkey
+    //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
+    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
+    k = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
 
     //calculate angle
     alpha = planarRotAngle(m1,n1,m2);
@@ -52,25 +94,24 @@ Vector4f PPF::computePPF(Vector3f m1, Vector3f n1, Vector3f m2, Vector3f n2){
 
 void PPF::print(){
     //cout <<"{"<< i <<","<< j<<"} ";
-    cout<<d<<" "<<(180*n1d/M_PI)<<" "<<(180*n2d/M_PI)<<" "<<(180*n1n2/M_PI)<<endl;
+    cout<<k<<endl;
+    //cout<<d<<" "<<(180*n1d/M_PI)<<" "<<(180*n2d/M_PI)<<" "<<(180*n1n2/M_PI)<<endl;
 }
 
 
 bool PPF::operator==(const PPF &o) const{
-    return d==o.d && n1d==o.n1d && n2d==o.n2d && n1n2 == o.n1n2;
+    return k==o.k;//d==o.d && n1d==o.n1d && n2d==o.n2d && n1n2 == o.n1n2;
+}
+
+bool PPF::operator<(const PPF &o) const{
+    return k < o.k;
 }
 
 //hashCode so we can insert this class in unordered_map as key directly
 //int PPF::operator()(const PPF& k) const
-int PPF::hashKey()
+unsigned int PPF::hashKey()
 {
-    //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
-    
-    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
-
-    int hashKey = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
-
-    return hashKey;
+    return k;
 }
 
 /*
@@ -83,7 +124,7 @@ int PPF::hashKey()
 
           */
 
-double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
+float PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
     //cout<<"m1="<<m1<<" n1="<<n1<<endl;
 
     Isometry3f T=twistToLocalCoords(m,n); //TODO: think about reuse
@@ -105,7 +146,7 @@ double PPF::planarRotAngle(Vector3f m, Vector3f n, Vector3f m2){
     Vector3f m22P=T*m2;
     //cout<<"mm2="<<m22P.transpose()<<endl;
     
-    double alpha=atan2f(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
+    float alpha=atan2f(m22P(2), m22P(1)); //can ignore x coordinate, since we rotate around x axis, x coord has to be same for model and matched scene point m2 and s2
 //    if (sin (angle) * model_point_transformed(2) < 0.0f)
 //      angle *= (-1);
 //    p.alpha_m = -angle;

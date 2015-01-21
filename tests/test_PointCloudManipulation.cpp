@@ -141,7 +141,7 @@ TEST(NewLayout,transform){
 
     //cout<<"P"<<endl<<P.matrix()<<endl;
 
-    PointCloud C2 = PointCloudManipulation::projectPointsAndNormals(P,C);
+    PointCloud C2 = C.projected(P);
 
     //cout<<"C2 "<<C2<<endl;
 
@@ -159,8 +159,8 @@ TEST(NewLayout,transform2){
     ss1<<"bunny/depth-poses/poses_"<<1<<".txt";
     Isometry3f P(LoadingSaving::loadMatrix4f(ss1.str()));
 
-    PointCloud C2 = PointCloudManipulation::projectPointsAndNormals(P,C);
-    PointCloud C3 = PointCloudManipulation::projectPointsAndNormals(P.inverse(),C2);
+    PointCloud C2 = C.projected(P);
+    PointCloud C3 = C2.projected(P.inverse());
 
     EXPECT_TRUE(vec2mat(C.pts).isApprox(vec2mat(C3.pts))) << "2 translation and its inverse should be identity ";
     EXPECT_TRUE(vec2mat(C.nor).isApprox(vec2mat(C3.nor))) << "same for normals";
@@ -232,7 +232,7 @@ TEST(NewLayout,ICP){
 
     Isometry3f P = Translation3f(tra)*Quaternionf(rot);
     printPose(P,"P_original:");
-    PointCloud sSmall=PointCloudManipulation::projectPointsAndNormals(P, C);
+    PointCloud sSmall=C.projected(P);
 
     Isometry3f P_icp=ICP::getTransformationBetweenPointClouds(C,sSmall);
 

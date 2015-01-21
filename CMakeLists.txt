@@ -90,33 +90,34 @@ set(VIZ
 )
 
 ##opengl + glut dependencies
+#add_executable(
+#    modelToScene
+#    src/main_modelToScene.cpp
+#    ${HEADERS}
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
+#add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:modelToScene>/bunny)
+
+#add_executable(
+#    frameToModel-PPF-coarse
+#    src/main_frameToModel-PPF-coarse.cpp
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
+#add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/bunny)
+
 add_executable(
-    modelToScene
-    src/main_modelToScene.cpp
+    globalOptimization
+    src/main_globalOptimization.cpp
+    ${SOURCES}
     ${HEADERS}
-    ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:modelToScene>/bunny)
-
-add_executable(
-    frameToModel-PPF-coarse
-    src/main_frameToModel-PPF-coarse.cpp
-    ${SOURCES}
-    ${VIZ}
-)
-target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/bunny)
-
-add_executable(
-    frameToModel-ICP-refine
-    src/main_frameToModel-ICP-refine.cpp
-    ${SOURCES}
-    ${VIZ}
-)
-target_link_libraries(frameToModel-ICP-refine ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET frameToModel-ICP-refine PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-ICP-refine>/bunny)
+target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
+add_custom_command(TARGET globalOptimization PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:globalOptimization>/bunny)
 
 add_executable(
     frameToFrame
@@ -131,33 +132,33 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 
 
 
-add_executable(
-    opencv-viz1
-    MACOSX_BUNDLE
-    src/viz-opencv/mainOpenCVViz.cpp
-)
-target_link_libraries(opencv-viz1 ${OpenCV_LIBS})
+#add_executable(
+#    opencv-viz1
+#    MACOSX_BUNDLE
+#    src/viz-opencv/mainOpenCVViz.cpp
+#)
+#target_link_libraries(opencv-viz1 ${OpenCV_LIBS})
 
-add_executable(
-    opencv-viz2
-    MACOSX_BUNDLE
-    src/viz-opencv/mainTransformations.cpp
-${SOURCES}
-${VIZ}
-)
-target_link_libraries(opencv-viz2 ${OpenCV_LIBS} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
+#add_executable(
+#    opencv-viz2
+#    MACOSX_BUNDLE
+#    src/viz-opencv/mainTransformations.cpp
+#${SOURCES}
+#${VIZ}
+#)
+#target_link_libraries(opencv-viz2 ${OpenCV_LIBS} ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES})
 
-add_executable(
-    opencv-seq
-    MACOSX_BUNDLE
-    src/viz-opencv/mainSequence.cpp
-    ${SOURCES}
-)
-target_link_libraries(opencv-seq ${OpenCV_LIBS})
-add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
+#add_executable(
+#    opencv-seq
+#    MACOSX_BUNDLE
+#    src/viz-opencv/mainSequence.cpp
+#    ${SOURCES}
+#)
+#target_link_libraries(opencv-seq ${OpenCV_LIBS})
+#add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
 
 
-## Gtest dependencies
+# Gtest dependencies
 find_package(GTest)
 if (GTEST_FOUND)
 include_directories(${GTEST_INCLUDE_DIRS})

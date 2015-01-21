@@ -12,7 +12,7 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <unordered_map>
-#include "PPF.h"
+#include "pointcloud.h"
 
 using namespace std;
 
@@ -31,7 +31,10 @@ typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
 
 
 
-struct TrainedModel{GlobalModelDescription modelDescr; PointCloud mSmall; Translation3f centroid;};
+struct TrainedModel{GlobalModelDescription modelDescr;
+                    PointCloud mSmall;
+                    //Translation3f centroid;
+                   };
 
 //Params
 //
@@ -48,11 +51,15 @@ static float neighbourBallSize=ddist*2.5f; //neighbors in 2*ddist ball around p1
 static int ndist=1/tau_d; //number of distance buckets
 static int nangle=30;     //number of angle buckets
 static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
-static float sceneRefPtsFraction = 0.3f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
+static float sceneRefPtsFraction = 0.8f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
 
 //for pose cluster averaging
-static float thresh_tra = 0.05f * diamM; //float thresh_tra=0.02; //2cm
-static float thresh_rot_degrees = 20; //180 max
+//static float thresh_tra = 0.05f * diamM; //float thresh_tra=0.02; //2cm
+//static float thresh_rot_degrees = 20; //180 max
+
+//for syntetic bunny
+static float thresh_tra = 0.01f * diamM; //float thresh_tra=0.02; //2cm
+static float thresh_rot_degrees = 30; //180 max
 
 //Macros
 //

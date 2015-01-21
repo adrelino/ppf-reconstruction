@@ -3,6 +3,7 @@
 
 #include <eigen3/Eigen/Dense>
 #include <vector>
+#include "PPF.h"
 using namespace Eigen;
 using namespace std;
 
@@ -22,9 +23,9 @@ static Matrix3Xf vec2mat(vector<Vector3f> vec){
 }
 
 static vector<Vector3f> mat2vec(Matrix3Xf mat){
-    vector<Vector3f> vec;
+    vector<Vector3f> vec(mat.cols());
     for(int i=0; i<mat.cols(); i++){
-        vec.push_back(mat.col(i));
+        vec[i]=mat.col(i);
     }
 
     //http://stackoverflow.com/questions/26094379/typecasting-eigenvectorxd-to-stdvector
@@ -212,6 +213,42 @@ public:
     std::vector<RowVector3f> pts_color;
     std::vector<RowVector3f> nor_color;
 
+    std::vector<PPF> features;
+    bool featuresComputed = false;
+
+    std::vector<PPF> getPPFFeatures(){
+        if(featuresComputed){
+            return features;
+        }else{
+            int Nm=pts.size();
+            //cout<<"PointPairFeatures::computePPFFeatures from "<<Nm<<" pts"<<endl;
+
+            int numFeatures = Nm * (Nm-1); //exclude diagonal
+
+            features = std::vector<PPF>(numFeatures);
+
+            int k=0;
+
+            for (int i=0; i<Nm; i++) {
+                for (int j=0; j<Nm; j++) {
+                    if(i==j) continue;
+
+                    //PPF ppf(m,i,j);
+                    PPF ppf(pts,nor,i,j);
+
+                    features[k++]=ppf; //i*Nm + j
+
+                    //map.push_back(ppf);
+                }
+            }
+
+            std::sort(features.begin(),features.end());
+            featuresComputed=true;
+
+            return features;
+        }
+    }
+
     int rows(){
         return pts.size();
     }
@@ -229,6 +266,28 @@ public:
         nor.insert(nor.end(), b.nor.begin(), b.nor.end());
         pts_color.insert(pts_color.end(), b.pts_color.begin(), b.pts_color.end());
     }
+
+    PointCloud projected(Isometry3f P){
+        Matrix3Xf pts2 = P * ptsMat();
+        Matrix3Xf nor2 = P.linear() * norMat();
+
+        PointCloud C2;
+
+        C2.pts=mat2vec(pts2);
+        C2.nor=mat2vec(nor2);
+
+        return C2;
+    }
+
+    void project(Isometry3f P){
+
+        PointCloud C2 = projected(P);
+
+        pts=C2.pts;
+        nor=C2.nor;
+    }
+
+
 
     void translateToCentroid(){
         Matrix3Xf m = vec2mat(pts);

@@ -49,17 +49,20 @@ double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
 
 
 
-PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCloud CandN){
-    Matrix3Xf pts = vec2mat(CandN.pts);
-    Matrix3Xf nor = vec2mat(CandN.nor);
+//PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCloud CandN){
+//    Matrix3Xf pts = vec2mat(CandN.pts);
+//    Matrix3Xf nor = vec2mat(CandN.nor);
 
-    Matrix3Xf pts2 = P * pts;
-    Matrix3Xf nor2 = P.linear() * nor;
+//    Matrix3Xf pts2 = P * pts;
+//    Matrix3Xf nor2 = P.linear() * nor;
 
-    PointCloud C2;
-    C2.pts=mat2vec(pts2);
-    C2.nor=mat2vec(nor2);
-    C2.pts_color=CandN.pts_color;
+//    PointCloud C2;
+//    CandN.pts=mat2vec(pts2);
+//    CandN.nor=mat2vec(nor2);
+    //C2.pts_color=CandN.pts_color;
+    //C2.nor_color=CandN.pts_color;
+    //C2.features=CandN.features;
+    //C2.featuresComputed=CandN.featuresComputed;
 //    C2.cur=CandN.cur;
 //    C2.pts_color=CandN.pts_color;
 //    C2.neighRadius=CandN.neighRadius;
@@ -67,9 +70,9 @@ PointCloud PointCloudManipulation::projectPointsAndNormals(Isometry3f P, PointCl
     //cout<<"Projected "<<CandN.pts.size()<< "pts "<<endl;
 
 
-    return C2;
+//    return C2CandN;
 
-}
+//}
 
 Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius){
     //Matrix3f cov = Matrix3f::Zero();
@@ -260,7 +263,7 @@ PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
     for (auto it : voxels){
         int npts = it.second.size();
 
-                cout<<"key"<<it.first<<" #pts:"<<npts<<endl;
+                //cout<<"key"<<it.first<<" #pts:"<<npts<<endl;
 
          if(npts<20) continue;
         
@@ -485,8 +488,8 @@ Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud model, PointCloud
         for (; j < maxIter; ++j) {
             vector<Vector3f> src,dst;
 
-            PointCloud curr=PointCloudManipulation::projectPointsAndNormals(P_Iterative_ICP, model);
-            PointCloudManipulation::getClosesPoints(curr,scene,src,dst,0.04f);
+            model.project(P_Iterative_ICP);
+            PointCloudManipulation::getClosesPoints(model,scene,src,dst,0.04f);
 
             //Visualize::setLines(src,dst);
 

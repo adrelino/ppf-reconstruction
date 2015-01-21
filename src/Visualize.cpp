@@ -19,12 +19,18 @@ Visualize* Visualize::instance = 0;
 
 bool Visualize::isInitalized = false;
 
+string filename = "keyToggle";
+
 void Visualize::readPose(){
     cout<<"Read current viewing pose"<<endl;
     Vector3f angles= LoadingSaving::loadVector3f("viz-angles.txt");
     angle=angles.x(); angle2=angles.y(); angle3=angles.z();
     Vector3f zoomAndTransl = LoadingSaving::loadVector3f("viz-zoomAndTransl.txt");
     zoom = zoomAndTransl.x(); offsetX=zoomAndTransl.y(); offsetY = zoomAndTransl.z();
+
+    vector<bool> savedEntries = LoadingSaving::loadVector(filename);
+    cout<<"keyToggleReadSize: "<<savedEntries.size()<<endl;
+    std::copy(savedEntries.begin(),savedEntries.end(),std::begin(keyToggle));
 }
 
 Visualize* Visualize::getInstance(){
@@ -57,8 +63,7 @@ Visualize::Visualize()
     keyToggle['l']=true; //lines for icp
     keyToggle['t']=true; //trajectory
     keyToggle['p']=true; //poses
-   // readPose();
-
+    readPose();
 }
 
 //draws cylinder towards z direction
@@ -252,9 +257,9 @@ void Visualize::drawLines(vector<Vector3f> v1, vector<Vector3f> v2)
 }
 
 void Visualize::drawPPfs(Bucket b,PointCloud m){
-    for (auto it : b){
-        drawPPF(it.i, it.j,m);
-    }
+//    for (auto it : b){
+//        drawPPF(it.i, it.j,m);
+//    }
 }
 
 void Visualize::drawCubes(vector<Vector3f> pts, double size){
@@ -301,8 +306,8 @@ void Visualize::drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane){
 
 void Visualize::drawMatches(Matches matches){
     Match match=matches[bucketIndex];
-    drawPPfs(match.modelPPFs, model);
-    drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
+    //drawPPfs(match.modelPPFs, model);
+    //drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
 }
 
 //void Visualize::printMatches(Matches matches){
@@ -504,11 +509,17 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             bucketInfo();
             break;
         case 'S': {
-            cout<<"Save current viewing pose"<<endl;
+            cout<<"Save current viewing pose and keyToggleState"<<endl;
             Vector3f angles(angle,angle2,angle3);
             Vector3f zoomAndTransl(zoom,offsetX,offsetY);
             LoadingSaving::saveMatrixXf("viz-angles.txt",angles);
             LoadingSaving::saveMatrixXf("viz-zoomAndTransl.txt",zoomAndTransl);
+
+
+
+            vector<bool> savedEntries(keyToggle,keyToggle+256);
+            LoadingSaving::saveVector(filename,savedEntries);
+            cout<<"keyToggleSaveSize: "<<savedEntries.size()<<endl;
             }break;
         case 'R': {
             readPose();
@@ -726,12 +737,16 @@ void Visualize::setLines(vector<Vector3f> src, vector<Vector3f> dst){
     getInstance()->dst=dst;
 }
 
-void Visualize::addCloud(PointCloud mypair){
+void Visualize::addCloud(PointCloud &mypair){
     getInstance()->ms.push_back(mypair);
 }
 
-void Visualize::setLastCloud(PointCloud mypair){
+void Visualize::setLastCloud(PointCloud &mypair){
     getInstance()->ms.back()=mypair;
+}
+
+void Visualize::setClouds(vector<PointCloud> &mypair){
+    getInstance()->ms=mypair;
 }
 
 void Visualize::addCameraPose(Isometry3f pose){
@@ -740,6 +755,10 @@ void Visualize::addCameraPose(Isometry3f pose){
 
 void Visualize::setLastCameraPose(Isometry3f pose){
     getInstance()->cameraPoses.back()=pose;
+}
+
+void Visualize::setCameraPoses(vector<Isometry3f> poses){
+    getInstance()->cameraPoses=poses;
 }
 
 void Visualize::addCameraPoseGroundTruth(Isometry3f pose){
