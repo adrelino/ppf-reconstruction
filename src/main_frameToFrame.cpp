@@ -44,6 +44,12 @@ int main(int argc, char * argv[])
     getParam("doICP", doICP, argc, argv);
     getParam("savePoses", savePoses, argc, argv);
 
+    getParams(argc,argv);
+
+    int ppfMinVotes = 50;
+    getParam("ppfMinVotes", ppfMinVotes, argc, argv);
+
+
 
 
 
@@ -59,24 +65,31 @@ int main(int argc, char * argv[])
     //cout<<"intrinsics: "<<endl<<K<<endl;
 
     vector<PointCloud> frames;
-    vector<PointCloud> framesGroundTruth;
+    //vector<PointCloud> framesGroundTruth;
 
     vector<Isometry3f> trajectoryEst;
     vector<Isometry3f> trajectoryGroundTruth;
 
+    Visualize::setClouds(frames);
+    Visualize::setCameraPoses(trajectoryEst);
+    Visualize::setCameraPosesGroundTruth(trajectoryGroundTruth);
+
 
     for(int i=start; i<images.size(); i++){
+
+        cout<<"[Frame "<<i<<"] ";
 
         PointCloud C = LoadingSaving::loadPointCloudFromDepthMap(images[i],K,false); //true means show depth image
 
         //C.translateToCentroid();
 
-        PointCloud currentFrame=PointCloudManipulation::downSample(C,ddist);
+        frames.push_back(PointCloudManipulation::downSample(C,ddist));
+        PointCloud& currentFrame=frames.back();
 
         //Transformation groundTruth
         Isometry3f P(LoadingSaving::loadMatrix4f(poses[i]));
         trajectoryGroundTruth.push_back(P);
-        Visualize::addCameraPoseGroundTruth(P);
+        //Visualize::addCameraPoseGroundTruth(P);
 
 
         //Transformation estimate
@@ -84,109 +97,121 @@ int main(int argc, char * argv[])
         //get inter frame motion
         if(i==start){
             P_est=P;
+            trajectoryEst.push_back(P_est);
         }else{
 
-            Visualize::addCameraPose(Isometry3f::Identity());
+            trajectoryEst.push_back(Isometry3f::Identity());
+
 
             for(int j=i-1;j>=0;j--){
-                cout<<"[Frame "<<i<<"] [PPF to frame "<<j<<"] scores: ";
                 Poses poses = PointPairFeatures::getTransformationBetweenPointClouds(currentFrame,frames[j]); //frames.back() for drift
-                P_est=poses[0].first;
-                Visualize::setLastCameraPose(P_est);
 
-                if(poses[0].second>=10){
+                for(int k=3; k>=0; k--){
+                   P_est = poses[k].first;
+                   trajectoryEst.back()=P_est;
+                   PointCloud test = currentFrame.projected(P_est);
+                   vector<Vector3f> src, dst;
+                   float closestPointsError = PointCloudManipulation::getClosesPoints(test,frames[j],src,dst,ddist);
+                   cout<<"[Frame "<<i<<"] [PPF "<<j<<"] ["<<k<<" best Pose] groundTruth error:"<<err(P,P_est);
+                   cout<<" score: "<<poses[k].second<<"\t ICP dist error:"<<closestPointsError<<endl;
+                   Visualize::setLines(src,dst);
+                   Visualize::setSelectedIndex(i);
+                   Visualize::spinToggle(2);
+                }
+
+                P_est=poses[0].first;
+                trajectoryEst.back()=P_est;
+
+
+
+
+
+                PointPairFeatures::printPoses(poses);
+
+
+
+
+
+                if(poses[0].second>=ppfMinVotes){
                     break;
                 }else{
-                    Visualize::setLastCameraPose(P_est);
+                    //Visualize::setLastCameraPose(P_est);
+                    trajectoryEst.back()=P_est;
+
                     cout<<"score too low, click q for next try"<<endl;
                     Visualize::spin();
                 }
 
 
             }
-
-
-
-//            for(int k=0; k<5; k++){
-//               Isometry3f P_est2 = poses[k].first;
-//               Visualize::addCameraPose(P_est2);
-//               cout<<k<<endl;
-//               Visualize::spin();
-//            }
-
-
-//            Isometry3f P_est2 = PointPairFeatures::getTransformationBetweenPointClouds(currentFrame,framesGroundTruth.back()); //frames.back() for drift
-//            cout<<"[Frame "<<i<<"] Error between PPF Versions:";
-//            cout<<err(P_est,P_est2);
-//            Visualize::spin();
-
         }
-        trajectoryEst.push_back(P_est);
+
+
         //PointCloud frameGroundTruth = PointCloudManipulation::projectPointsAndNormals(P,currentFrame);
         //framesGroundTruth.push_back(frameGroundTruth);
         //Visualize::setModel(frameGroundTruth); //ground truth in green
 
         //update current frame point cloud coordinates
         currentFrame.project(P_est);
-        Visualize::addCloud(currentFrame);
-
-        //Visualize::spin();
-
+        //frames.push_back(currentFrame);
+        //Visualize::addCloud(currentFrame);
 
         if(i==start){
 
         }else{
 
-        cout<<"[Frame "<<i<<"] [PPF  ] Error between PPF pose and groundTruth:";
-        err(P,P_est);
 
-        Visualize::setScene(frames.back());
-        Visualize::setModelTransformed(currentFrame);
+        //Visualize::setScene(frames.back());
+        //Visualize::setModelTransformed(currentFrame);
 
 
 
         if(doICP){
         //ICP::getTransformationBetweenPointClouds(mSmall,cloud2);
-        for (int j=0; j < 50;j++) {  //ICP
-            vector<Vector3f> src,dst;
-            PointCloudManipulation::getClosesPoints(currentFrame,frames.back(),src,dst,ddist);
-            Visualize::setLines(src,dst);
-            Visualize::spin(3);
+            for (int j=0; j < 50;j++) {  //ICP
+                vector<Vector3f> src,dst;
+                float icpInlierError = PointCloudManipulation::getClosesPoints(currentFrame,frames[i-1],src,dst,ddist);
+                Visualize::setLines(src,dst);
+                Visualize::spinToggle(2);
 
 
-            //cout<<"Iteration "<<i<<endl;
-            //cout<<"# Scene to Model Correspondences: "<<src.size()<<"=="<<dst.size()<<endl;
-            //cout<<"ICP "<<endl;
+                //cout<<"Iteration "<<i<<endl;
+                //cout<<"# Scene to Model Correspondences: "<<src.size()<<"=="<<dst.size()<<endl;
+                //cout<<"ICP "<<endl;
 
-            Isometry3f P_incemental = ICP::computeStep(src,dst,false);
-            //printPose(P_incemental, "P incremental ICP");
-            if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,0.000001)){
-                break;
+                Isometry3f P_incemental = ICP::computeStep(src,dst,false);
+                //printPose(P_incemental, "P incremental ICP");
+                if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,0.000001)){
+                    break;
+                }
+                P_est = P_incemental * P_est;
+
+                cout<<"[Frame "<<i<<"] [ICP "<<j<<"] GroundTruth error:"<<err(P,P_est)<<"\t ICP dist error:"<<icpInlierError<<endl;
+
+                trajectoryEst.back()=P_est;
+
+
+
+                //Visualize::setLastCameraPose(P_est);
+
+                currentFrame.project(P_incemental);
+                //frames.back()=currentFrame;
+
+
+                //Visualize::setModelTransformed(currentFrame);
+                //Visualize::setLastCloud(currentFrame);
             }
-            P_est = P_incemental * P_est;
-
-            cout<<"[Frame "<<i<<"] [ICP "<<j<<"] Error between PPF pose and groundTruth:";
-            err(P,P_est);
-
-
-
-            Visualize::setLastCameraPose(P_est);
-
-            currentFrame.project(P_incemental);
-            Visualize::setModelTransformed(currentFrame);
-            Visualize::setLastCloud(currentFrame);
-        }
-        }
+        } //end doICP
 
        // cv::Point3f col = colorMapped(i,36,cv::COLORMAP_HSV);
 
        // RowVector3f color(col.x,col.y,col.z);
 
-        }
+        }//end if i>0
 
         currentFrame.pts_color.push_back(Map<RowVector3f>(Colormap::RED2.data()));
         currentFrame.nor_color.push_back(Map<RowVector3f>(Colormap::RED1.data()));
-        frames.push_back(currentFrame);
+        frames.back()=currentFrame;
 
         if(savePoses){
             std::stringstream ss;

@@ -79,6 +79,8 @@ namespace PointPairFeatures{
 
     Quaternionf avg_quaternion_markleyQ(Poses poses);
 
+    void printPoses(Poses vec);
+
 }
 
 #endif /* defined(__PointPairFeatures__PointPairFeatures__) */

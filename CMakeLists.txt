@@ -158,38 +158,38 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
 
 
-# Gtest dependencies
-find_package(GTest)
-if (GTEST_FOUND)
-include_directories(${GTEST_INCLUDE_DIRS})
-  add_executable(
-    test_PointCloudManipulation
-    ${SOURCES}
-    tests/test_PointCloudManipulation.cpp
-    tests/testHelpers.h
-    )
-  target_link_libraries(test_PointCloudManipulation ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-  add_custom_command(TARGET test_PointCloudManipulation PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointCloudManipulation>/bunny)
+## Gtest dependencies
+#find_package(GTest)
+#if (GTEST_FOUND)
+#include_directories(${GTEST_INCLUDE_DIRS})
+#  add_executable(
+#    test_PointCloudManipulation
+#    ${SOURCES}
+#    tests/test_PointCloudManipulation.cpp
+#    tests/testHelpers.h
+#    )
+#  target_link_libraries(test_PointCloudManipulation ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+#  add_custom_command(TARGET test_PointCloudManipulation PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointCloudManipulation>/bunny)
 
-  add_executable(
-    test_PointPairFeatures
-    ${SOURCES}
-    tests/test_PointPairFeatures.cpp
-    tests/testHelpers.h
-    )
-  target_link_libraries(test_PointPairFeatures ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-  add_custom_command(TARGET test_PointPairFeatures PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointPairFeatures>/bunny)
+#  add_executable(
+#    test_PointPairFeatures
+#    ${SOURCES}
+#    tests/test_PointPairFeatures.cpp
+#    tests/testHelpers.h
+#    )
+#  target_link_libraries(test_PointPairFeatures ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+#  add_custom_command(TARGET test_PointPairFeatures PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointPairFeatures>/bunny)
 
-  add_executable(
-    test_PoseClustering
-    ${SOURCES}
-    tests/test_PoseClustering.cpp
-    tests/testHelpers.h
-    )
-  target_link_libraries(test_PoseClustering ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-  add_custom_command(TARGET test_PoseClustering PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PoseClustering>/bunny)
+#  add_executable(
+#    test_PoseClustering
+#    ${SOURCES}
+#    tests/test_PoseClustering.cpp
+#    tests/testHelpers.h
+#    )
+#  target_link_libraries(test_PoseClustering ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
+#  add_custom_command(TARGET test_PoseClustering PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PoseClustering>/bunny)
 
-else()
-  message("GTest was not found - testcases can and will not be build")
-endif()
+#else()
+#  message("GTest was not found - testcases can and will not be build")
+#endif()
 

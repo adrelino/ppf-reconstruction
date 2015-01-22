@@ -42,7 +42,13 @@ namespace PointCloudManipulation {
 
     int nearestNeighbourIdx(vector<Vector3f> pts, Vector3f pt);
 
-    vector<int> getClosesPoints(PointCloud modelPoseEst, PointCloud sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+    float getClosesPoints(PointCloud modelPoseEst, PointCloud sSmall, vector<Vector3f> &src, vector<Vector3f> &dst,
+    float thresh);
+
+    float getClosesPoints(PointCloud srcCloud, vector<PointCloud> dstClouds, vector<Vector3f> &src, vector<Vector3f> &dst,
+    float thresh);
+
+    float getClosesPoints(vector<PointCloud> frames, int srcIndex, vector<Vector3f> &src, vector<Vector3f> &dst,
     float thresh);
 
 }

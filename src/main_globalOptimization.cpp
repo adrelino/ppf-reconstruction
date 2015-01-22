@@ -48,20 +48,25 @@ int main(int argc, char * argv[])
     vector<Isometry3f> trajectoryGroundTruth;
 
 
-    for(int i=start; i<images.size(); i++){
+    Visualize::setClouds(frames);
+    Visualize::setCameraPoses(trajectoryEst);
+    Visualize::setCameraPosesGroundTruth(trajectoryGroundTruth);
 
+
+    for(int i=start; i<images.size(); i++){
+        //if(i%3==0) continue;
         PointCloud C = LoadingSaving::loadPointCloudFromDepthMap(images[i],K,false); //true means show depth image
         PointCloud currentFrame=PointCloudManipulation::downSample(C,ddist);
 
         //Transformation groundTruth
         Isometry3f P(LoadingSaving::loadMatrix4f(poses[i]));
         trajectoryGroundTruth.push_back(P);
-        Visualize::addCameraPoseGroundTruth(P);
+        //Visualize::addCameraPoseGroundTruth(P);
 
 
         //Transformation estimate
         Isometry3f P_est(LoadingSaving::loadMatrix4f(posesEst[i]));
-        Visualize::addCameraPose(P_est);
+        //Visualize::addCameraPose(P_est);
         trajectoryEst.push_back(P_est);
 
 
@@ -69,26 +74,49 @@ int main(int argc, char * argv[])
 
         frames.push_back(currentFrame);
 
-        Visualize::addCloud(currentFrame);
+        //Visualize::addCloud(currentFrame);
 
         //Visualize::spinToggle(2);
     }
 
     Visualize::spin();
 
+    int n = frames.size();
+
 
     //Global icp
-    for (int j=0; j < 200;j++) {  //ICP
+    for (int j=0; j < 1000;j++) {  //ICP
 
         vector<Isometry3f> P_incrementals(frames.size());
 
-        for(int i=start; i<frames.size(); i++){
+        float accumErr=0;
+        float accumICPErr=0;
+
+
+
+        //int startHere = start+1;
+
+        for(int i=start; i<n; i++){  //leave frame 0 fixed;
             vector<Vector3f> src,dst;
             //int k = i==start ? frames.size()-1 : i-1;
-            int k = i+1; if(k==frames.size()) k=0;
-            PointCloudManipulation::getClosesPoints(frames[i],frames[k],src,dst,ddist);
+            //int k = i+1; if(k==frames.size()) k=0;
+
+            int k = mod(i+1,n);
+
+            //if(i==start+1){
+            int k2 = mod(i-1,n);
+            //}
+
+            //int k3 = mod(i+2,n);
+
+            //vector<PointCloud> neighbours = {frames[k],frames[k2]};
+            //PointCloudManipulation::getClosesPoints(frames[i],neighbours,src,dst,ddist);
+            accumICPErr += PointCloudManipulation::getClosesPoints(frames[i],frames[k],src,dst,ddist);
+
             //Visualize::setLines(src,dst);
             //Visualize::spin(3);
+
+            //PointCloudManipulation::getClosesPoints(frames,i,src,dst,ddist);
 
 
             //cout<<"Iteration "<<i<<endl;
@@ -96,25 +124,29 @@ int main(int argc, char * argv[])
             //cout<<"ICP "<<endl;
 
             Isometry3f P_incemental = ICP::computeStep(src,dst,false);
-            //printPose(P_incemental, "P incremental ICP");
-            trajectoryEst[i] = P_incemental * trajectoryEst[i];
             P_incrementals[i] = P_incemental;
-
-            cout<<"[Frame "<<i<<"] [ICP "<<j<<"] Error between PPF pose and groundTruth:";
-            err(trajectoryGroundTruth[i],trajectoryEst[i] );
         }
+
+
 
         for(int i=start; i<frames.size(); i++){
-            frames[i].project(P_incrementals[i]);
+            //printPose(P_incemental, "P incremental ICP");
+            Isometry3f P_rereferenced = P_incrementals[i] * P_incrementals[0].inverse();
+
+            trajectoryEst[i] = P_rereferenced * trajectoryEst[i];
+            accumErr+=err(trajectoryGroundTruth[i],trajectoryEst[i] );
+
+            frames[i].project(P_rereferenced);
         }
 
-        Visualize::setClouds(frames);
-        Visualize::setCameraPoses(trajectoryEst);
+        cout<<"[Global ] [ICP "<<j<<"] GroundTruth Error: "<<accumErr<<"\t ICP dist error:"<<accumICPErr<<endl;
+
+
         Visualize::spinToggle(2);
 
     }
 
-
+    cout<<"frame 0"<<err(trajectoryEst[0],trajectoryGroundTruth[0])<<endl;
 
     Visualize::spinLast();
 

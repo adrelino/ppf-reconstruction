@@ -14,6 +14,8 @@
 #include "math.h"
 #include "PointCloudManipulation.h"
 
+#include "RandomN.h"
+
 namespace PointPairFeatures{
 
 
@@ -124,15 +126,12 @@ Poses getTransformationBetweenPointClouds(PointCloud mSmall, PointCloud sSmall, 
     }
 
 
+    cout<<"beforeClustering: "<<Pests.size()<<endl;
+    printPoses(Pests);
     vector<Poses> clusters = clusterPoses(Pests);
-
     Pests = averagePosesInClusters(clusters);
-
-    //cout<<"getTransformationBetweenPointClouds with pose scores";
-    for(int i=0; i<Pests.size();i++){
-        cout<<Pests[i].second<<",";
-    }
-    cout<<endl;
+    cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
+    printPoses(Pests);
 
     //Isometry3f P_meaned = Pests[0].first;
 
@@ -222,7 +221,7 @@ GlobalModelDescription buildGlobalModelDescription(PointCloud m){
 
 std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalModelDescription model){
     long Sm=s.rows(); //number of model sample points
-    int numberOfSceneRefPts=sceneRefPtsFraction*Sm;
+    int numberOfSceneRefPts=Sm;//sceneRefPtsFraction*Sm;
     cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
 
     Matches matches;
@@ -232,7 +231,7 @@ std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalMode
     for (int index=0; index<numberOfSceneRefPts; index++) {
 
         //int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
-        int i = (index/(numberOfSceneRefPts*1.0f)) * Sm;
+        int i = index; //(index/(numberOfSceneRefPts*1.0f)) * Sm;
         sceneIndexToI.push_back(i);
         
         for (int j=0; j<s.rows(); j++) {
@@ -374,6 +373,21 @@ Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<in
     return vec;
 }
 
+void printPoses(Poses vec){
+    //cout<<"getTransformationBetweenPointClouds with pose scores";
+    //int m=0;
+    vector<double> scores;
+    for(int i=0; i<vec.size();i++){
+        scores.push_back(vec[i].second);
+        //cout<<Pests[i].second<<",";
+        //m+=Pests[i].second;
+    }
+    //float mean = m/Pests.size();
+    //cout<<" mean: "<<mean;
+
+    RandomN::summary(scores);
+}
+
 Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double alpha){
     //Isometry3f Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
     Isometry3f Tgs = PPF::twistToLocalCoords(s_m,s_n).inverse();
@@ -412,9 +426,9 @@ bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
     float diff_tra=(tra1-tra2).norm();
     //Rotation
     float d = rot1.dot(rot2);
-    float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
-    float diff_rot2 = rot1.angularDistance(rot2);
+    //float diff_rot2 = rot1.angularDistance(rot2);
 
     //http://math.stackexchange.com/questions/90081/quaternion-distance
     //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
@@ -429,7 +443,7 @@ bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
 
     //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
 
-    if(diff_rot_degrees <= thresh_rot_degrees && diff_tra <= thresh_tra){
+    if(diff_rot_degrees <= thresh_rot && diff_tra <= thresh_tra){
       //  cout<<"yes"<<endl;
         return true;
     }

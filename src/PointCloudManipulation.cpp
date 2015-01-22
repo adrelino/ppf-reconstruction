@@ -442,16 +442,59 @@ Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool w
 
 //every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
 //note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
-vector<int> PointCloudManipulation::getClosesPoints(PointCloud srcCloud, PointCloud dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,
+float PointCloudManipulation::getClosesPoints(PointCloud srcCloud, vector<PointCloud> dstClouds, vector<Vector3f> &src, vector<Vector3f> &dst,
 float thresh){
-    vector<int> corresp;
+    //vector<int> corresp;
+    float totalDistMeasure = 0;
+
+    for (int i = 0; i < srcCloud.rows(); ++i) {
+        Vector3f srcPt = srcCloud.pts[i];
+        double diffMin = std::numeric_limits<double>::infinity();
+        int idxMin;
+        int kMin;
+
+        for(int k=0; k<dstClouds.size(); k++){
+            PointCloud dstCloud=dstClouds[k];
+        for (int j = 0; j < dstCloud.rows(); ++j) {
+            Vector3f dstPt = dstCloud.pts[j];
+            float diff = (srcPt-dstPt).norm();
+            if(diff<diffMin){
+                diffMin=diff;
+                idxMin=j;
+                kMin=k;
+            }
+        }
+        }
+
+        Vector3f dstPtBest = dstClouds[kMin].pts[idxMin];
+
+        if(diffMin<thresh){ //get rid ouf outlier correspondences
+            //corresp.push_back(idxMin);
+            totalDistMeasure += (dstPtBest-srcPt).norm();
+            src.push_back(srcPt);
+            dst.push_back(dstPtBest);
+        }
+    }
+
+    totalDistMeasure /= src.size(); //mean value
+
+    return totalDistMeasure;
+}
+
+//every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
+//note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
+float PointCloudManipulation::getClosesPoints(PointCloud srcCloud, PointCloud dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,
+float thresh){
+    //vector<int> corresp;
+    float totalDistMeasure = 0;
+
     for (int i = 0; i < srcCloud.rows(); ++i) {
         Vector3f srcPt = srcCloud.pts[i];
         double diffMin = std::numeric_limits<double>::infinity();
         int idxMin;
         for (int j = 0; j < dstCloud.rows(); ++j) {
             Vector3f dstPt = dstCloud.pts[j];
-            double diff = (srcPt-dstPt).norm();
+            float diff = (srcPt-dstPt).norm();
             if(diff<diffMin){
                 diffMin=diff;
                 idxMin=j;
@@ -461,13 +504,67 @@ float thresh){
         Vector3f dstPtBest = dstCloud.pts[idxMin];
 
         if(diffMin<thresh){ //get rid ouf outlier correspondences
-            corresp.push_back(idxMin);
+            //corresp.push_back(idxMin);
+            totalDistMeasure += (dstPtBest-srcPt).norm();
             src.push_back(srcPt);
             dst.push_back(dstPtBest);
         }
     }
 
-    return corresp;
+    return totalDistMeasure;
+}
+
+float PointCloudManipulation::getClosesPoints(vector<PointCloud> frames, int srcIndex, vector<Vector3f> &src, vector<Vector3f> &dst,
+float thresh){
+    float totalDistMeasure = 0;
+
+    int n = frames.size();
+
+    //cout<<"n:"<<n<<endl;
+
+    PointCloud srcCloud = frames[srcIndex];
+
+    for (int i = 0; i < srcCloud.rows(); ++i) {
+        Vector3f srcPt = srcCloud.pts[i];
+        double diffMin = std::numeric_limits<double>::infinity();
+        int idxMin;
+        int idxMinFrame;
+
+        //for(int k=0; k<frames.size(); k++){ //all other frames
+        int winSize=1;
+        for(int l=-winSize; l<=winSize; l++){ //only neighbours
+            if(l==0) continue;
+            int k = mod(i+l,n);
+            //cout<<k<<endl;
+
+
+            if(k==srcIndex) continue;
+            PointCloud dstCloud = frames[k];
+
+            for (int j = 0; j < dstCloud.rows(); ++j) {
+                Vector3f dstPt = dstCloud.pts[j];
+                float diff = (srcPt-dstPt).norm();
+                if(diff<diffMin){
+                    //if(dotproduct normals > 0.5)
+                    diffMin=diff;
+                    idxMin=j;
+                    idxMinFrame=k;
+                }
+            }
+        }
+
+        Vector3f dstPtBest = frames[idxMinFrame].pts[idxMin];
+
+        if(diffMin<thresh){ //get rid ouf outlier correspondences
+            //corresp.push_back(idxMin);
+            totalDistMeasure += (dstPtBest-srcPt).norm();
+            src.push_back(srcPt);
+            dst.push_back(dstPtBest);
+        }
+
+    }
+
+    return totalDistMeasure;
 }
 
 //Isometry3f ICP::computeStepUnordered(MatrixXf modelPoseEst, MatrixXf sSmall, float thresh){

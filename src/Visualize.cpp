@@ -124,7 +124,7 @@ void Visualize::drawOrigin(){
 	glPopMatrix();
 }
 
-void Visualize::drawNormals(PointCloud m, RowVector3f color){
+void Visualize::drawNormals(PointCloud& m, RowVector3f& color){
     if(m.nor.size()==0) return;
     glLineWidth(0.02f);
     bool colorPerVertex=false;
@@ -154,7 +154,7 @@ void Visualize::drawNormals(PointCloud m, RowVector3f color){
     
 }
 
-void Visualize::drawPointCloud(PointCloud m, RowVector3f color, RowVector3f colorNormals, float pointSize){
+void Visualize::drawPointCloud(PointCloud& m, RowVector3f color, RowVector3f colorNormals, float pointSize){
     if(m.pts_color.size()==0){
         m.pts_color.push_back(color);
     }
@@ -164,22 +164,22 @@ void Visualize::drawPointCloud(PointCloud m, RowVector3f color, RowVector3f colo
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPoints(vector<Vector3f> pts, vector<RowVector3f> color, float pointSize){
+void Visualize::drawPoints(vector<Vector3f>& pts, vector<RowVector3f>& color, float pointSize){
     glPointSize(pointSize);
     bool colorPerVertex=true;
     if(color.size()==1){
         colorPerVertex=false;
-        glColor3f(color[0].x(),color[0].y(),color[0].z());
+        glColor3fv(color[0].data());
     }
     glBegin(GL_POINTS);
     for (int i=0; i<pts.size(); i++) {
-        if(colorPerVertex) glColor3f(color[i].x(),color[i].y(),color[i].z());
-        glVertex3f(pts[i].x(),pts[i].y(),pts[i].z());
+        if(colorPerVertex) glColor3fv(color[i].data());
+        glVertex3fv(pts[i].data());
     }
 	glEnd();
 }
 
-void Visualize::drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormals){
+void Visualize::drawAll(PointCloud& m, RowVector3f color, RowVector3f colorNormals){
     drawPointCloud(m, color, colorNormals);
     
     if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
@@ -188,14 +188,14 @@ void Visualize::drawAll(PointCloud m, RowVector3f color, RowVector3f colorNormal
 }
 
 
-void Visualize::drawPPF(int i, int j, PointCloud m)
+void Visualize::drawPPF(int i, int j, PointCloud& m)
 {
     glLineWidth(0.05f);
     glBegin(GL_LINE_STRIP);
-        Vector3f p=m.pts[i];
-        Vector3f n=m.nor[i];
-        Vector3f p2=m.pts[j];
-        Vector3f n2=m.nor[j];
+        Vector3f& p=m.pts[i];
+        Vector3f& n=m.nor[i];
+        Vector3f& p2=m.pts[j];
+        Vector3f& n2=m.nor[j];
         n.normalize();
         n/=100;
         n2.normalize();
@@ -216,7 +216,7 @@ void Visualize::drawPPF(int i, int j, PointCloud m)
 	glEnd();
 }
 
-void Visualize::drawLines(vector<int> vertices)
+void Visualize::drawLines(vector<int>& vertices)
 {
     glLineWidth(0.05f);
 
@@ -226,8 +226,8 @@ void Visualize::drawLines(vector<int> vertices)
     int n = vertices.size();
 
     for (int i = 0; i < n; ++i) {
-        Vector3f p1=scene.pts[i];
-        Vector3f p2=modelT.pts[vertices[i]];
+        Vector3f& p1=scene->pts[i];
+        Vector3f& p2=modelT->pts[vertices[i]];
 
         glVertex3f(p1(0),p1(1),p1(2));  //distance line
         glVertex3f(p2(0),p2(1),p2(2));  //distance line
@@ -236,7 +236,7 @@ void Visualize::drawLines(vector<int> vertices)
     glEnd();
 }
 
-void Visualize::drawLines(vector<Vector3f> v1, vector<Vector3f> v2)
+void Visualize::drawLines(vector<Vector3f>& v1, vector<Vector3f>& v2)
 {
     glLineWidth(0.05f);
 
@@ -246,23 +246,23 @@ void Visualize::drawLines(vector<Vector3f> v1, vector<Vector3f> v2)
     int n = v1.size();
 
     for (int i = 0; i < n; ++i) {
-        Vector3f p1=v1[i];
-        Vector3f p2=v2[i];
+        Vector3f& p1=v1[i];
+        Vector3f& p2=v2[i];
 
-        glVertex3f(p1(0),p1(1),p1(2));  //distance line
-        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+        glVertex3fv(p1.data());  //distance line
+        glVertex3fv(p2.data());  //distance line
     }
 
     glEnd();
 }
 
-void Visualize::drawPPfs(Bucket b,PointCloud m){
+void Visualize::drawPPfs(Bucket& b,PointCloud& m){
 //    for (auto it : b){
 //        drawPPF(it.i, it.j,m);
 //    }
 }
 
-void Visualize::drawCubes(vector<Vector3f> pts, double size){
+void Visualize::drawCubes(vector<Vector3f>& pts, double size){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
@@ -276,7 +276,7 @@ void Visualize::drawCubes(vector<Vector3f> pts, double size){
     }
 }
 
-void Visualize::drawSpheres(vector<Vector3f> pts, double radius){
+void Visualize::drawSpheres(vector<Vector3f>& pts, double radius){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
@@ -304,7 +304,7 @@ void Visualize::drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane){
     drawFrustum(fovy,aspect_ratio,-0.05f,colorLine,colorPlane);
 }
 
-void Visualize::drawMatches(Matches matches){
+void Visualize::drawMatches(Matches& matches){
     Match match=matches[bucketIndex];
     //drawPPfs(match.modelPPFs, model);
     //drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
@@ -330,14 +330,16 @@ double Visualize::getRotationAngleApprox(double xdiff, double ydiff, double x, d
 	return ydiff*xs+xdiff*ys;
 }
 
-void Visualize::drawCameraPoses(vector<Isometry3f> cameraPoses, Vector4f colorLine, Vector4f colorPlane){
-
+void Visualize::drawCameraPoses(vector<Isometry3f>& cameraPoses, Vector4f& colorLine, Vector4f& colorPlane){
+    glEnable(GL_STENCIL_TEST);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
 //            float radius = 0.01f;
 //            Vector3f tLast;
 //            bool inited=false;
     if(keyToggle['p']){
-    for(Isometry3f P : cameraPoses){
+    for(int i =0; i<cameraPoses.size(); i++){
+        Isometry3f& P =cameraPoses[i];
         Vector3f t = -P.inverse().translation();
         //Quaternionf q(P.inverse().linear());
 
@@ -357,7 +359,16 @@ void Visualize::drawCameraPoses(vector<Isometry3f> cameraPoses, Vector4f colorLi
 
         //glutWireSphere(radius,5,5);
         //drawOrigin();
-        drawFrustumIntrinsics(colorLine,colorPlane);
+
+        glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
+
+
+        if(selectedFrame==i){
+            drawFrustumIntrinsics(colorLine,Vector4f(0,0,0.5,0.5));
+        }else{
+            drawFrustumIntrinsics(colorLine,colorPlane);
+
+        }
         //drawFrustum(0.01f,4.0/3.0f,0.1f,0.5f);
         glPopMatrix();
 //                tLast=t;
@@ -376,6 +387,29 @@ void Visualize::drawCameraPoses(vector<Isometry3f> cameraPoses, Vector4f colorLi
     }
     glEnd();
     }
+
+    if(keyToggle['T']){
+        for(int i =0; i<cameraPoses.size(); i++){
+            Isometry3f P =cameraPoses[i];
+            std::stringstream ss;
+            ss<<i;
+            const unsigned char *text = (const unsigned char*) ss.str().c_str();
+            Vector3f origin=Vector3f::Zero();
+            Vector3f pos = P*origin;
+
+
+            glRasterPos3fv(pos.data());
+            glColor3f(1,1,1);
+            if(selectedFrame-1==i){ //dont know why we need -1 here, but it works
+                //cout<<"sel: "<<selectedFrame<<" i"<<i<<" s1="<<cameraPoses.size()<<" s2="<<cameraPosesGroundTruth.size()<<endl;
+                glColor3f(0,0,1);
+            }
+            glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
+            glutBitmapString(GLUT_BITMAP_HELVETICA_18,text);
+        }
+    }
+
+
 
 //            for(Isometry3f P : cameraPoses){
 //                glPushMatrix();
@@ -399,7 +433,8 @@ void Visualize::drawCameraPoses(vector<Isometry3f> cameraPoses, Vector4f colorLi
 
 void Visualize::display(void)
 {
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glClearStencil(255); //is background for mouse clicks
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
 
 
@@ -420,21 +455,26 @@ void Visualize::display(void)
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
 
-            drawCameraPoses(cameraPoses,Colormap::RED1,Colormap::RED2);
-            drawCameraPoses(cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
+            drawCameraPoses(*cameraPoses,Colormap::RED1,Colormap::RED2);
+            if(keyToggle['g']) drawCameraPoses(*cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
 
-            if(keyToggle['m'] && model.pts.size()>0) drawAll(model,Map<RowVector3f>(Colormap::GREEN2.data()),Map<RowVector3f>(Colormap::GREEN1.data())); //green
+            if(keyToggle['m'] && model && model->pts.size()>0) drawAll(*model,Map<RowVector3f>(Colormap::GREEN2.data()),Map<RowVector3f>(Colormap::GREEN1.data())); //green
             //if(keyToggle['m'] && model.pts.size()>0) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            if(keyToggle['s'] && scene.pts.size()>0) drawAll(scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
-            if(keyToggle['e'] && modelT.pts.size()>0) drawAll(modelT,RowVector3f(1,0,1),RowVector3f(1,1,1));//magenta
+            if(keyToggle['s'] && scene && scene->pts.size()>0) drawAll(*scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
+            if(keyToggle['e'] && modelT && modelT->pts.size()>0) drawAll(*modelT,RowVector3f(1,0,1),RowVector3f(1,1,1));//magenta
 
             if(matches.size()>0) drawMatches(matches);
-            if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
-            if(keyToggle['l'] && src.size()>0) drawLines(src,dst);
+            //if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
+            if(keyToggle['l'] && src && dst && src->size()>0) drawLines( (*src) ,(*dst) );
 
-            if(keyToggle['c']){
-                for(auto it : ms){
-                    drawPointCloud(it,RowVector3f(0.5,0.5,0.5),RowVector3f(0.8,0.8,0.8));
+            if(keyToggle['c'] && ms){
+                for(int i=0; i<ms->size(); i++){
+                    PointCloud& it=(*ms)[i];
+                    if(selectedFrame==i){
+                        drawPointCloud(it,RowVector3f(0,0,0.5),RowVector3f(0,0,0.8));
+                    }else{
+                        drawPointCloud(it,RowVector3f(0.5,0.5,0.5),RowVector3f(0.8,0.8,0.8));
+                    }
                 }
             }
 
@@ -537,11 +577,29 @@ void Visualize::keyboardW (unsigned char key, int x, int y){
 
 void Visualize::mouse(int button, int state, int x, int y)
 {
+    //cout<<"bla"<<endl;
     //printf("button=%d %s At %d %d\n", button, (state == GLUT_DOWN) ? "Down" : "Up", x, y);
     
     modifier=glutGetModifiers();
     
     if (state == GLUT_DOWN) {
+        int window_height = glutGet(GLUT_WINDOW_HEIGHT);
+
+        GLbyte color[4];
+        GLfloat depth;
+        GLuint index;
+
+        glReadPixels(x, window_height - y - 1, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, color);
+        glReadPixels(x, window_height - y - 1, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &depth);
+        glReadPixels(x, window_height - y - 1, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
+
+        if(depth<1){
+            selectedFrame = index;
+            printf("Clicked on pixel %d, %d, color %02hhx%02hhx%02hhx%02hhx, depth %f, stencil index %u\n",
+               x, y, color[0], color[1], color[2], color[3], depth, index);
+        }
+
+
         mouseButton = button;
         moving = 1;
         startx = x;
@@ -607,7 +665,7 @@ int Visualize::mainVisualize(int argc, char **argv)
         
     
 	glutInit(&argc, argv);
-	glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH);
+    glutInitDisplayMode (GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_STENCIL);
 	glutInitWindowSize (WINDOW_SIZE, WINDOW_SIZE);
 	glutInitWindowPosition (50, 50);
 	glutCreateWindow ("Adrian's Point Cloud Visualizer");
@@ -720,51 +778,59 @@ bool Visualize::waitKey(unsigned char key){
 }
 
 
-void Visualize::setModel(PointCloud m){
-    getInstance()->model=m;
+void Visualize::setModel(PointCloud& m){
+    getInstance()->model=&m;
 }
 
-void Visualize::setScene(PointCloud s){
-    getInstance()->scene=s;
+void Visualize::setScene(PointCloud& s){
+    getInstance()->scene=&s;
 }
 
-void Visualize::setModelTransformed(PointCloud mT){
-    getInstance()->modelT=mT;
+void Visualize::setModelTransformed(PointCloud& mT){
+    getInstance()->modelT=&mT;
 }
 
-void Visualize::setLines(vector<Vector3f> src, vector<Vector3f> dst){
-    getInstance()->src=src;
-    getInstance()->dst=dst;
+void Visualize::setLines(vector<Vector3f>& src, vector<Vector3f>& dst){
+    getInstance()->src=&src;
+    getInstance()->dst=&dst;
 }
 
-void Visualize::addCloud(PointCloud &mypair){
-    getInstance()->ms.push_back(mypair);
-}
+//void Visualize::addCloud(PointCloud& &mypair){
+//    getInstance()->ms.push_back(mypair);
+//}
 
-void Visualize::setLastCloud(PointCloud &mypair){
-    getInstance()->ms.back()=mypair;
-}
+//void Visualize::setLastCloud(PointCloud& &mypair){
+//    getInstance()->ms.back()=mypair;
+//}
 
 void Visualize::setClouds(vector<PointCloud> &mypair){
-    getInstance()->ms=mypair;
+    getInstance()->ms=&mypair;
 }
 
-void Visualize::addCameraPose(Isometry3f pose){
-    getInstance()->cameraPoses.push_back(pose);
+//void Visualize::addCameraPose(Isometry3f pose){
+//    getInstance()->cameraPoses.push_back(pose);
+//}
+
+//void Visualize::setLastCameraPose(Isometry3f pose){
+//    getInstance()->cameraPoses.back()=pose;
+//}
+
+void Visualize::setCameraPoses(vector<Isometry3f>& poses){
+    getInstance()->cameraPoses=&poses;
 }
 
-void Visualize::setLastCameraPose(Isometry3f pose){
-    getInstance()->cameraPoses.back()=pose;
+//void Visualize::addCameraPoseGroundTruth(Isometry3f pose){
+//    getInstance()->cameraPosesGroundTruth.push_back(pose);
+//}
+
+//void Visualize::setLastCameraPoseGroundTruth(Isometry3f pose){
+//    getInstance()->cameraPosesGroundTruth.back()=pose;
+//}
+
+void Visualize::setCameraPosesGroundTruth(vector<Isometry3f>& poses){
+    getInstance()->cameraPosesGroundTruth=&poses;
 }
 
-void Visualize::setCameraPoses(vector<Isometry3f> poses){
-    getInstance()->cameraPoses=poses;
-}
-
-void Visualize::addCameraPoseGroundTruth(Isometry3f pose){
-    getInstance()->cameraPosesGroundTruth.push_back(pose);
-}
-
-void Visualize::setLastCameraPoseGroundTruth(Isometry3f pose){
-    getInstance()->cameraPosesGroundTruth.back()=pose;
+void Visualize::setSelectedIndex(int i){
+    getInstance()->selectedFrame=i;
 }

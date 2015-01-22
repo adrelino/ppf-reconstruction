@@ -45,26 +45,30 @@ static float tau_d=0.1f; //sampling rate, set like in paper. ddist=tau_d*diam(M)
 static float ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
 
 // reestimate normals after downsampling
-static float neighbourBallSize=ddist*2.5f; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
+//static float neighbourBallSize=ddist*2.5f; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
 
 //ppf's
 static int ndist=1/tau_d; //number of distance buckets
 static int nangle=30;     //number of angle buckets
 static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
-static float sceneRefPtsFraction = 0.8f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
+//static float sceneRefPtsFraction = 0.8f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
 
 //for pose cluster averaging
 //static float thresh_tra = 0.05f * diamM; //float thresh_tra=0.02; //2cm
 //static float thresh_rot_degrees = 20; //180 max
 
 //for syntetic bunny
-static float thresh_tra = 0.01f * diamM; //float thresh_tra=0.02; //2cm
-static float thresh_rot_degrees = 30; //180 max
+static float thresh_tra = 0.05f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
+static float thresh_rot = 20; //180 max
+
+
 
 //Macros
 //
 #define rad2deg(r) (180*(r)/M_PI)
 #define deg2rad(d) (M_PI*(d)/180)
+
+#define mod(a,b) ( (a + b) % b ) //works only if |a|<b
 
 namespace Colormap{
 
@@ -151,20 +155,22 @@ static float err(Isometry3f P, Isometry3f Pest, bool fullOutput=false){
 //        rot_error=rot_diff.array().cwiseAbs().sum();
 //    }
 
-    float meanError=(tra_error + rot_error)*0.5f;
-    cout<<"pose meanError:"<<meanError<<endl;
+    float meanError=(tra_error);// + rot_error)*0.5f;
 
     if(fullOutput){
-        //cout<<setprecision(3);
-        cout<<"tra_ori: "<<tra.transpose()<<endl;
-        cout<<"tra_est: "<<tra_est.transpose()<<endl;
-        //cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
-        cout<<"tra_error:----------------------------------------------> "<<tra_error<<endl;
 
-        cout<<"rot_ori: "<<rot.transpose()<<endl;
-        cout<<"rot_est: "<<rot_est.transpose()<<endl;
-        //cout<<"rot_dif: "<<rot_diff.transpose()<<endl;
-        cout<<"rot_error:----------------------------------------------> "<<rot_error<<endl;
+    cout<<"pose meanError:"<<meanError<<endl;
+
+        //cout<<setprecision(3);
+//        cout<<"tra_ori: "<<tra.transpose()<<endl;
+//        cout<<"tra_est: "<<tra_est.transpose()<<endl;
+//        //cout<<"tra_dif: "<<tra_diff.transpose()<<"\n --->tra_error: "<<tra_error<<endl;
+//        cout<<"tra_error:----------------------------------------------> "<<tra_error<<endl;
+
+//        cout<<"rot_ori: "<<rot.transpose()<<endl;
+//        cout<<"rot_est: "<<rot_est.transpose()<<endl;
+//        //cout<<"rot_dif: "<<rot_diff.transpose()<<endl;
+//        cout<<"rot_error:----------------------------------------------> "<<rot_error<<endl;
     }
 
     return meanError;
@@ -215,6 +221,20 @@ template<> inline bool getParam<bool>(std::string param, bool &var, int argc, ch
     }
     return false;
 }
+
+static void getParams(int argc, char **argv){
+     getParam("diamM", diamM, argc, argv);
+     getParam("tau_d", tau_d, argc, argv);
+     ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
+     ndist=1/tau_d;
+
+     getParam("nangle", nangle, argc, argv);
+     getParam("tau_d", tau_d, argc, argv);
+
+     getParam("thresh_tra",thresh_tra, argc, argv);
+     getParam("thresh_rot",thresh_rot,argc,argv);
+}
+
 
 //}
 
