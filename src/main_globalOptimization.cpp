@@ -41,22 +41,22 @@ int main(int argc, char * argv[])
     Matrix3f K = LoadingSaving::loadMatrix3f(intrinsics[0]);
     //cout<<"intrinsics: "<<endl<<K<<endl;
 
-    vector<PointCloud> frames;
+    vector< std::shared_ptr<PointCloud> > frames;
     //vector<PointCloud> framesGroundTruth;
 
     vector<Isometry3f> trajectoryEst;
     vector<Isometry3f> trajectoryGroundTruth;
 
 
-    Visualize::setClouds(frames);
+    Visualize::setClouds(&frames);
     Visualize::setCameraPoses(trajectoryEst);
     Visualize::setCameraPosesGroundTruth(trajectoryGroundTruth);
 
 
     for(int i=start; i<images.size(); i++){
         //if(i%3==0) continue;
-        PointCloud C = LoadingSaving::loadPointCloudFromDepthMap(images[i],K,false); //true means show depth image
-        PointCloud currentFrame=PointCloudManipulation::downSample(C,ddist);
+        shared_ptr<PointCloud> currentFrame(new PointCloud(images[i],K));
+        currentFrame->downsample(ddist);
 
         //Transformation groundTruth
         Isometry3f P(LoadingSaving::loadMatrix4f(poses[i]));
@@ -69,8 +69,9 @@ int main(int argc, char * argv[])
         //Visualize::addCameraPose(P_est);
         trajectoryEst.push_back(P_est);
 
+        currentFrame->setPose(P_est);
 
-        currentFrame.project(P_est);
+        //currentFrame.project(P_est);
 
         frames.push_back(currentFrame);
 
@@ -111,7 +112,7 @@ int main(int argc, char * argv[])
 
             //vector<PointCloud> neighbours = {frames[k],frames[k2]};
             //PointCloudManipulation::getClosesPoints(frames[i],neighbours,src,dst,ddist);
-            accumICPErr += PointCloudManipulation::getClosesPoints(frames[i],frames[k],src,dst,ddist);
+            accumICPErr += PointCloudManipulation::getClosesPoints(*frames[i],*frames[k],src,dst,ddist);
 
             //Visualize::setLines(src,dst);
             //Visualize::spin(3);
@@ -136,13 +137,13 @@ int main(int argc, char * argv[])
             trajectoryEst[i] = P_rereferenced * trajectoryEst[i];
             accumErr+=err(trajectoryGroundTruth[i],trajectoryEst[i] );
 
-            frames[i].project(P_rereferenced);
+            frames[i]->setPose(trajectoryEst[i]);
         }
 
         cout<<"[Global ] [ICP "<<j<<"] GroundTruth Error: "<<accumErr<<"\t ICP dist error:"<<accumICPErr<<endl;
 
 
-        Visualize::spinToggle(2);
+        if(j%3==0) Visualize::spinToggle(1);
 
     }
 

@@ -77,10 +77,12 @@ file(GLOB HEADERS
 
 #file(GLOB SOURCES src/*.cpp)
 set(SOURCES
+    src/PointCloud.cpp
     src/LoadingSaving.cpp
     src/PointCloudManipulation.cpp
     src/PPF.cpp
     src/PointPairFeatures.cpp
+    src/CPUTimer.cpp
 )
 
 set(VIZ
@@ -123,13 +125,20 @@ add_executable(
     frameToFrame
     src/main_frameToFrame.cpp
     ${SOURCES}
+    ${HEADERS}
     ${VIZ}
 )
 target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToFrame>/bunny)
 
-
-
+#add_executable(
+#    vector_of_vectors_example
+#    src/vector_of_vectors_example.cpp
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#target_link_libraries(vector_of_vectors_example ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
+#add_custom_command(TARGET vector_of_vectors_example PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:vector_of_vectors_example>/bunny)
 
 
 #add_executable(

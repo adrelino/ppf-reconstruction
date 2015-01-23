@@ -10,7 +10,7 @@
 #include "Visualize.h"
 #include "PointPairFeatures.h"
 
-double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
+double PointCloudManipulation::getPointCloudDiameter(PointCloud& C){
 
     //upper bound is the diagonal of enclosing cube
     Matrix3Xf m = C.ptsMat();
@@ -29,10 +29,10 @@ double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
     diagonal=0;
     
     for (int i=0; i<C.pts.size(); i++) {
-        Vector3f pt1=C.pts[i];
+        Vector3f& pt1=C.pts[i];
         for (int j=0; j<C.pts.size(); j++) {
             if(i==j) continue;
-            Vector3f pt2=C.pts[j];
+            Vector3f& pt2=C.pts[j];
             
             double distA=(pt2-pt1).norm();
             if (distA>diagonal) {
@@ -74,7 +74,7 @@ double PointCloudManipulation::getPointCloudDiameter(PointCloud C){
 
 //}
 
-Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f> pts, const Vector3f p1, const float neighRadius){
+Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f>& pts, const Vector3f p1, const float neighRadius){
     //Matrix3f cov = Matrix3f::Zero();
     //Vector3f mean = Vector3f::Zero();
 
@@ -108,12 +108,12 @@ Matrix3f PointCloudManipulation::covarianceOfNeighbours(const vector<Vector3f> p
     return cov;
 }
 
-vector<Vector3f> PointCloudManipulation::estimateNormals(vector<Vector3f> pts, const vector<Vector3f> oldNormals, const float neighRadius){
+vector<Vector3f> PointCloudManipulation::estimateNormals(const vector<Vector3f>& pts, const vector<Vector3f>& oldNormals, const float neighRadius){
 
     vector<Vector3f> nor;
 
     for (int i=0; i<pts.size(); i++) {
-        Vector3f p1=pts[i];
+        const Vector3f& p1=pts[i];
 
         Matrix3f cov = covarianceOfNeighbours(pts,p1,neighRadius);
 
@@ -224,7 +224,7 @@ void PointCloudManipulation::reestimateNormals(PointCloud &C, const float neighR
 }
 
 //http://eigen.tuxfamily.org/dox/group__TutorialReductionsVisitorsBroadcasting.html   bottom example
-int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f> vec, Vector3f v){
+int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f>& vec, Vector3f v){
     Matrix3Xf m = vec2mat(vec);
     MatrixXf::Index index;
       // find nearest neighbour
@@ -234,62 +234,9 @@ int PointCloudManipulation::nearestNeighbourIdx(vector<Vector3f> vec, Vector3f v
 }
 
 
-PointCloud PointCloudManipulation::downSample(PointCloud C, float voxelSize){
-    
-    //MatrixXf scaled = C/ddist;
-    unordered_map<string, vector<Vector3f> > voxels;
-
-    //bool withNormals=C.nor.size()>0;
-    
-    for (int i=0; i<C.pts.size(); i++) {
-        int x=floor(C.pts[i].x()/voxelSize);
-        int y=floor(C.pts[i].y()/voxelSize);
-        int z=floor(C.pts[i].z()/voxelSize);
-        stringstream ss;
-        ss<<x<<"|"<<y<<"|"<<z;
-        string key=ss.str();
-        //int key = (x | (y<<10) | (z<<20));
-//        if(voxels.count(key)==0){
-//            voxels[key]=make_pair()
-//        }
-        voxels[key].push_back(C.pts[i]);
-        //if(withNormals) voxels[key].second.push_back(C.nor[i]);
-    }
-    
-    PointCloud C2; // contains Cmean,Nmean,Ccenter,Ncenter
-    //C2.pts = vector<Vector3f>(voxels.size());
-    //C2.nor = vector<Vector3f>(voxels.size());
-    //int i=0;
-    for (auto it : voxels){
-        int npts = it.second.size();
-
-                //cout<<"key"<<it.first<<" #pts:"<<npts<<endl;
-
-         if(npts<20) continue;
-        
-        Vector3f ptsMean=PointCloudManipulation::getCentroid(it.second);
-        C2.pts.push_back(ptsMean);
-
-        //does mean normal make sense?
-        //if(withNormals){
-        Vector3f norMean=PointCloudManipulation::getNormal(it.second);
-        C2.nor.push_back(norMean);
-        //}
 
 
-        //assign the normal from the point which was closest to this one before (since we use the mean or voxel center, this point didnt exist before, maybe using median would be better?)
-        //int idx = nearestNeighbourIdx(C.pts,voxelCenterOrPtsMean);
-        //C2.nor.push_back(C.nor[idx]);
-
-        //i++;
-    }
-    
-    cout<<"DownSampled "<<C.pts.size()<<"->"<<C2.pts.size()<< " pts with voxelSize="<<voxelSize<<endl;
-    
-    return C2;
-}
-
-Translation3f PointCloudManipulation::getTranslationToCentroid(PointCloud C){
+Translation3f PointCloudManipulation::getTranslationToCentroid(PointCloud& C){
 
     Vector3f mean = PointCloudManipulation::getCentroid(C.pts);
 
@@ -298,7 +245,7 @@ Translation3f PointCloudManipulation::getTranslationToCentroid(PointCloud C){
     return Translation3f(-mean);
 }
 
-Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
+Vector3f PointCloudManipulation::getCentroid(vector<Vector3f>& pts){
 
     Matrix3Xf m = vec2mat(pts);
     Vector3f mean1=m.rowwise().mean();
@@ -311,7 +258,7 @@ Vector3f PointCloudManipulation::getCentroid(vector<Vector3f> pts){
     return mean1;
 }
 
-Vector3f PointCloudManipulation::getNormal(vector<Vector3f> pts){
+Vector3f PointCloudManipulation::getNormal(vector<Vector3f>& pts){
     //http://forum.kde.org/viewtopic.php?f=74&t=110265
     Matrix3Xf mat = vec2mat(pts);
 
@@ -442,127 +389,122 @@ Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool w
 
 //every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
 //note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
-float PointCloudManipulation::getClosesPoints(PointCloud srcCloud, vector<PointCloud> dstClouds, vector<Vector3f> &src, vector<Vector3f> &dst,
-float thresh){
-    //vector<int> corresp;
-    float totalDistMeasure = 0;
+//float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, vector<PointCloud>& dstClouds, vector<Vector3f> &src, vector<Vector3f> &dst,
+//float thresh){
+//    //vector<int> corresp;
+//    float totalDistMeasure = 0;
 
-    for (int i = 0; i < srcCloud.rows(); ++i) {
-        Vector3f srcPt = srcCloud.pts[i];
-        double diffMin = std::numeric_limits<double>::infinity();
-        int idxMin;
-        int kMin;
+//    for (int i = 0; i < srcCloud.pts.size(); ++i) {
+//        Vector3f& srcPt = srcCloud.pts[i];
+//        double diffMin = std::numeric_limits<double>::infinity();
+//        int idxMin;
+//        int kMin;
 
-        for(int k=0; k<dstClouds.size(); k++){
-            PointCloud dstCloud=dstClouds[k];
-        for (int j = 0; j < dstCloud.rows(); ++j) {
-            Vector3f dstPt = dstCloud.pts[j];
-            float diff = (srcPt-dstPt).norm();
-            if(diff<diffMin){
-                diffMin=diff;
-                idxMin=j;
-                kMin=k;
-            }
-        }
-        }
+//        for(int k=0; k<dstClouds.size(); k++){
+//            PointCloud& dstCloud=dstClouds[k];
+//        for (int j = 0; j < dstCloud.pts.size(); ++j) {
+//            Vector3f& dstPt = dstCloud.pts[j];
+//            float diff = (srcPt-dstPt).norm();
+//            if(diff<diffMin){
+//                diffMin=diff;
+//                idxMin=j;
+//                kMin=k;
+//            }
+//        }
+//        }
 
-        Vector3f dstPtBest = dstClouds[kMin].pts[idxMin];
+//        Vector3f& dstPtBest = dstClouds[kMin].pts[idxMin];
 
-        if(diffMin<thresh){ //get rid ouf outlier correspondences
-            //corresp.push_back(idxMin);
-            totalDistMeasure += (dstPtBest-srcPt).norm();
-            src.push_back(srcPt);
-            dst.push_back(dstPtBest);
-        }
-    }
+//        if(diffMin<thresh){ //get rid ouf outlier correspondences
+//            //corresp.push_back(idxMin);
+//            totalDistMeasure += (dstPtBest-srcPt).norm();
+//            src.push_back(srcPt);
+//            dst.push_back(dstPtBest);
+//        }
+//    }
 
-    totalDistMeasure /= src.size(); //mean value
+//    totalDistMeasure /= src.size(); //mean value
 
-    return totalDistMeasure;
-}
+//    return totalDistMeasure;
+//}
+
+#include "CPUTimer.h"
 
 //every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
 //note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
-float PointCloudManipulation::getClosesPoints(PointCloud srcCloud, PointCloud dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,
-float thresh){
-    //vector<int> corresp;
+float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, PointCloud& dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,float thresh, bool useFlann){
+
+    //CPUTimer timer = CPUTimer();
     float totalDistMeasure = 0;
 
-    for (int i = 0; i < srcCloud.rows(); ++i) {
-        Vector3f srcPt = srcCloud.pts[i];
-        double diffMin = std::numeric_limits<double>::infinity();
-        int idxMin;
-        for (int j = 0; j < dstCloud.rows(); ++j) {
-            Vector3f dstPt = dstCloud.pts[j];
-            float diff = (srcPt-dstPt).norm();
-            if(diff<diffMin){
-                diffMin=diff;
-                idxMin=j;
-            }
-        }
+    Vector3f preTra = Vector3f(dstCloud.pose.translation());
+    auto preInvRot = dstCloud.pose.linear().inverse();
 
-        Vector3f dstPtBest = dstCloud.pts[idxMin];
+    //timer.tic();
+
+    for (int i = 0; i < srcCloud.pts.size(); ++i) {
+        Vector3f& srcPtOrig = srcCloud.pts[i];
+        Vector3f srcPtInGlobalFrame = srcCloud.pose*srcPtOrig;
+
+        float diffMin;
+        size_t idxMin;
+
+//        if(useFlann){
+            Vector3f srcPtinDstFrame =  preInvRot * (srcPtInGlobalFrame-preTra);
+            diffMin = sqrtf(dstCloud.getClosestPoint(srcPtinDstFrame,idxMin));
+//        }else{
+//            //linear search
+//            diffMin=std::numeric_limits<double>::infinity();
+//            for (int j = 0; j < dstCloud.pts.size(); ++j) {
+//                Vector3f& dstPt = dstCloud.pts[j];
+//                Vector3f dstPtInGlobalFrame = dstCloud.pose*dstPt;
+//                //Vector3f test = dstCloud.pose.linear().inverse() * (dstPtInGlobalFrame-Vector3f(dstCloud.pose.translation()));
+
+//                //float testdiff =  (dstPt-test2).norm();
+//                //cout<<"test diff" <<testdiff<<endl;
+
+//                float diff = (srcPtInGlobalFrame-dstPtInGlobalFrame).norm();
+//                if(diff<diffMin){
+//                    diffMin=diff;
+//                    idxMin=j;
+//                }
+//            }
+//        }
+
+//        diffMin2=std::numeric_limits<double>::infinity();
+//        for (int j = 0; j < dstCloud.pts.size(); ++j) {
+//            Vector3f& dstPt = dstCloud.pts[j];
+
+//            float diff = (srcPtinDstFrame-dstPt).norm();
+//            if(diff<diffMin2){
+//                diffMin2=diff;
+//                idxMin2=j;
+//            }
+//        }
+
+
+//        if(idxMin != idxMin2){
+//            cout<<"BAD: idx1: "<<idxMin<<" idx2: "<<idxMin2<<" diffMin: "<<diffMin<<" diffMin2: "<<diffMin2<<endl;
+//        }else{
+//            cout<<"OK: idx1: "<<idxMin<<" idx2: "<<idxMin2<<" diffMin: "<<diffMin<<" diffMin2: "<<diffMin2<<endl;
+
+//        }
+
+        Vector3f dstPtInGlobalFrame = dstCloud.pose*dstCloud.pts[idxMin];
 
         if(diffMin<thresh){ //get rid ouf outlier correspondences
             //corresp.push_back(idxMin);
-            totalDistMeasure += (dstPtBest-srcPt).norm();
-            src.push_back(srcPt);
-            dst.push_back(dstPtBest);
+            totalDistMeasure += diffMin;//(dstPtBest-srcPt).norm();
+            src.push_back(srcPtInGlobalFrame);
+            dst.push_back(dstPtInGlobalFrame);
         }
     }
 
-    return totalDistMeasure;
-}
-
-float PointCloudManipulation::getClosesPoints(vector<PointCloud> frames, int srcIndex, vector<Vector3f> &src, vector<Vector3f> &dst,
-float thresh){
-    float totalDistMeasure = 0;
-
-    int n = frames.size();
-
-    //cout<<"n:"<<n<<endl;
-
-    PointCloud srcCloud = frames[srcIndex];
-
-    for (int i = 0; i < srcCloud.rows(); ++i) {
-        Vector3f srcPt = srcCloud.pts[i];
-        double diffMin = std::numeric_limits<double>::infinity();
-        int idxMin;
-        int idxMinFrame;
-
-        //for(int k=0; k<frames.size(); k++){ //all other frames
-        int winSize=1;
-        for(int l=-winSize; l<=winSize; l++){ //only neighbours
-            if(l==0) continue;
-            int k = mod(i+l,n);
-            //cout<<k<<endl;
-
-
-            if(k==srcIndex) continue;
-            PointCloud dstCloud = frames[k];
-
-            for (int j = 0; j < dstCloud.rows(); ++j) {
-                Vector3f dstPt = dstCloud.pts[j];
-                float diff = (srcPt-dstPt).norm();
-                if(diff<diffMin){
-                    //if(dotproduct normals > 0.5)
-                    diffMin=diff;
-                    idxMin=j;
-                    idxMinFrame=k;
-                }
-            }
-        }
-
-        Vector3f dstPtBest = frames[idxMinFrame].pts[idxMin];
-
-        if(diffMin<thresh){ //get rid ouf outlier correspondences
-            //corresp.push_back(idxMin);
-            totalDistMeasure += (dstPtBest-srcPt).norm();
-            src.push_back(srcPt);
-            dst.push_back(dstPtBest);
-        }
-
-    }
+//    if(useFlann){
+//        timer.toc("flann");
+//    }else{
+//        timer.toc("linear");
+//    }
 
     return totalDistMeasure;
 }
@@ -575,7 +517,7 @@ float thresh){
 //    return PPP;
 //}
 
-Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud model, PointCloud scene, int maxIter, float eps){
+Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud& model, PointCloud& scene, int maxIter, float eps){
 
     Isometry3f P_Iterative_ICP = Isometry3f::Identity(); //initialize with ppf coarse alignment
 
@@ -585,7 +527,7 @@ Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud model, PointCloud
         for (; j < maxIter; ++j) {
             vector<Vector3f> src,dst;
 
-            model.project(P_Iterative_ICP);
+            //model.project(P_Iterative_ICP);
             PointCloudManipulation::getClosesPoints(model,scene,src,dst,0.04f);
 
             //Visualize::setLines(src,dst);
@@ -616,5 +558,3 @@ Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud model, PointCloud
         return P_Iterative_ICP;
 
 }
-
-

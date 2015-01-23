@@ -124,119 +124,132 @@ void Visualize::drawOrigin(){
 	glPopMatrix();
 }
 
-void Visualize::drawNormals(PointCloud& m, RowVector3f& color){
-    if(m.nor.size()==0) return;
+void Visualize::drawNormals(const PointCloud* m, Vector3f& color){
+    if(m->nor.size()==0) return;
     glLineWidth(0.02f);
     bool colorPerVertex=false;
 
-    int nCol=m.nor_color.size();
-    if(nCol>1 && nCol==m.pts.size()){
+    int nCol=m->nor_color.size();
+    if(nCol>1 && nCol==m->pts.size()){
        colorPerVertex=true;
     }else if(nCol==1){
-       color = m.nor_color[0];
+       color = m->nor_color[0];
     }
 
     glBegin(GL_LINES);
     glColor3fv(color.data());
-    for (int i=0; i<m.pts.size(); i++) {
-        Vector3f p=m.pts[i];
-        Vector3f n=m.nor[i];
+    for (int i=0; i<m->pts.size(); i++) {
+        const Vector3f& p=m->pts[i];
+        const Vector3f& n=m->nor[i];
+
+        Vector3f q=p+n.normalized()/100;
         
-        n.normalize();
-        n/=100;
-        Vector3f q=p+n;
-        
-        if(colorPerVertex) glColor3fv(m.nor_color[i].data());
-        glVertex3f(p(0),p(1),p(2));
-        glVertex3f(q(0),q(1),q(2));
+        if(colorPerVertex) glColor3fv(m->nor_color[i].data());
+
+        glVertex3fv(p.data());
+        glVertex3fv(q.data());
     }
 	glEnd();
     
 }
 
-void Visualize::drawPointCloud(PointCloud& m, RowVector3f color, RowVector3f colorNormals, float pointSize){
-    if(m.pts_color.size()==0){
-        m.pts_color.push_back(color);
-    }
-    drawPoints(m.pts,m.pts_color,pointSize);
-    if(keyToggle['n']) drawNormals(m,colorNormals);
+void Visualize::drawPointCloud(const PointCloud* m, Vector3f color, Vector3f colorNormals, float pointSize){
+//    if(m->pts_color.size()==0){
+//        m.pts_color.push_back(color);
+//    }
+
+    Isometry3f P = m->pose;
+    //Vector3f t = -(P).inverse().translation();
+    Vector3f t = P.translation();
+
+
+    glPushMatrix();
+        //glRotatef(180, 0, 1, 0);
+
+        glTranslatef(t(0),t(1),t(2));
+        glMultMatrixf(Isometry3f(P.linear()).matrix().data());
+
+        drawPoints(m->pts,color,pointSize);
+        if(keyToggle['n']) drawNormals(m,colorNormals);
+
+    glPopMatrix();
 
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
-void Visualize::drawPoints(vector<Vector3f>& pts, vector<RowVector3f>& color, float pointSize){
+void Visualize::drawPoints(const vector<Vector3f>& pts, const Vector3f& color, float pointSize){
     glPointSize(pointSize);
-    bool colorPerVertex=true;
-    if(color.size()==1){
-        colorPerVertex=false;
-        glColor3fv(color[0].data());
-    }
+//    bool colorPerVertex=true;
+//    if(color.size()==1){
+//        colorPerVertex=false;
+        glColor3fv(color.data());
+//    }
     glBegin(GL_POINTS);
     for (int i=0; i<pts.size(); i++) {
-        if(colorPerVertex) glColor3fv(color[i].data());
+        //if(colorPerVertex) glColor3fv(color[i].data());
         glVertex3fv(pts[i].data());
     }
 	glEnd();
 }
 
-void Visualize::drawAll(PointCloud& m, RowVector3f color, RowVector3f colorNormals){
+void Visualize::drawAll(const PointCloud* m, Vector3f color, Vector3f colorNormals){
     drawPointCloud(m, color, colorNormals);
     
-    if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
-    if(keyToggle['v']) drawCubes(m.pts,ddist);
+    //if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
+    if(keyToggle['v']) drawCubes(m->pts,ddist);
     //if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
 }
 
 
-void Visualize::drawPPF(int i, int j, PointCloud& m)
-{
-    glLineWidth(0.05f);
-    glBegin(GL_LINE_STRIP);
-        Vector3f& p=m.pts[i];
-        Vector3f& n=m.nor[i];
-        Vector3f& p2=m.pts[j];
-        Vector3f& n2=m.nor[j];
-        n.normalize();
-        n/=100;
-        n2.normalize();
-        n2/=100;
-        Vector3f q=p+n;
-        Vector3f q2=p2+n2;
+//void Visualize::drawPPF(int i, int j, const PointCloud& m)
+//{
+//    glLineWidth(0.05f);
+//    glBegin(GL_LINE_STRIP);
+//        Vector3f& p=m.pts[i];
+//        Vector3f& n=m.nor[i];
+//        Vector3f& p2=m.pts[j];
+//        Vector3f& n2=m.nor[j];
+//        n.normalize();
+//        n/=100;
+//        n2.normalize();
+//        n2/=100;
+//        Vector3f q=p+n;
+//        Vector3f q2=p2+n2;
     
-        glColor3f(0.0,0.2,1);
-        glVertex3f(q(0),q(1),q(2)); //first normal
-        glVertex3f(p(0),p(1),p(2));
+//        glColor3f(0.0,0.2,1);
+//        glVertex3f(q(0),q(1),q(2)); //first normal
+//        glVertex3f(p(0),p(1),p(2));
     
-        glColor3f(0.8,0,0.8);
-        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+//        glColor3f(0.8,0,0.8);
+//        glVertex3f(p2(0),p2(1),p2(2));  //distance line
 
-        glColor3f(0.0,0.2,1);
-        glVertex3f(q2(0),q2(1),q2(2));  //second normal
+//        glColor3f(0.0,0.2,1);
+//        glVertex3f(q2(0),q2(1),q2(2));  //second normal
     
-	glEnd();
-}
+//	glEnd();
+//}
 
-void Visualize::drawLines(vector<int>& vertices)
-{
-    glLineWidth(0.05f);
+//void Visualize::drawLines(const vector<int>& vertices)
+//{
+//    glLineWidth(0.05f);
 
-    glBegin(GL_LINES);
-    glColor3f(0.8,0,0.8);
+//    glBegin(GL_LINES);
+//    glColor3f(0.8,0,0.8);
 
-    int n = vertices.size();
+//    int n = vertices.size();
 
-    for (int i = 0; i < n; ++i) {
-        Vector3f& p1=scene->pts[i];
-        Vector3f& p2=modelT->pts[vertices[i]];
+//    for (int i = 0; i < n; ++i) {
+//        const Vector3f& p1=scene->pts[i];
+//        const Vector3f& p2=modelT->pts[vertices[i]];
 
-        glVertex3f(p1(0),p1(1),p1(2));  //distance line
-        glVertex3f(p2(0),p2(1),p2(2));  //distance line
-    }
+//        glVertex3f(p1(0),p1(1),p1(2));  //distance line
+//        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+//    }
 
-    glEnd();
-}
+//    glEnd();
+//}
 
-void Visualize::drawLines(vector<Vector3f>& v1, vector<Vector3f>& v2)
+void Visualize::drawLines(const vector<Vector3f>& v1, const vector<Vector3f>& v2)
 {
     glLineWidth(0.05f);
 
@@ -246,8 +259,8 @@ void Visualize::drawLines(vector<Vector3f>& v1, vector<Vector3f>& v2)
     int n = v1.size();
 
     for (int i = 0; i < n; ++i) {
-        Vector3f& p1=v1[i];
-        Vector3f& p2=v2[i];
+        const Vector3f& p1=v1[i];
+        const Vector3f& p2=v2[i];
 
         glVertex3fv(p1.data());  //distance line
         glVertex3fv(p2.data());  //distance line
@@ -256,13 +269,13 @@ void Visualize::drawLines(vector<Vector3f>& v1, vector<Vector3f>& v2)
     glEnd();
 }
 
-void Visualize::drawPPfs(Bucket& b,PointCloud& m){
-//    for (auto it : b){
-//        drawPPF(it.i, it.j,m);
-//    }
-}
+//void Visualize::drawPPfs(Bucket& b,PointCloud& m){
+////    for (auto it : b){
+////        drawPPF(it.i, it.j,m);
+////    }
+//}
 
-void Visualize::drawCubes(vector<Vector3f>& pts, double size){
+void Visualize::drawCubes(const vector<Vector3f>& pts, double size){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
@@ -276,7 +289,7 @@ void Visualize::drawCubes(vector<Vector3f>& pts, double size){
     }
 }
 
-void Visualize::drawSpheres(vector<Vector3f>& pts, double radius){
+void Visualize::drawSpheres(const vector<Vector3f>& pts, double radius){
     glColor3f(0.9,0.9,0.9);
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
@@ -304,11 +317,11 @@ void Visualize::drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane){
     drawFrustum(fovy,aspect_ratio,-0.05f,colorLine,colorPlane);
 }
 
-void Visualize::drawMatches(Matches& matches){
-    Match match=matches[bucketIndex];
-    //drawPPfs(match.modelPPFs, model);
-    //drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
-}
+//void Visualize::drawMatches(Matches& matches){
+//    Match match=matches[bucketIndex];
+//    //drawPPfs(match.modelPPFs, model);
+//    //drawPPF(match.scenePPF.i, match.scenePPF.j, scene);
+//}
 
 //void Visualize::printMatches(Matches matches){
 //    Match match=matches[bucketIndex];
@@ -455,25 +468,27 @@ void Visualize::display(void)
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
 
-            drawCameraPoses(*cameraPoses,Colormap::RED1,Colormap::RED2);
-            if(keyToggle['g']) drawCameraPoses(*cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
+            if(cameraPoses) drawCameraPoses(*cameraPoses,Colormap::RED1,Colormap::RED2);
+            if(keyToggle['g'] && cameraPosesGroundTruth) drawCameraPoses(*cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
 
-            if(keyToggle['m'] && model && model->pts.size()>0) drawAll(*model,Map<RowVector3f>(Colormap::GREEN2.data()),Map<RowVector3f>(Colormap::GREEN1.data())); //green
-            //if(keyToggle['m'] && model.pts.size()>0) drawAll(model,RowVector3f(1,0,0),RowVector3f(0,1,0.2)); //red green
-            if(keyToggle['s'] && scene && scene->pts.size()>0) drawAll(*scene,RowVector3f(1,0.5,0),RowVector3f(0,1,1)); //orange blue
-            if(keyToggle['e'] && modelT && modelT->pts.size()>0) drawAll(*modelT,RowVector3f(1,0,1),RowVector3f(1,1,1));//magenta
+            //if(keyToggle['m'] && model && model->pts.size()>0) drawAll(*model,Map<Vector3f>(Colormap::GREEN2.data()),Map<Vector3f>(Colormap::GREEN1.data())); //green
+            //if(keyToggle['m'] && model.pts.size()>0) drawAll(model,Vector3f(1,0,0),Vector3f(0,1,0.2)); //red green
+            //if(keyToggle['s'] && scene && scene->pts.size()>0) drawAll(*scene,Vector3f(1,0.5,0),Vector3f(0,1,1)); //orange blue
+            //if(keyToggle['e'] && modelT && modelT->pts.size()>0) drawAll(*modelT,Vector3f(1,0,1),Vector3f(1,1,1));//magenta
 
-            if(matches.size()>0) drawMatches(matches);
+            //if(matches.size()>0) drawMatches(matches);
             //if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
             if(keyToggle['l'] && src && dst && src->size()>0) drawLines( (*src) ,(*dst) );
 
             if(keyToggle['c'] && ms){
                 for(int i=0; i<ms->size(); i++){
-                    PointCloud& it=(*ms)[i];
-                    if(selectedFrame==i){
-                        drawPointCloud(it,RowVector3f(0,0,0.5),RowVector3f(0,0,0.8));
-                    }else{
-                        drawPointCloud(it,RowVector3f(0.5,0.5,0.5),RowVector3f(0.8,0.8,0.8));
+                    shared_ptr<PointCloud>& it=(*ms)[i];
+                    if(it){
+                        if(selectedFrame==i){
+                            drawPointCloud(it.get(),Vector3f(0,0,0.5),Vector3f(0,0,0.8));
+                        }else{
+                            drawPointCloud(it.get(),Vector3f(0.5,0.5,0.5),Vector3f(0.8,0.8,0.8));
+                        }
                     }
                 }
             }
@@ -741,7 +756,7 @@ void Visualize::spinLast(){
 void Visualize::spin(int i){
     if(!isInitalized) visualize();
     while(i-- > 0){
-        std::chrono::milliseconds dura( 10 );
+        std::chrono::milliseconds dura( 5 );
         std::this_thread::sleep_for( dura );
         glutPostRedisplay();
         glutMainLoopEvent();
@@ -778,19 +793,19 @@ bool Visualize::waitKey(unsigned char key){
 }
 
 
-void Visualize::setModel(PointCloud& m){
-    getInstance()->model=&m;
-}
+//void Visualize::setModel(PointCloud& m){
+//    getInstance()->model=&m;
+//}
 
-void Visualize::setScene(PointCloud& s){
-    getInstance()->scene=&s;
-}
+//void Visualize::setScene(PointCloud& s){
+//    getInstance()->scene=&s;
+//}
 
-void Visualize::setModelTransformed(PointCloud& mT){
-    getInstance()->modelT=&mT;
-}
+//void Visualize::setModelTransformed(PointCloud& mT){
+//    getInstance()->modelT=&mT;
+//}
 
-void Visualize::setLines(vector<Vector3f>& src, vector<Vector3f>& dst){
+void Visualize::setLines(const vector<Vector3f>& src, const vector<Vector3f>& dst){
     getInstance()->src=&src;
     getInstance()->dst=&dst;
 }
@@ -803,8 +818,8 @@ void Visualize::setLines(vector<Vector3f>& src, vector<Vector3f>& dst){
 //    getInstance()->ms.back()=mypair;
 //}
 
-void Visualize::setClouds(vector<PointCloud> &mypair){
-    getInstance()->ms=&mypair;
+void Visualize::setClouds(vector< shared_ptr<PointCloud> >* mypair){
+    getInstance()->ms=mypair;
 }
 
 //void Visualize::addCameraPose(Isometry3f pose){

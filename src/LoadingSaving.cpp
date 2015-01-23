@@ -18,6 +18,8 @@
 
 #include "OpenCVHelpers.h"
 
+#include "PointCloudManipulation.h"
+
 
 namespace LoadingSaving{
 
@@ -47,7 +49,7 @@ namespace LoadingSaving{
 //    return make_pair(pts,nor);
 //}
 
-PointCloud loadPointCloudFromDepthMap(const string filename, Matrix3f K, bool show){
+void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, vector<Vector3f>& pts, bool show){
     std::ifstream ifs(filename.c_str());
     if (!ifs.is_open()) cout<<"Cannot open file:"<<filename<<endl;
 
@@ -75,8 +77,30 @@ PointCloud loadPointCloudFromDepthMap(const string filename, Matrix3f K, bool sh
         cv::waitKey(2);
     }
 
-    PointCloud C = PointCloud::fromDepthImage(depth,mask,K);
-    return C;
+    //PointCloudManipulation::fromDepthImage(depth,mask,pts,K);
+    //void PointCloudManipulation::fromDepthImage(const cv::Mat& depth, const cv::Mat& mask, vector<Vector3f>& pts, const Matrix3f& K){
+        int m=depth.rows; //Y
+        int n=depth.cols; //X
+
+        float fx = K(0,0);
+        float fy = K(1,1);
+        float cx = K(0,2);
+        float cy = K(1,2);
+
+        //int x=n,y=m,xM=0,yM=0;
+
+        for (int i = 0; i < m; ++i) {
+            for (int j = 0; j < n; ++j) {
+                if(mask.at<bool>(i,j)){
+                    float Z = depth.at<float>(i,j);
+                    float X = (j-cx)*Z*(1/fx);
+                    float Y = (i-cy)*Z*(1/fy);
+                    pts.push_back(Vector3f(X,Y,Z));
+                    //if(j<x) x=j;if(j>xM) xM=j;if(i<y) y=i;if(i>yM) yM=i;
+                }
+            }
+        }
+    //}
 }
 
 PointCloud loadPLY(const std::string filename, bool withNormals)

@@ -19,7 +19,7 @@
 namespace PointPairFeatures{
 
 
-vector<MatrixXi> votingDense(PointCloud mSmall, PointCloud sSmall){
+vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
     //they are sorted
     vector<PPF> s1 = mSmall.getPPFFeatures();
     vector<PPF> s2 = sSmall.getPPFFeatures();
@@ -86,27 +86,25 @@ vector<MatrixXi> votingDense(PointCloud mSmall, PointCloud sSmall){
 
 
 
-TrainedModel trainModel(PointCloud mSmallOriginal){
-    //demean model to make rotation more invariant
-    //Translation3f traCentroid=Translation3f::Identity();// PointCloudManipulation::getTranslationToCentroid(mSmallOriginal);
+//TrainedModel trainModel(PointCloud mSmallOriginal){
+//    //demean model to make rotation more invariant
+//    //Translation3f traCentroid=Translation3f::Identity();// PointCloudManipulation::getTranslationToCentroid(mSmallOriginal);
 
-    //cout<<"trainModel centroid"<<traCentroid.vector()<<endl;
-    //PointCloud mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmallOriginal);
+//    //cout<<"trainModel centroid"<<traCentroid.vector()<<endl;
+//    //PointCloud mSmall=PointCloudManipulation::projectPointsAndNormals(Isometry3f(traCentroid),mSmallOriginal);
 
-    GlobalModelDescription map =  buildGlobalModelDescription(mSmallOriginal);
+//    GlobalModelDescription map =  buildGlobalModelDescription(mSmallOriginal);
 
-    TrainedModel trainedModel;
-    //trainedModel.centroid=traCentroid;
-    trainedModel.mSmall=mSmallOriginal;
-    trainedModel.modelDescr=map;
+//    TrainedModel trainedModel;
+//    //trainedModel.centroid=traCentroid;
+//    trainedModel.mSmall=mSmallOriginal;
+//    trainedModel.modelDescr=map;
 
-    return trainedModel;
-}
-
-
-Poses getTransformationBetweenPointClouds(PointCloud mSmall, PointCloud sSmall, bool useVersion2){
+//    return trainedModel;
+//}
 
 
+Poses getTransformationBetweenPointClouds(PointCloud& mSmall, PointCloud& sSmall, bool useVersion2){
 
     Poses Pests;
 
@@ -114,15 +112,15 @@ Poses getTransformationBetweenPointClouds(PointCloud mSmall, PointCloud sSmall, 
         vector<MatrixXi> accVec = votingDense(mSmall,sSmall);
         Pests = computePoses(accVec, mSmall, sSmall);
     }else{
-        TrainedModel model = trainModel(mSmall);
+     //   TrainedModel model = trainModel(mSmall);
 
-        GlobalModelDescription map = model.modelDescr;
-        PointCloud mSmall = model.mSmall;
+//        GlobalModelDescription map = model.modelDescr;
+//        PointCloud mSmall = model.mSmall;
 
-        MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
+//        MatchesWithSceneRefIdx pair = matchSceneAgainstModel(sSmall, map);
 
-        vector<MatrixXi> accVec = voting(pair,mSmall.pts.size());
-        Pests = computePoses(accVec, mSmall, sSmall,pair.second);
+//        vector<MatrixXi> accVec = voting(pair,mSmall.pts.size());
+//        Pests = computePoses(accVec, mSmall, sSmall);//,pair.second);
     }
 
 
@@ -152,178 +150,178 @@ void printBucket(Bucket v){
     }
 }
 
-void printMap(GlobalModelDescription m){
-    for (auto kv : m) {
-        cout << &kv.first << " : ";
-        printBucket(kv.second);
-        cout << endl;
-    }
-}
+//void printMap(GlobalModelDescription m){
+//    for (auto kv : m) {
+//        cout << &kv.first << " : ";
+//        printBucket(kv.second);
+//        cout << endl;
+//    }
+//}
 
 
-KeyBucketPairList print10(GlobalModelDescription &mymap) {
-    KeyBucketPairList myvec(mymap.begin(), mymap.end());
-    assert(myvec.size() >= 10);
-    //std::partial_sort(myvec.begin(), myvec.begin() + 10, myvec.end(),
-    std::sort(myvec.begin(), myvec.end(),
-                      [](const KeyBucketPair &lhs, const KeyBucketPair &rhs) {
-                          return lhs.second.size() > rhs.second.size();
-                      });
+//KeyBucketPairList print10(GlobalModelDescription &mymap) {
+//    KeyBucketPairList myvec(mymap.begin(), mymap.end());
+//    assert(myvec.size() >= 10);
+//    //std::partial_sort(myvec.begin(), myvec.begin() + 10, myvec.end(),
+//    std::sort(myvec.begin(), myvec.end(),
+//                      [](const KeyBucketPair &lhs, const KeyBucketPair &rhs) {
+//                          return lhs.second.size() > rhs.second.size();
+//                      });
     
-    for (int i = 0; i < 10; ++i) {
-        cout<<"the 10 largest buckets are:"<<endl;
-        cout<<"size="<<myvec[i].second.size()<<endl;//<<" key= "<<myvec[i].first;
-        //printBucket(myvec[i].second);
-        cout<<endl;
-        //std::cout << i << ": " << myvec[i].first << "-> " << myvec[i].second << "\n";
-    }
-    
-    return myvec;
-}
-
-
-
-GlobalModelDescription buildGlobalModelDescription(PointCloud m){
-    int Nm=m.pts.size();
-    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts"<<endl;
-    
-    GlobalModelDescription map;
-    
-    int numPPFs=0;
-    
-    for (int i=0; i<Nm; i++) {
-        for (int j=0; j<Nm; j++) {
-            if(i==j) continue;
-
-            numPPFs++;
-            
-            PPF ppf(m.pts,m.nor,i,j);
-            
-            map[ppf.hashKey()].push_back(ppf); //calls the hasher function
-        }
-    }
-    
-//    vector<float> numb;
-    
-//    for (auto it : map){
-//        float x=it.second.size();
-//        numb.push_back(x);
+//    for (int i = 0; i < 10; ++i) {
+//        cout<<"the 10 largest buckets are:"<<endl;
+//        cout<<"size="<<myvec[i].second.size()<<endl;//<<" key= "<<myvec[i].first;
+//        //printBucket(myvec[i].second);
+//        cout<<endl;
+//        //std::cout << i << ": " << myvec[i].first << "-> " << myvec[i].second << "\n";
 //    }
     
-    //cout<<"PPF's discretisation values: ddist="<<ddist<<" dangle"<<dangle<<endl;
-    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts, yielding "<<numPPFs<< " PPF's hashed into "<<map.size()<<" Buckets: "<<endl;
-    //LoadingSaving::summary(numb);
-    //LoadingSaving::saveVector("buckets.txt", numb);
+//    return myvec;
+//}
+
+
+
+//GlobalModelDescription buildGlobalModelDescription(PointCloud m){
+//    int Nm=m.pts.size();
+//    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts"<<endl;
     
-    return map;
+//    GlobalModelDescription map;
     
-}
+//    int numPPFs=0;
+    
+//    for (int i=0; i<Nm; i++) {
+//        for (int j=0; j<Nm; j++) {
+//            if(i==j) continue;
 
-std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalModelDescription model){
-    long Sm=s.rows(); //number of model sample points
-    int numberOfSceneRefPts=Sm;//sceneRefPtsFraction*Sm;
-    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
+//            numPPFs++;
+            
+//            PPF ppf(m.pts,m.nor,i,j);
+            
+//            map[ppf.hashKey()].push_back(ppf); //calls the hasher function
+//        }
+//    }
+    
+////    vector<float> numb;
+    
+////    for (auto it : map){
+////        float x=it.second.size();
+////        numb.push_back(x);
+////    }
+    
+//    //cout<<"PPF's discretisation values: ddist="<<ddist<<" dangle"<<dangle<<endl;
+//    cout<<"PointPairFeatures::buildGlobalModelDescription from "<<Nm<<" pts, yielding "<<numPPFs<< " PPF's hashed into "<<map.size()<<" Buckets: "<<endl;
+//    //LoadingSaving::summary(numb);
+//    //LoadingSaving::saveVector("buckets.txt", numb);
+    
+//    return map;
+    
+//}
 
-    Matches matches;
+//std::pair<Matches, vector<int> > matchSceneAgainstModel(PointCloud s, GlobalModelDescription model){
+//    int Sm=s.pts.size(); //number of model sample points
+//    int numberOfSceneRefPts=Sm;//sceneRefPtsFraction*Sm;
+//    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts"<<endl;
 
-    vector<int> sceneIndexToI;
+//    Matches matches;
 
-    for (int index=0; index<numberOfSceneRefPts; index++) {
+//    vector<int> sceneIndexToI;
 
-        //int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
-        int i = index; //(index/(numberOfSceneRefPts*1.0f)) * Sm;
-        sceneIndexToI.push_back(i);
+//    for (int index=0; index<numberOfSceneRefPts; index++) {
+
+//        //int i=rand() % Sm;  //TODO: dont pick at random, but equally spaced
+//        int i = index; //(index/(numberOfSceneRefPts*1.0f)) * Sm;
+//        sceneIndexToI.push_back(i);
         
-        for (int j=0; j<s.rows(); j++) {
-            if(i==j) continue;
+//        for (int j=0; j<Sm; j++) {
+//            if(i==j) continue;
                         
-            PPF ppf(s.pts,s.nor,i,j);
-            ppf.index=index;
+//            PPF ppf(s.pts,s.nor,i,j);
+//            ppf.index=index;
             
-            auto it = model.find(ppf.hashKey());
+//            auto it = model.find(ppf.hashKey());
             
-            if(it != model.end()){
-                Bucket modelBucket = it->second;
-                Match match = {ppf,modelBucket};
-                matches.push_back(match);
-            }else{
-                //cout<<"no match index="<<index<<"  j="<<j<<endl;
-            }
-        }
-    }
+//            if(it != model.end()){
+//                Bucket modelBucket = it->second;
+//                Match match = {ppf,modelBucket};
+//                matches.push_back(match);
+//            }else{
+//                //cout<<"no match index="<<index<<"  j="<<j<<endl;
+//            }
+//        }
+//    }
     
-//    vector<float> numb;
+////    vector<float> numb;
     
-//    for (auto it : matches){
-//        float x=it.modelPPFs.size();
-//        //cout<<it.scenePPF.i<<" "<<it.scenePPF.j<<" model bucket size="<<x<<endl;
-//        numb.push_back(x);
+////    for (auto it : matches){
+////        float x=it.modelPPFs.size();
+////        //cout<<it.scenePPF.i<<" "<<it.scenePPF.j<<" model bucket size="<<x<<endl;
+////        numb.push_back(x);
+////    }
+
+//    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts to "<<model.size()<<" model buckets"<<endl;
+
+//    //LoadingSaving::summary(numb);
+//    //LoadingSaving::saveVector("buckets_matched.txt", numb);
+
+//    return make_pair(matches,sceneIndexToI);
+
+//}
+
+
+//vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
+//    vector<MatrixXi> accVec;
+//    int numberOfSceneRefPts=matches.second.size();
+
+//    for (int i=0; i<numberOfSceneRefPts; i++) {
+//        MatrixXi acc=MatrixXi::Zero(Nm,nangle);
+//        accVec.push_back(acc);
 //    }
 
-    cout<<"PointPairFeatures::matchSceneAgainstModel with "<<numberOfSceneRefPts<< " sceneRefPts to "<<model.size()<<" model buckets"<<endl;
-
-    //LoadingSaving::summary(numb);
-    //LoadingSaving::saveVector("buckets_matched.txt", numb);
-
-    return make_pair(matches,sceneIndexToI);
-
-}
-
-
-vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm){
-    vector<MatrixXi> accVec;
-    int numberOfSceneRefPts=matches.second.size();
-
-    for (int i=0; i<numberOfSceneRefPts; i++) {
-        MatrixXi acc=MatrixXi::Zero(Nm,nangle);
-        accVec.push_back(acc);
-    }
-
     
-    cout<<"PointPairFeatures::voting for ACC "<<numberOfSceneRefPts<<" sceneRefPts * "<<accVec[0].rows()<<" * "<<accVec[0].cols()<<endl;
+//    cout<<"PointPairFeatures::voting for ACC "<<numberOfSceneRefPts<<" sceneRefPts * "<<accVec[0].rows()<<" * "<<accVec[0].cols()<<endl;
     
     
-    for (auto it : matches.first){
+//    for (auto it : matches.first){
 
-        int sr=it.scenePPF.index;
+//        int sr=it.scenePPF.index;
 
-        if(std::isnan(it.scenePPF.alpha)){
-            cout<<sr<<" sr isnan"<<endl;
-            continue;
-        }
-        //MatrixXi acc=accVec[sr];
-        for (auto it1:it.modelPPFs){
-            long mr=it1.i;
-            if(std::isnan(it1.alpha)){
-                cout<<mr<<" mr isnan"<<endl;
-                continue;
-            }
+//        if(std::isnan(it.scenePPF.alpha)){
+//            cout<<sr<<" sr isnan"<<endl;
+//            continue;
+//        }
+//        //MatrixXi acc=accVec[sr];
+//        for (auto it1:it.modelPPFs){
+//            long mr=it1.i;
+//            if(std::isnan(it1.alpha)){
+//                cout<<mr<<" mr isnan"<<endl;
+//                continue;
+//            }
 
-            float alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
-            int alphaDiscretised=alpha/dangle;
+//            float alpha=getAngleDiffMod2Pi(it1.alpha,it.scenePPF.alpha);
+//            int alphaDiscretised=alpha/dangle;
 
-            long r=accVec[sr].rows();
-            long c=accVec[sr].cols();
-            if(mr<0 || mr>=r || alphaDiscretised>=c || alphaDiscretised <0){
+//            long r=accVec[sr].rows();
+//            long c=accVec[sr].cols();
+//            if(mr<0 || mr>=r || alphaDiscretised>=c || alphaDiscretised <0){
 
-                cout<<"alpha: "<<(alpha)<<endl;
-                cout<<"alpha dangle"<<dangle<<endl;
+//                cout<<"alpha: "<<(alpha)<<endl;
+//                cout<<"alpha dangle"<<dangle<<endl;
 
-                cout<<"alpha discretised"<<alphaDiscretised<<endl;
-                cout<<"accSize="<<accVec[sr].rows() << " " << accVec[sr].cols()<<endl;
+//                cout<<"alpha discretised"<<alphaDiscretised<<endl;
+//                cout<<"accSize="<<accVec[sr].rows() << " " << accVec[sr].cols()<<endl;
 
-                cout<<mr<<"*"<<alphaDiscretised<<endl;
-            }
+//                cout<<mr<<"*"<<alphaDiscretised<<endl;
+//            }
 
 
-            accVec[sr](mr,alphaDiscretised)=accVec[sr](mr,alphaDiscretised)+1;
-        }
-        //cout<<acc<<endl;
-    }
-    cout<<"PointPairFeatures::voting done "<<endl;
+//            accVec[sr](mr,alphaDiscretised)=accVec[sr](mr,alphaDiscretised)+1;
+//        }
+//        //cout<<acc<<endl;
+//    }
+//    cout<<"PointPairFeatures::voting done "<<endl;
 
-    return accVec;
-}
+//    return accVec;
+//}
 
 float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha){
     float alpha = sceneAlpha - modelAlpha; //correct direction
@@ -340,7 +338,7 @@ float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha){
     return alpha;
 }
 
-Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<int> sceneIndexToI){
+Poses computePoses(vector<MatrixXi>& accVec, PointCloud& m, PointCloud& s){//,vector<int> sceneIndexToI){
     //cout<<"PointPairFeatures::computePoses"<<endl;
 
     Poses vec;
@@ -349,7 +347,7 @@ Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<in
         MatrixXi acc=accVec[index];
 
         int sr=index;
-        if(sceneIndexToI.size()>0) sr=sceneIndexToI[index];
+        //if(sceneIndexToI.size()>0) sr=sceneIndexToI[index];
         int mr;
         int alphaD;
         int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
@@ -366,6 +364,8 @@ Poses computePoses(vector<MatrixXi> accVec, PointCloud m, PointCloud s,vector<in
 
 
         Isometry3f P = alignSceneToModel(s_m,s_n,m_m,m_n,alpha);
+
+        P = s.pose * P * m.pose.inverse();
 
         vec.push_back(std::make_pair(P,score));
     }
@@ -404,16 +404,16 @@ Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n
 
 //returns true if farthest neighbors in cluster fit within threshold
 //http://en.wikipedia.org/wiki/Complete-linkage_clustering
-bool isClusterSimilar(Poses cluster1, Poses cluster2){
+bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l, float thresh_tra_l){
     for(auto pose2 : cluster2){
-        bool isSimilar = std::all_of(cluster1.begin(), cluster1.end(), [&](Pose pose1){return isPoseSimilar(pose1.first, pose2.first);});
+        bool isSimilar = std::all_of(cluster1.begin(), cluster1.end(), [&](Pose pose1){return isPoseSimilar(pose1.first, pose2.first, thresh_rot_l, thresh_tra_l);});
         if(!isSimilar) return false;
     }
 
     return true;
 }
 
-bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
+bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l, float thresh_tra_l){
     Vector3f    tra1 = P1.translation();
     Quaternionf rot1(P1.linear());
 
@@ -443,7 +443,7 @@ bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
 
     //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
 
-    if(diff_rot_degrees <= thresh_rot && diff_tra <= thresh_tra){
+    if(diff_rot_degrees <= thresh_rot_l && diff_tra <= thresh_tra_l){
       //  cout<<"yes"<<endl;
         return true;
     }
@@ -465,7 +465,15 @@ bool isPoseCloseToIdentity(Isometry3f P1, float eps){
 
 }
 
-vector<Poses> clusterPoses (Poses vec){
+vector<Pose> fromIsometry(vector<Isometry3f> &isom){
+    vector<Pose> vec;
+    for (int i = 0; i < isom.size(); ++i) {
+        vec[i]=std::make_pair(isom[i],1);
+    }
+    return vec;
+}
+
+vector<Poses> clusterPoses (Poses vec, float rot, float tra){
 
    vec=sortPoses(vec);
 
@@ -489,7 +497,7 @@ vector<Poses> clusterPoses (Poses vec){
             Poses cluster2=clusters[j];
             //cout<<"size before merge:"<<cluster1.size()<<","<<cluster2.size()<<endl;
 
-            if(isClusterSimilar(cluster1,cluster2)){
+            if(isClusterSimilar(cluster1,cluster2,rot,tra)){
                 cluster1.insert(cluster1.end(),cluster2.begin(),cluster2.end());
                 clusters.erase(clusters.begin() + j);
             }

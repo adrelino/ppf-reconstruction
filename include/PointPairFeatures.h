@@ -24,7 +24,7 @@ using namespace std;
 
 namespace PointPairFeatures{
 
-    Poses getTransformationBetweenPointClouds(PointCloud m, PointCloud s, bool useVersion2=true);
+    Poses getTransformationBetweenPointClouds(PointCloud& m, PointCloud& s, bool useVersion2=true);
 
 
     //trained model contains m, traToCentroid, as well as GlobalModelDescription (discretised ppf's buckets)
@@ -34,21 +34,22 @@ namespace PointPairFeatures{
     //vector<int> sceneIndexToI;
 
     void printBucket(Bucket v);
-    void printMap(GlobalModelDescription m);
-    KeyBucketPairList print10(GlobalModelDescription &mymap);
+    //void printMap(GlobalModelDescription m);
+    //KeyBucketPairList print10(GlobalModelDescription &mymap);
 
-    bool isPoseSimilar(Isometry3f P1, Isometry3f P2);
+    bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra);
 
     bool isPoseCloseToIdentity(Isometry3f P1, float eps);
 
-    bool isClusterSimilar(Poses cluster1, Poses cluster2);
+    bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra);
 
-    TrainedModel trainModel(PointCloud m);
+    //TrainedModel trainModel(PointCloud m);
+    //GlobalModelDescription buildGlobalModelDescription(PointCloud m);
+    //MatchesWithSceneRefIdx matchSceneAgainstModel(PointCloud s, GlobalModelDescription model);
 
-    GlobalModelDescription buildGlobalModelDescription(PointCloud m);
-    MatchesWithSceneRefIdx matchSceneAgainstModel(PointCloud s, GlobalModelDescription model);
-    vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
-    Poses computePoses(vector<MatrixXi> acc,PointCloud m, PointCloud s, vector<int> sceneIndexToI=vector<int>(0));
+    //vector<MatrixXi> voting(MatchesWithSceneRefIdx matches, int Nm);
+
+    Poses computePoses(vector<MatrixXi>& acc,PointCloud& m, PointCloud& s);//, vector<int> sceneIndexToI=vector<int>(0));
 
 
     float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha); //always positive, needed for accumulator array discretisation
@@ -56,7 +57,9 @@ namespace PointPairFeatures{
     Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double angleAroundXAxis);
 
 
-    vector<Poses> clusterPoses(Poses); //todo: several poses can be returned if severel instances of object in scene
+    vector<Poses> clusterPoses(Poses, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra); //todo: several poses can be returned if severel instances of object in scene
+
+    vector<Pose> fromIsometry(vector<Isometry3f>& isom);
 
     Pose averagePosesInCluster(Poses);
     Poses averagePosesInClusters(vector<Poses>);

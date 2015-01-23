@@ -26,7 +26,7 @@ namespace LoadingSaving {
     MatrixXd loadMatrixXd(std::string filename);
 
     //load exr depth map produced by blender / or png depth map from kinect and project it to 3d pts
-    PointCloud loadPointCloudFromDepthMap(const std::string filename, Matrix3f K, bool show=false);
+    void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, vector<Vector3f>& pts, bool show=false);
     PointCloud loadPointCloud(std::string filename, int ptLimit=-1);
     void writePointCloud(std::string filename, PointCloud C);
 

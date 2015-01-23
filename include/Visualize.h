@@ -60,17 +60,17 @@ public:
     //TODO make private, make better interface
     static Visualize* getInstance();
 
-    static void setModel(PointCloud& m);
+    //static void setModel(PointCloud& m);
 
-    static void setScene(PointCloud& m);
+    //static void setScene(PointCloud& m);
 
-    static void setModelTransformed(PointCloud& mT);
+    //static void setModelTransformed(PointCloud& mT);
 
-    static void setLines(vector<Vector3f> &src, vector<Vector3f> &dst);
+    static void setLines(const vector<Vector3f> &src, const vector<Vector3f> &dst);
 
 //    static void addCloud(PointCloud &mypair);
 //    static void setLastCloud(PointCloud &mypair);
-    static void setClouds(vector<PointCloud> &mypair);
+    static void setClouds(vector< shared_ptr<PointCloud> >* mypair);
 
 
 //    static void addCameraPose(Isometry3f pose);
@@ -88,18 +88,18 @@ public:
 
 
 
-    KeyBucketPairList b;
-    PointCloud *model,*scene,*modelT;
-    Matches matches;
+    //KeyBucketPairList b;
+    //PointCloud *model,*scene,*modelT;
+    //Matches matches;
 
-    vector<PointCloud>* ms;
+    vector< shared_ptr<PointCloud> >* ms;
     vector<Isometry3f>* cameraPoses;
     vector<Isometry3f>* cameraPosesGroundTruth;
 
 
     vector<int> closestPtsSceneToModel;
 
-    vector<Vector3f> *src,*dst;
+    const vector<Vector3f> *src,*dst;
 
     int current_object;
 
@@ -155,27 +155,27 @@ private:
     void drawCylinder(double r, double l);
     void drawOrigin();
 
-    void drawNormals(PointCloud& m, RowVector3f& color);
-    void drawPointCloud(PointCloud& C, RowVector3f color, RowVector3f colorNormals, float pointSize = 4.0f);
+    void drawNormals(const PointCloud* m, Vector3f& color);
+    void drawPointCloud(const PointCloud* C, Vector3f color, Vector3f colorNormals, float pointSize = 4.0f);
 
-    void drawPoints(vector<Vector3f>& pts, vector<RowVector3f>& color, float pointSize = 4.0f);
-    void drawLines(vector<int>& vertices);
-    void drawLines(vector<Vector3f>& v1, vector<Vector3f>& v2);
-    void drawCubes(vector<Vector3f>& C, double size);
-    void drawSpheres(vector<Vector3f>& C, double radius);
+    void drawPoints(const vector<Vector3f>& pts, const Vector3f& color, float pointSize = 4.0f);
+    //void drawLines(const vector<int>& vertices);
+    void drawLines(const vector<Vector3f>& v1, const vector<Vector3f>& v2);
+    void drawCubes(const vector<Vector3f>& C, double size);
+    void drawSpheres(const vector<Vector3f>& C, double radius);
 
-    void drawPPF(int i, int j, PointCloud& m);
-    void drawPPfs(Bucket&, PointCloud& m);
+    //void drawPPF(int i, int j, PointCloud& m);
+    //void drawPPfs(Bucket&, PointCloud& m);
 
     void drawCameraPoses(vector<Isometry3f>& cameraPoses,Vector4f& colorLine, Vector4f& colorPlane);
 
 
 
-    void drawMatches(Matches& matches);
+    //void drawMatches(Matches& matches);
     //void printMatches(Matches matches);
 
 
-    void drawAll(PointCloud& m, RowVector3f color, RowVector3f colorNormals);
+    void drawAll(const PointCloud* m, Vector3f color, Vector3f colorNormals);
 
 
 

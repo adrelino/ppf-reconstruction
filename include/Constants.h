@@ -12,7 +12,7 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <unordered_map>
-#include "pointcloud.h"
+#include "PointCloud.h"
 
 using namespace std;
 
@@ -20,21 +20,22 @@ using namespace std;
 //
 typedef vector<PPF> Bucket;
 //key type, value, hasher
-typedef unordered_map<int,Bucket> GlobalModelDescription;
-struct Match {PPF scenePPF; Bucket modelPPFs;};
+//typedef unordered_map<int,Bucket> GlobalModelDescription;
+//struct Match {PPF scenePPF; Bucket modelPPFs;};
 typedef std::pair<int, Bucket> KeyBucketPair;
 typedef vector<KeyBucketPair> KeyBucketPairList;
-typedef vector<Match> Matches;
+//typedef vector<Match> Matches;
 typedef pair<Isometry3f,int> Pose;
 typedef vector<Pose> Poses;
-typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
+
+//typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
 
 
 
-struct TrainedModel{GlobalModelDescription modelDescr;
-                    PointCloud mSmall;
-                    //Translation3f centroid;
-                   };
+//struct TrainedModel{GlobalModelDescription modelDescr;
+//                    PointCloud mSmall;
+//                    //Translation3f centroid;
+//                   };
 
 //Params
 //
@@ -58,8 +59,8 @@ static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree li
 //static float thresh_rot_degrees = 20; //180 max
 
 //for syntetic bunny
-static float thresh_tra = 0.05f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
-static float thresh_rot = 20; //180 max
+static float thresh_tra = 0.01f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
+static float thresh_rot = 10; //180 max
 
 
 
@@ -233,6 +234,23 @@ static void getParams(int argc, char **argv){
 
      getParam("thresh_tra",thresh_tra, argc, argv);
      getParam("thresh_rot",thresh_rot,argc,argv);
+}
+
+//https://forum.kde.org/viewtopic.php?f=74&t=94839
+static Matrix3Xf vec2mat(vector<Vector3f>& vec){
+    Map<Matrix<float,3,Dynamic,ColMajor> > mat(&vec[0].x(), 3, vec.size());
+    return mat;
+}
+
+static vector<Vector3f> mat2vec(const Matrix3Xf& mat){
+    vector<Vector3f> vec(mat.cols());
+    for(int i=0; i<mat.cols(); i++){
+        vec[i]=mat.col(i);
+    }
+
+    //http://stackoverflow.com/questions/26094379/typecasting-eigenvectorxd-to-stdvector
+    //vector<Vector3f> vec(mat.data(),mat.data() + mat.rows() * mat.cols());
+    return vec;
 }
 
 
