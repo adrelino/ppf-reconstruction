@@ -49,7 +49,7 @@ Visualize::Visualize()
     , zoom(15)
     , offsetY(-0.075f)
     , offsetX(0)
-    , current_object(0)
+    //, current_object(0)
 {
     std::fill(std::begin(keyToggle), std::end(keyToggle), false);
     std::cout<<"Visualize construct"<<std::endl;
@@ -153,27 +153,31 @@ void Visualize::drawNormals(const PointCloud* m, Vector3f& color){
     
 }
 
-void Visualize::drawPointCloud(const PointCloud* m, Vector3f color, Vector3f colorNormals, float pointSize){
-//    if(m->pts_color.size()==0){
-//        m.pts_color.push_back(color);
-//    }
+void Visualize::drawPointCloud(PointCloud* m, int i){
 
-    Isometry3f P = m->pose;
-    //Vector3f t = -(P).inverse().translation();
-    Vector3f t = P.translation();
+    drawCameraPose(m->pose,i,Colormap::RED1,Colormap::RED2);
+    if(keyToggle['g']) drawCameraPose(m->poseGroundTruth,i,Colormap::GREEN1,Colormap::GREEN2);
 
+    Vector3f color(0.6,0.1,0);
+    Vector3f colorNormals(0.8,0.2,0);
+
+    if(selectedFrame==i){
+        color = Colormap::BLUE1;
+        colorNormals = (Colormap::BLUE2);
+    }
 
     glPushMatrix();
-        //glRotatef(180, 0, 1, 0);
-
-        glTranslatef(t(0),t(1),t(2));
-        glMultMatrixf(Isometry3f(P.linear()).matrix().data());
-
-        drawPoints(m->pts,color,pointSize);
+        glMultMatrixf(m->pose.matrix().data());
+        drawPoints(m->pts,color);
         if(keyToggle['n']) drawNormals(m,colorNormals);
+        if(keyToggle['v']) drawCubes(m->pts,ddist);
 
     glPopMatrix();
 
+
+
+    //correct
+    //drawPoints(m->getPtsInGlobalFrame(),Vector3f(0,1,0),pointSize+1);
 }
 
 //draws a square r/2 in front of x y plane with normal facing towards viewer;
@@ -190,14 +194,6 @@ void Visualize::drawPoints(const vector<Vector3f>& pts, const Vector3f& color, f
         glVertex3fv(pts[i].data());
     }
 	glEnd();
-}
-
-void Visualize::drawAll(const PointCloud* m, Vector3f color, Vector3f colorNormals){
-    drawPointCloud(m, color, colorNormals);
-    
-    //if(keyToggle['b']) drawPPfs(b[bucketIndex].second, m);
-    if(keyToggle['v']) drawCubes(m->pts,ddist);
-    //if(keyToggle['l']) drawSpheres(m.pts,m.neighRadius);
 }
 
 
@@ -314,7 +310,7 @@ void Visualize::drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane){
     double fovy = 2.0 * atan2(c_y, f_y) * 180 / M_PI;
     double aspect_ratio = c_x / c_y;
 
-    drawFrustum(fovy,aspect_ratio,-0.05f,colorLine,colorPlane);
+    drawFrustum(fovy,aspect_ratio,-0.02f,colorLine,colorPlane);
 }
 
 //void Visualize::drawMatches(Matches& matches){
@@ -343,38 +339,19 @@ double Visualize::getRotationAngleApprox(double xdiff, double ydiff, double x, d
 	return ydiff*xs+xdiff*ys;
 }
 
-void Visualize::drawCameraPoses(vector<Isometry3f>& cameraPoses, Vector4f& colorLine, Vector4f& colorPlane){
-    glEnable(GL_STENCIL_TEST);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-//            float radius = 0.01f;
-//            Vector3f tLast;
-//            bool inited=false;
+void Visualize::drawCameraPose(Isometry3f& P,int i,Vector4f& colorLine,Vector4f& colorPlane){
     if(keyToggle['p']){
-    for(int i =0; i<cameraPoses.size(); i++){
-        Isometry3f& P =cameraPoses[i];
-        Vector3f t = -P.inverse().translation();
-        //Quaternionf q(P.inverse().linear());
+        glEnable(GL_STENCIL_TEST);
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-//                if(inited){
-//                glLineWidth(0.09f);
-//                glColor3f(1,1,1);
-//                glBegin(GL_LINES);
-//                glVertex3f(tLast.x(),tLast.y(),tLast.z());
-//                glVertex3f(t.x(),t.y(),t.z());
-//                glEnd();
-//                }
-
+        //Vector3f t = -P.inverse().translation();
         glPushMatrix();
 
-        glMultMatrixf(Isometry3f(P.linear()).matrix().data());
-        glTranslatef(t(0),t(1),t(2));
+        //glMultMatrixf(Isometry3f(P.linear()).matrix().data());
+        //glTranslatef(t(0),t(1),t(2));
 
-        //glutWireSphere(radius,5,5);
-        //drawOrigin();
-
+        glMultMatrixf(P.matrix().data());
         glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
-
 
         if(selectedFrame==i){
             drawFrustumIntrinsics(colorLine,Vector4f(0,0,0.5,0.5));
@@ -382,65 +359,86 @@ void Visualize::drawCameraPoses(vector<Isometry3f>& cameraPoses, Vector4f& color
             drawFrustumIntrinsics(colorLine,colorPlane);
 
         }
-        //drawFrustum(0.01f,4.0/3.0f,0.1f,0.5f);
         glPopMatrix();
-//                tLast=t;
-//                inited=true;
-    }
-    }
-
-    if(keyToggle['t']){
-    glBegin(GL_LINE_STRIP);
-    glLineWidth(8);
-    glColor4fv(colorLine.data());
-    for(Isometry3f P : cameraPoses){
-        Vector3f origin=Vector3f::Zero();
-        Vector3f pos = P*origin;
-        glVertex3fv(pos.data());
-    }
-    glEnd();
     }
 
     if(keyToggle['T']){
-        for(int i =0; i<cameraPoses.size(); i++){
-            Isometry3f P =cameraPoses[i];
-            std::stringstream ss;
-            ss<<i;
-            const unsigned char *text = (const unsigned char*) ss.str().c_str();
-            Vector3f origin=Vector3f::Zero();
-            Vector3f pos = P*origin;
+        std::stringstream ss;
+        ss<<i;
+        const unsigned char *text = (const unsigned char*) ss.str().c_str();
+        Vector3f origin=Vector3f::Zero();
+        Vector3f pos = P*origin;
 
-
-            glRasterPos3fv(pos.data());
-            glColor3f(1,1,1);
-            if(selectedFrame-1==i){ //dont know why we need -1 here, but it works
-                //cout<<"sel: "<<selectedFrame<<" i"<<i<<" s1="<<cameraPoses.size()<<" s2="<<cameraPosesGroundTruth.size()<<endl;
-                glColor3f(0,0,1);
-            }
-            glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
-            glutBitmapString(GLUT_BITMAP_HELVETICA_18,text);
+        glRasterPos3fv(pos.data());
+        glColor3f(1,1,1);
+        if(selectedFrame-1==i){ //dont know why we need -1 here, but it works
+            //cout<<"sel: "<<selectedFrame<<" i"<<i<<" s1="<<cameraPoses.size()<<" s2="<<cameraPosesGroundTruth.size()<<endl;
+            glColor3f(0,0,1);
         }
+        glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
+        glutBitmapString(GLUT_BITMAP_HELVETICA_18,text);
+
+
+//        glPushMatrix();
+//            glMultMatrixf(P.matrix().data());
+//            glRasterPos3f(0,0,0);
+//            glColor3f(0,1,0);
+//            if(selectedFrame-1==i){ //dont know why we need -1 here, but it works
+//                //cout<<"sel: "<<selectedFrame<<" i"<<i<<" s1="<<cameraPoses.size()<<" s2="<<cameraPosesGroundTruth.size()<<endl;
+//                glColor3f(1,0,0);
+//            }
+//            glStencilFunc(GL_ALWAYS, i, GL_ALL_ATTRIB_BITS);
+//            glutBitmapString(GLUT_BITMAP_HELVETICA_18,text);
+//        glPopMatrix();
+    }
+}
+
+void Visualize::drawCameraPoses(vector<Isometry3f>& cameraPoses, Vector4f& colorLine, Vector4f& colorPlane){
+
+    for(int i =0; i<cameraPoses.size(); i++){
+        drawCameraPose(cameraPoses[i],i,colorLine,colorPlane);
     }
 
 
+    if(keyToggle['t']){
+        glBegin(GL_LINE_STRIP);
+        glLineWidth(8);
+        glColor4fv(colorLine.data());
+        for(Isometry3f P : cameraPoses){
+            Vector3f origin=Vector3f::Zero();
+            Vector3f pos = P*origin;
+            glVertex3fv(pos.data());
+        }
+        glEnd();
+    }
+}
 
-//            for(Isometry3f P : cameraPoses){
-//                glPushMatrix();
-//                    Vector3f    tra1 = P.translation();
-//                    Quaternionf rot1(P.linear());
-//                    //glTranslatef(tra1.x(),tra1.y(),tra1.z());
-//                    //Matrix3f rot = P.linear();
-//                    //glMultMatrix(Affine3f())
-//                    glMultMatrixf((Translation3f(tra1)*rot1).matrix().data());
-//                    //glMultMatrixf(P.inverse().data()); //column major
-//                    glScalef(0.1f,0.1f,0.1f);
+void::Visualize::drawEdges(int i){
+    shared_ptr<PointCloud>& v1=(*ms)[i];
 
-//                    drawOrigin();
-//                    //drawFrustum(0.1f,4.0/3.0,0.1f,0.5f);
-//                    //drawCamera();
+    Vector3f origin=Vector3f::Zero();
+    Vector3f pos = v1->pose*origin;
+    auto mat = pos.data();
 
-//                glPopMatrix();
-//            }
+    glBegin(GL_LINES);
+
+    if(selectedFrame==i){
+        glLineWidth(10);
+        glColor3fv(Colormap::BLUE1.data());
+    }else{
+        glLineWidth(5);
+        glColor4fv(Colormap::RED1.data());
+    }
+
+    for(int j : v1->neighbours){
+        if(j==selectedFrame) continue; //should be blue, not red, only draw once
+        glVertex3fv(mat);
+        shared_ptr<PointCloud>& v2=(*ms)[j];
+        Vector3f pos2 = v2->pose*origin;
+        glVertex3fv(pos2.data());
+    }
+    glEnd();
+
 }
 
 
@@ -468,8 +466,8 @@ void Visualize::display(void)
     //drawPointCloud(ms.at(current_object).first,ms.at(current_object).second);
     
 
-            if(cameraPoses) drawCameraPoses(*cameraPoses,Colormap::RED1,Colormap::RED2);
-            if(keyToggle['g'] && cameraPosesGroundTruth) drawCameraPoses(*cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
+            //if(cameraPoses) drawCameraPoses(*cameraPoses,Colormap::RED1,Colormap::RED2);
+            //if(keyToggle['g'] && cameraPosesGroundTruth) drawCameraPoses(*cameraPosesGroundTruth,Colormap::GREEN1,Colormap::GREEN2);
 
             //if(keyToggle['m'] && model && model->pts.size()>0) drawAll(*model,Map<Vector3f>(Colormap::GREEN2.data()),Map<Vector3f>(Colormap::GREEN1.data())); //green
             //if(keyToggle['m'] && model.pts.size()>0) drawAll(model,Vector3f(1,0,0),Vector3f(0,1,0.2)); //red green
@@ -484,12 +482,14 @@ void Visualize::display(void)
                 for(int i=0; i<ms->size(); i++){
                     shared_ptr<PointCloud>& it=(*ms)[i];
                     if(it){
-                        if(selectedFrame==i){
-                            drawPointCloud(it.get(),Vector3f(0,0,0.5),Vector3f(0,0,0.8));
-                        }else{
-                            drawPointCloud(it.get(),Vector3f(0.5,0.5,0.5),Vector3f(0.8,0.8,0.8));
-                        }
+                        drawPointCloud(it.get(),i);
                     }
+                }
+            }
+
+            if(keyToggle['e'] && ms){ //edges in pose graph
+                for(int i=0; i<ms->size(); i++){
+                    drawEdges(i);
                 }
             }
 
@@ -546,7 +546,7 @@ void Visualize::keyboard (unsigned char key, int x, int y)
         case '6':
         case '7':
         case '8':
-            current_object = key - '1';
+            //current_object = key - '1';
             //m=ms.at(current_object).first;
             break;
             
@@ -609,9 +609,17 @@ void Visualize::mouse(int button, int state, int x, int y)
         glReadPixels(x, window_height - y - 1, 1, 1, GL_STENCIL_INDEX, GL_UNSIGNED_INT, &index);
 
         if(depth<1){
+            if(selectedFrame!=255){
+               poseDiff((*(*ms)[selectedFrame]).pose,(*(*ms)[index]).pose);
+            }
+
             selectedFrame = index;
-            printf("Clicked on pixel %d, %d, color %02hhx%02hhx%02hhx%02hhx, depth %f, stencil index %u\n",
-               x, y, color[0], color[1], color[2], color[3], depth, index);
+            if(ms){
+                cout<<"Frame "<<selectedFrame<<" "<<(*(*ms)[selectedFrame])<<endl;
+            }
+
+            //printf("Clicked on pixel %d, %d, color %02hhx%02hhx%02hhx%02hhx, depth %f, stencil index %u\n",
+              // x, y, color[0], color[1], color[2], color[3], depth, index);
         }
 
 
@@ -669,14 +677,14 @@ int Visualize::mainVisualize(int argc, char **argv)
     
     //instance = this;
     
-	cout<<"Adrian's Point Cloud Visualizer"<< endl<< endl;
+//	cout<<"Adrian's Point Cloud Visualizer"<< endl<< endl;
     
-	cout << "1-9: Draw different objects"<<endl;
-	cout << "Q: Quit" <<endl;
+//	cout << "1-9: Draw different objects"<<endl;
+//	cout << "Q: Quit" <<endl;
     
-	cout << "Left mouse click and drag: rotate the object"<<endl;
-	cout << "Right mouse click and drag: zooming"<<endl;
-    cout << "Control + Left mouse click and drag: zooming"<<endl;
+//	cout << "Left mouse click and drag: rotate the object"<<endl;
+//	cout << "Right mouse click and drag: zooming"<<endl;
+//    cout << "Control + Left mouse click and drag: zooming"<<endl;
         
     
 	glutInit(&argc, argv);
@@ -805,9 +813,9 @@ bool Visualize::waitKey(unsigned char key){
 //    getInstance()->modelT=&mT;
 //}
 
-void Visualize::setLines(const vector<Vector3f>& src, const vector<Vector3f>& dst){
-    getInstance()->src=&src;
-    getInstance()->dst=&dst;
+void Visualize::setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst){
+    getInstance()->src=src;
+    getInstance()->dst=dst;
 }
 
 //void Visualize::addCloud(PointCloud& &mypair){
@@ -830,9 +838,9 @@ void Visualize::setClouds(vector< shared_ptr<PointCloud> >* mypair){
 //    getInstance()->cameraPoses.back()=pose;
 //}
 
-void Visualize::setCameraPoses(vector<Isometry3f>& poses){
-    getInstance()->cameraPoses=&poses;
-}
+//void Visualize::setCameraPoses(vector<Isometry3f>& poses){
+//    getInstance()->cameraPoses=&poses;
+//}
 
 //void Visualize::addCameraPoseGroundTruth(Isometry3f pose){
 //    getInstance()->cameraPosesGroundTruth.push_back(pose);
@@ -842,9 +850,9 @@ void Visualize::setCameraPoses(vector<Isometry3f>& poses){
 //    getInstance()->cameraPosesGroundTruth.back()=pose;
 //}
 
-void Visualize::setCameraPosesGroundTruth(vector<Isometry3f>& poses){
-    getInstance()->cameraPosesGroundTruth=&poses;
-}
+//void Visualize::setCameraPosesGroundTruth(vector<Isometry3f>& poses){
+//    getInstance()->cameraPosesGroundTruth=&poses;
+//}
 
 void Visualize::setSelectedIndex(int i){
     getInstance()->selectedFrame=i;

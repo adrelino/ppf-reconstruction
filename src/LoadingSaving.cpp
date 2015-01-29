@@ -312,6 +312,66 @@ Matrix<Number,Dynamic,Dynamic> loadMatrix(std::string filename, std::string type
     return mat;
 }
 
+vector<Isometry3f> loadPosesFromFile(std::string filename){
+    std::ifstream file(filename,std::ifstream::in);
+    if( file.fail() == true )
+    {
+        cerr << filename << " could not be opened" << endl;
+    }
+
+    vector<Isometry3f> vec;
+
+    std::string line;
+
+    int j=0;
+
+    int row=0;
+
+    Matrix4f pose;
+
+    while(std::getline(file,line)){
+        std::stringstream lineStream(line);
+        //cout<<"line: "<<line<<endl;
+        if(line.length()<6){
+            lineStream >> j;
+            //cout<<"pose "<<j<<":"<<endl;
+        }else{
+            int col=0;
+            float elem;
+            while(lineStream >> elem){
+                pose(row,col)=elem;
+                //cout<<pose(row,col)<<endl;
+                col++;
+            }
+            row++;
+            if(row==4){
+                row=0;
+                //cout<<pose<<endl;
+                vec.push_back(Isometry3f(pose));
+            }
+        }
+    }
+
+    return vec;
+
+}
+
+vector<Isometry3f> loadPosesFromDir(std::string dir, std::string prefix){
+    vector<string> poses = getAllTextFilesFromFolder(dir,prefix);
+    vector<Isometry3f> vec;
+
+    for(auto it : poses){
+        vec.push_back(Isometry3f(LoadingSaving::loadMatrix4f(it)));
+    }
+
+    cout<<"posesfromdir"<<endl;
+    for(auto it : vec){
+        cout<<endl<<it.matrix()<<endl;
+    }
+
+    return vec;
+}
+
 Matrix4f loadMatrix4f(std::string filename){
     std::ifstream file(filename,std::ifstream::in);
     if( file.fail() == true )
@@ -320,7 +380,8 @@ Matrix4f loadMatrix4f(std::string filename){
         return Matrix4f::Zero();
 
     }
-    float array[16];
+    float array[16]={0};
+    array[15]=1;
     int i=0;
     while(file >> array[i++]){}
 

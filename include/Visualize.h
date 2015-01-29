@@ -66,7 +66,7 @@ public:
 
     //static void setModelTransformed(PointCloud& mT);
 
-    static void setLines(const vector<Vector3f> &src, const vector<Vector3f> &dst);
+    static void setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst);
 
 //    static void addCloud(PointCloud &mypair);
 //    static void setLastCloud(PointCloud &mypair);
@@ -75,40 +75,37 @@ public:
 
 //    static void addCameraPose(Isometry3f pose);
 //    static void setLastCameraPose(Isometry3f pose);
-    static void setCameraPoses(vector<Isometry3f> &pose);
+//    static void setCameraPoses(vector<Isometry3f> &pose);
 
 
 //    static void addCameraPoseGroundTruth(Isometry3f pose);
 //    static void setLastCameraPoseGroundTruth(Isometry3f pose);
-    static void setCameraPosesGroundTruth(vector<Isometry3f> &pose);
+//    static void setCameraPosesGroundTruth(vector<Isometry3f> &pose);
 
     static void setSelectedIndex(int i);
 
-
-
-
+private:
 
     //KeyBucketPairList b;
     //PointCloud *model,*scene,*modelT;
     //Matches matches;
 
     vector< shared_ptr<PointCloud> >* ms;
-    vector<Isometry3f>* cameraPoses;
-    vector<Isometry3f>* cameraPosesGroundTruth;
+ //   vector<Isometry3f>* cameraPoses;
+ //   vector<Isometry3f>* cameraPosesGroundTruth;
 
 
-    vector<int> closestPtsSceneToModel;
+//    vector<int> closestPtsSceneToModel;
 
-    const vector<Vector3f> *src,*dst;
+    shared_ptr< vector<Vector3f> > src,dst;
 
-    int current_object;
+ //   int current_object;
 
     void drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane);
 
     bool keyToggle[256];
 
 
-private:
     Visualize(); // singleton, acces via factory
 
 
@@ -156,7 +153,7 @@ private:
     void drawOrigin();
 
     void drawNormals(const PointCloud* m, Vector3f& color);
-    void drawPointCloud(const PointCloud* C, Vector3f color, Vector3f colorNormals, float pointSize = 4.0f);
+    void drawPointCloud(PointCloud* C, int i);
 
     void drawPoints(const vector<Vector3f>& pts, const Vector3f& color, float pointSize = 4.0f);
     //void drawLines(const vector<int>& vertices);
@@ -167,7 +164,10 @@ private:
     //void drawPPF(int i, int j, PointCloud& m);
     //void drawPPfs(Bucket&, PointCloud& m);
 
+    void drawCameraPose(Isometry3f& P,int i,Vector4f& colorLine,Vector4f& colorPlane);
     void drawCameraPoses(vector<Isometry3f>& cameraPoses,Vector4f& colorLine, Vector4f& colorPlane);
+
+    void drawEdges(int i);
 
 
 
@@ -175,7 +175,7 @@ private:
     //void printMatches(Matches matches);
 
 
-    void drawAll(const PointCloud* m, Vector3f color, Vector3f colorNormals);
+    void drawAll(PointCloud* m, Vector3f color, Vector3f colorNormals);
 
 
 

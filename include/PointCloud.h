@@ -68,6 +68,8 @@ public:
     vector<Vector3f> pts_color;
     vector<Vector3f> nor_color;
 
+    vector<int> neighbours;
+
     Isometry3f pose = Isometry3f::Identity();
     Isometry3f poseGroundTruth = Isometry3f::Identity();
 
@@ -76,25 +78,46 @@ public:
     std::vector<PPF> getPPFFeatures();
 
     Matrix3Xf ptsMat();
-
     Matrix3Xf norMat();
 
-    //PointCloud projected(Isometry3f P);
-
-    void project(Isometry3f P);
+    const vector<Vector3f> getPtsInGlobalFrame();
+    const vector<Vector3f> getNorInGlobalFrame();
 
     void setPose(Isometry3f P);
+    void setPoseGroundTruth(Isometry3f P);
+
+    float getPoseError();
 
     float getClosestPoint(const Vector3f& query_pt, size_t& ret_index);
 
     ~PointCloud();
 
-    void downsample(float voxelSize, int minNumPtsPerVoxel=20);
+    void downsample(float voxelSize);
+
+    void computePoseNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float tra_thresh, float rot_thresh);
+    void computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float poinCloudOverlap, float cutoffDist, float nearestNeighbourMeanDist_thresh);
+
+
+    float computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor);
 
 };
 
 inline std::ostream& operator<<(std::ostream& os, const PointCloud& v) {
-  os << "size: " <<  v.pts.size() <<std::endl;
+    os<<v.neighbours.size()<<" neighbours: ";
+    for(int j : v.neighbours){
+        os<<j<<",";
+    }
+    os<<endl;
+
+    Vector3f tra(v.pose.translation());
+    Quaternionf q(v.pose.linear());
+    Vector4f rot(q.x(),q.y(),q.z(),q.w());
+
+    os<<"tra: "<<tra.transpose()<<endl;
+    os<<"rot: "<<rot.transpose()<<endl;
+
+
+ // os << "size: " <<  v.pts.size() <<std::endl;
 //     << "pts:" << std::endl << vec2mat(v.pts) <<std::endl \
 //     << "nor:" << std::endl << vec2mat(v.nor)<< std::endl;
   return os;

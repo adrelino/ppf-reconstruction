@@ -205,6 +205,32 @@ TEST(Quaternion, sim){
 //    err(P,PoseEst);
 //}
 
+//    Visualize::setCameraPoses(trajectoryEst);
+//    Visualize::setCameraPosesGroundTruth(trajectoryGroundTruth);
+
+//    {
+//    Isometry3f P(LoadingSaving::loadMatrix4f(poses[0]));
+//    trajectoryGroundTruth.push_back(P);
+
+//    shared_ptr<PointCloud> currentFrame(new PointCloud(images[0],K));
+//    currentFrame->downsample(ddist);
+//    currentFrame->project(P);
+//    frames.push_back(currentFrame);
+
+
+//    shared_ptr<PointCloud> currentFrame2(new PointCloud(images[0],K));
+//    currentFrame2->downsample(ddist);
+//    currentFrame2->setPose(P);
+//    frames.push_back(currentFrame2);
+
+//    Visualize::setSelectedIndex(1);
+
+//    Visualize::spin();
+
+//    frames.clear();
+
+
+//    }
 
 
 

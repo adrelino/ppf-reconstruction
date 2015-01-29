@@ -52,6 +52,9 @@ static float ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
 static int ndist=1/tau_d; //number of distance buckets
 static int nangle=30;     //number of angle buckets
 static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
+
+static int minPtsPerVoxel = 20; //outlier rejection in downsampling, makes normals more stable
+
 //static float sceneRefPtsFraction = 0.8f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
 
 //for pose cluster averaging
@@ -59,9 +62,8 @@ static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree li
 //static float thresh_rot_degrees = 20; //180 max
 
 //for syntetic bunny
-static float thresh_tra = 0.01f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
-static float thresh_rot = 10; //180 max
-
+static float thresh_tra = 0.02f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
+static float thresh_rot = 15; //180 max
 
 
 //Macros
@@ -105,6 +107,8 @@ static Vector4f RED1=Vector4f(0.8,0,0.4,1);
 static Vector4f RED2=Vector4f(0.4,0.0,0.1,0.5);
 static Vector4f GREEN1=Vector4f(0.0,1.0,0.5,1);
 static Vector4f GREEN2=Vector4f(0.0,.4,0.1,0.5);
+static Vector3f BLUE1=Vector3f(0.0,0,0.5);
+static Vector3f BLUE2=Vector3f(0.0,0,0.8);
 
 }
 
@@ -205,35 +209,42 @@ template<typename T> bool getParam(std::string param, T &var, int argc, char **a
 }
 
 // parameter processing: template specialization for T=bool
-template<> inline bool getParam<bool>(std::string param, bool &var, int argc, char **argv)
-{
-    const char *c_param = param.c_str();
-    for(int i=argc-1; i>=1; i--)
-    {
-        if (argv[i][0]!='-') continue;
-        if (strcmp(argv[i]+1, c_param)==0)
-        {
-            if (!(i+1<argc) || argv[i+1][0]=='-') { var = true; return true; }
-            std::stringstream ss;
-            ss << argv[i+1];
-            ss >> var;
-            return (bool)ss;
-        }
-    }
-    return false;
-}
+//template<> inline bool getParam<bool>(std::string param, bool &var, int argc, char **argv)
+//{
+//    const char *c_param = param.c_str();
+//    for(int i=argc-1; i>=1; i--)
+//    {
+//        if (argv[i][0]!='-') continue;
+//        if (strcmp(argv[i]+1, c_param)==0)
+//        {
+//            if (!(i+1<argc) || argv[i+1][0]=='-') {
+//                var = true;
+//                std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
+//                return true;
+//            }
+//            std::stringstream ss;
+//            ss << argv[i+1];
+//            ss >> var;
+//            std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
+//            return (bool)ss;
+//        }
+//    }
+//    std::cout<<"PARAM[DEF]: "<<param<<" : "<<var<<std::endl;
+//    return false;
+//}
 
 static void getParams(int argc, char **argv){
      getParam("diamM", diamM, argc, argv);
      getParam("tau_d", tau_d, argc, argv);
      ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
      ndist=1/tau_d;
+     cout<<"--> ddist=tau_d*diamM:"<<ddist<<" ndist:"<<ndist<<endl;
 
      getParam("nangle", nangle, argc, argv);
-     getParam("tau_d", tau_d, argc, argv);
-
      getParam("thresh_tra",thresh_tra, argc, argv);
      getParam("thresh_rot",thresh_rot,argc,argv);
+
+     getParam("minPtsPerVoxel",minPtsPerVoxel,argc,argv);
 }
 
 //https://forum.kde.org/viewtopic.php?f=74&t=94839
@@ -252,6 +263,67 @@ static vector<Vector3f> mat2vec(const Matrix3Xf& mat){
     //vector<Vector3f> vec(mat.data(),mat.data() + mat.rows() * mat.cols());
     return vec;
 }
+
+static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra){
+    //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
+    Vector3f    tra1 = P1.translation();
+    Quaternionf rot1(P1.linear());
+
+    Vector3f    tra2 = P2.translation();
+    Quaternionf rot2(P2.linear());
+
+
+
+    //Translation
+    float diff_tra=(tra1-tra2).norm();
+    //Rotation
+    float d = rot1.dot(rot2);
+    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+
+    //float diff_rot2 = rot1.angularDistance(rot2);
+
+    //http://math.stackexchange.com/questions/90081/quaternion-distance
+    //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
+    //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
+
+    float diff_rot_degrees = rad2deg(acos(2*d*d - 1));
+
+    //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
+    //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
+
+    //cout<<std::fixed<<std::setprecision(3);
+
+    //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
+
+    if(diff_rot_degrees <= thresh_rot_l && diff_tra <= thresh_tra_l){
+      //  cout<<"yes"<<endl;
+        return true;
+    }
+    //cout<<"no"<<endl;
+    return false;
+}
+
+static void poseDiff(Isometry3f P1, Isometry3f P2){
+    //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
+    Vector3f    tra1 = P1.translation();
+    Quaternionf rot1(P1.linear());
+
+    Vector3f    tra2 = P2.translation();
+    Quaternionf rot2(P2.linear());
+
+
+    //Translation
+    float diff_tra=(tra1-tra2).norm();
+    //Rotation
+    float d = rot1.dot(rot2);
+    float diff_rot_degrees = rad2deg(acos(2*d*d - 1));
+
+
+    cout<<"diff_tra:"<<diff_tra<<" diff_rot_degrees:"<<diff_rot_degrees<<endl;
+
+}
+
+
 
 
 //}

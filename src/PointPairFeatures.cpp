@@ -13,21 +13,26 @@
 #include "PPF.h"
 #include "math.h"
 #include "PointCloudManipulation.h"
+#include "CPUTimer.h"
 
 #include "RandomN.h"
 
 namespace PointPairFeatures{
 
+CPUTimer timer = CPUTimer();
 
 vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
     //they are sorted
+    //timer.tic();
     vector<PPF> s1 = mSmall.getPPFFeatures();
     vector<PPF> s2 = sSmall.getPPFFeatures();
+    //timer.toc("getPPFFeatrues for model and scene");
 
 
     //vector<uint32_t> votes;
 
 
+    //timer.tic();
     int Nm = mSmall.pts.size();
     int Ns = sSmall.pts.size();
 
@@ -80,6 +85,8 @@ vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
 
     }
 
+    //timer.toc("dense voting");
+
     return accVec;
 }
 
@@ -110,7 +117,9 @@ Poses getTransformationBetweenPointClouds(PointCloud& mSmall, PointCloud& sSmall
 
     if(useVersion2){
         vector<MatrixXi> accVec = votingDense(mSmall,sSmall);
+        //timer.tic();
         Pests = computePoses(accVec, mSmall, sSmall);
+        //timer.toc("compute Poses");
     }else{
      //   TrainedModel model = trainModel(mSmall);
 
@@ -124,12 +133,14 @@ Poses getTransformationBetweenPointClouds(PointCloud& mSmall, PointCloud& sSmall
     }
 
 
-    cout<<"beforeClustering: "<<Pests.size()<<endl;
-    printPoses(Pests);
+    //cout<<"beforeClustering: "<<Pests.size()<<endl;
+    //printPoses(Pests);
+    //timer.tic();
     vector<Poses> clusters = clusterPoses(Pests);
     Pests = averagePosesInClusters(clusters);
-    cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
-    printPoses(Pests);
+    //timer.toc("average and cluster poses");
+    //cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
+    //printPoses(Pests);
 
     //Isometry3f P_meaned = Pests[0].first;
 
@@ -413,44 +424,6 @@ bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l, float 
     return true;
 }
 
-bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l, float thresh_tra_l){
-    Vector3f    tra1 = P1.translation();
-    Quaternionf rot1(P1.linear());
-
-    Vector3f    tra2 = P2.translation();
-    Quaternionf rot2(P2.linear());
-
-
-
-    //Translation
-    float diff_tra=(tra1-tra2).norm();
-    //Rotation
-    float d = rot1.dot(rot2);
-    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
-
-    //float diff_rot2 = rot1.angularDistance(rot2);
-
-    //http://math.stackexchange.com/questions/90081/quaternion-distance
-    //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
-    //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
-
-    float diff_rot_degrees = rad2deg(acos(2*d - 1));
-
-    //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
-    //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
-
-    //cout<<std::fixed<<std::setprecision(3);
-
-    //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
-
-    if(diff_rot_degrees <= thresh_rot_l && diff_tra <= thresh_tra_l){
-      //  cout<<"yes"<<endl;
-        return true;
-    }
-    //cout<<"no"<<endl;
-    return false;
-}
-
 bool isPoseCloseToIdentity(Isometry3f P1, float eps){
     Vector3f    tra1 = P1.translation();
     Quaternionf rot1(P1.linear());
@@ -517,6 +490,12 @@ vector<Poses> clusterPoses (Poses vec, float rot, float tra){
 }
 
 Pose averagePosesInCluster(Poses cluster){
+    Quaternionf ref; //all quaternions in this cluster must live on same half sphere so mean gives correct result;
+    if(cluster.size()==1){
+        return cluster[0];
+    }else{
+         ref = Quaternionf(cluster[0].first.linear());
+    }
     //cout<<cluster.size()<<endl;
     Vector3f tra(0,0,0);
     Vector4f rot(0,0,0,0); //w,x,y,z
@@ -524,6 +503,8 @@ Pose averagePosesInCluster(Poses cluster){
     for(Pose pose : cluster){
         tra += pose.first.translation(); //TODO: maybe weight using number of votes?
         Quaternionf q = Quaternionf(pose.first.linear());
+        float d = q.dot(ref);
+        if(d<0) q.coeffs() *=-1; //flip to other half sphere
         rot += Vector4f(q.x(),q.y(),q.z(),q.w());  //w last http://eigen.tuxfamily.org/dox/classEigen_1_1Quaternion.html#ad90ae48f7378bb94dfbc6436e3a66aa2
         votes += pose.second;
     }

@@ -66,34 +66,31 @@ Matrix3Xf PointCloud::norMat(){
     return vec2mat(nor);
 }
 
-//PointCloud PointCloud::projected(Isometry3f P){
-//    Matrix3Xf pts2 = pose * P * ptsMat();
-//    Matrix3Xf nor2 = pose * P.linear() * norMat();
+vector<Vector3f> const PointCloud::getPtsInGlobalFrame(){
+    return mat2vec(pose * ptsMat());
+}
 
-//    PointCloud C2;
-
-//    C2.pts=mat2vec(pts2);
-//    C2.nor=mat2vec(nor2);
-
-//    return C2;
-//}
-
-void PointCloud::project(Isometry3f P){
-    pts = mat2vec(P * ptsMat());
-    nor = mat2vec(P.linear() * norMat());
+const vector<Vector3f> PointCloud::getNorInGlobalFrame(){
+    return mat2vec(pose.linear() * norMat());
 }
 
 void PointCloud::setPose(Isometry3f P){
     pose = P;
 }
 
-void PointCloud::downsample(float voxelSize, int minPtsPerVoxel){
+void PointCloud::setPoseGroundTruth(Isometry3f P){
+    poseGroundTruth=P;
+}
+
+float PointCloud::getPoseError(){
+    return err(pose,poseGroundTruth);
+}
+
+void PointCloud::downsample(float voxelSize){
 
     unordered_map<string, vector<Vector3f> > voxels;
 
     int nOrig=pts.size();
-
-    cout<<nOrig<<endl;
 
     for (int i=0; i<nOrig; i++) {
         int x=floor(pts[i].x()/voxelSize);
@@ -121,7 +118,7 @@ void PointCloud::downsample(float voxelSize, int minPtsPerVoxel){
     pts=pts2;
     nor=nor2;
 
-    cout<<"DownSampled "<<nOrig<<"->"<<pts.size()<< " pts with voxelSize="<<voxelSize<<endl;
+    cout<<"DownSampled "<<nOrig<<"->"<<pts.size()<< " pts with voxelSize:"<<voxelSize<<" minPtsPerVoxel:"<<minPtsPerVoxel<<endl;
 }
 
 
@@ -133,12 +130,13 @@ float PointCloud::getClosestPoint(const Vector3f& query_pt, size_t& ret_index){ 
         indexPtr->buildIndex();
 
         //indexPtr = &index;
+        cout<<"flann: build index"<<endl;
 
         indexComputed=true;
 
     }
 
-    {
+    //{
         // do a knn search
         const size_t num_results = 1;
         //size_t ret_index;
@@ -154,7 +152,7 @@ float PointCloud::getClosestPoint(const Vector3f& query_pt, size_t& ret_index){ 
 
         //return pts[ret_index];
 
-    }
+   // }
 //    {
 //        // Unsorted radius search:
 //        const float radius = 1;
@@ -168,4 +166,30 @@ float PointCloud::getClosestPoint(const Vector3f& query_pt, size_t& ret_index){ 
 //        resultSet.
 //        cout << "Worst pair: idx=" << worst_pair.first << " dist=" << worst_pair.second << endl;
 //    }
+}
+
+void PointCloud::computePoseNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float tra_thresh, float rot_thresh){
+    neighbours.clear();
+    for (int j = 0; j < (*frames).size(); ++j) {
+        if(i==j) continue;
+        Isometry3f& other = (*frames)[j]->pose;
+        if (isPoseSimilar(pose,other,rot_thresh,tra_thresh)) {
+            //cout<<i<<" similar to "<<j<<endl;
+            neighbours.push_back(j);
+        }
+    }
+}
+
+void PointCloud::computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float poinCloudOverlap, float cutoffDist, float nearestNeighbourMeanDist_thresh){
+
+}
+
+float PointCloud::computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor){
+    float accumICPErr = 0;
+
+    for(int i : neighbours){
+        accumICPErr += PointCloudManipulation::getClosesPoints(*this,*(*frames)[i].get(),src,dst,ddist,useFlann,nor);
+    }
+
+    return accumICPErr;
 }

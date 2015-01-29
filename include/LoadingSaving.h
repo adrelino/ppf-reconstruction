@@ -31,6 +31,9 @@ namespace LoadingSaving {
     void writePointCloud(std::string filename, PointCloud C);
 
 
+    vector<Isometry3f> loadPosesFromFile(std::string filename);
+    vector<Isometry3f> loadPosesFromDir(std::string dir, std::string prefix="poses");
+
     Matrix4f loadMatrix4f(std::string filename);
     Matrix3f loadMatrix3f(std::string filename);
     Vector3f loadVector3f(std::string filename);

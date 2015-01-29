@@ -78,6 +78,11 @@ timespec CPUTimer::toc() {
   return temp;
 }
 
+float CPUTimer::tocSeconds(){
+    timespec elapsedTimeCPUTimer = this->toc();
+    return elapsedTimeCPUTimer.tv_sec + elapsedTimeCPUTimer.tv_nsec / 1e9f;
+}
+
 void CPUTimer::toc(std::string name){
   timespec elapsedTimeCPUTimer = this->toc();
   cout<<endl;

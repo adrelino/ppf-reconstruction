@@ -100,7 +100,7 @@ set(VIZ
 #    ${VIZ}
 #)
 #target_link_libraries(modelToScene ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-#add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:modelToScene>/bunny)
+#add_custom_command(TARGET modelToScene PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:modelToScene>/samples)
 
 #add_executable(
 #    frameToModel-PPF-coarse
@@ -109,7 +109,7 @@ set(VIZ
 #    ${VIZ}
 #)
 #target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-#add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/bunny)
+#add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/samples)
 
 add_executable(
     globalOptimization
@@ -119,7 +119,7 @@ add_executable(
     ${VIZ}
 )
 target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET globalOptimization PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:globalOptimization>/bunny)
+add_custom_command(TARGET globalOptimization PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:globalOptimization>/samples)
 
 add_executable(
     frameToFrame
@@ -129,7 +129,7 @@ add_executable(
     ${VIZ}
 )
 target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:frameToFrame>/bunny)
+add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToFrame>/samples)
 
 #add_executable(
 #    vector_of_vectors_example
@@ -138,7 +138,7 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #    ${VIZ}
 #)
 #target_link_libraries(vector_of_vectors_example ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-#add_custom_command(TARGET vector_of_vectors_example PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:vector_of_vectors_example>/bunny)
+#add_custom_command(TARGET vector_of_vectors_example PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:vector_of_vectors_example>/samples)
 
 
 #add_executable(
@@ -164,7 +164,7 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #    ${SOURCES}
 #)
 #target_link_libraries(opencv-seq ${OpenCV_LIBS})
-#add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:opencv-seq>/bunny)
+#add_custom_command(TARGET opencv-seq PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:opencv-seq>/samples)
 
 
 ## Gtest dependencies
@@ -178,7 +178,7 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #    tests/testHelpers.h
 #    )
 #  target_link_libraries(test_PointCloudManipulation ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-#  add_custom_command(TARGET test_PointCloudManipulation PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointCloudManipulation>/bunny)
+#  add_custom_command(TARGET test_PointCloudManipulation PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:test_PointCloudManipulation>/samples)
 
 #  add_executable(
 #    test_PointPairFeatures
@@ -187,7 +187,7 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #    tests/testHelpers.h
 #    )
 #  target_link_libraries(test_PointPairFeatures ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-#  add_custom_command(TARGET test_PointPairFeatures PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PointPairFeatures>/bunny)
+#  add_custom_command(TARGET test_PointPairFeatures PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:test_PointPairFeatures>/samples)
 
 #  add_executable(
 #    test_PoseClustering
@@ -196,7 +196,7 @@ add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E cop
 #    tests/testHelpers.h
 #    )
 #  target_link_libraries(test_PoseClustering ${OpenCV_LIBS} ${GTEST_LIBRARIES} pthread)
-#  add_custom_command(TARGET test_PoseClustering PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/bunny $<TARGET_FILE_DIR:test_PoseClustering>/bunny)
+#  add_custom_command(TARGET test_PoseClustering PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:test_PoseClustering>/samples)
 
 #else()
 #  message("GTest was not found - testcases can and will not be build")

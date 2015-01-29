@@ -17,76 +17,94 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "CPUTimer.h"
+
 using namespace std;
+
+CPUTimer timer = CPUTimer();
 
 int main(int argc, char * argv[])
 {
-    std::string dir = "bunny/Bunny_RealData";
-    //std::string dir = "bunny/Bunny_Sphere";
+    std::string dir = "samples/Bunny_RealData/";
+    //std::string dir = "samples/Bunny_Sphere";
 
-    int start = 0;
+    bool pointToPlane = true; //otherwise pointToPoint
+    bool useFlann = true;
+    bool downsample = true;
+
+    //for pose edges
+    float tra_thresh = 0.35f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
+    float rot_thresh = 20;
+
+    int nGraphUpdates = 250;
+
+
+
     getParam("dir", dir, argc, argv);
+    getParam("useFlann",useFlann,argc,argv);
+    getParam("pointToPlane",pointToPlane,argc,argv);
+    getParam("downsample",downsample,argc,argv);
+
+    getParam("tra_thresh",tra_thresh,argc,argv);
+    getParam("rot_thresh",rot_thresh,argc,argv);
+    getParam("nGraphUpdates",nGraphUpdates,argc,argv);
+
+
+    getParams(argc,argv);
 
     vector<string> images = LoadingSaving::getAllImagesFromFolder(dir,"depth");
-    vector<string> intrinsics = LoadingSaving::getAllTextFilesFromFolder(dir,"Intrinsic");
-    vector<string> poses = LoadingSaving::getAllTextFilesFromFolder(dir,"poses"); //ground truth poses
-    vector<string> posesEst = LoadingSaving::getAllTextFilesFromFolder(dir,"est_poses"); //estimated poses
+    vector<Isometry3f> posesGroundTruth = LoadingSaving::loadPosesFromDir(dir,"poses");
+    vector<Isometry3f> posesEst = LoadingSaving::loadPosesFromDir(dir,"est_poses_point"); //estimated poses
 
     if(posesEst.size()==0){
         cerr<<"you need to run frameToFrame first to get a first pose estimate"<<endl;
         exit(1);
     }
 
-
+    vector<string> intrinsics = LoadingSaving::getAllTextFilesFromFolder(dir,"Intrinsic");
     Matrix3f K = LoadingSaving::loadMatrix3f(intrinsics[0]);
-    //cout<<"intrinsics: "<<endl<<K<<endl;
 
     vector< std::shared_ptr<PointCloud> > frames;
-    //vector<PointCloud> framesGroundTruth;
-
-    vector<Isometry3f> trajectoryEst;
-    vector<Isometry3f> trajectoryGroundTruth;
-
 
     Visualize::setClouds(&frames);
-    Visualize::setCameraPoses(trajectoryEst);
-    Visualize::setCameraPosesGroundTruth(trajectoryGroundTruth);
 
-
-    for(int i=start; i<images.size(); i++){
-        //if(i%3==0) continue;
+    for(int i=0; i<images.size(); i++){
         shared_ptr<PointCloud> currentFrame(new PointCloud(images[i],K));
+        if(downsample){
         currentFrame->downsample(ddist);
+        }
 
         //Transformation groundTruth
-        Isometry3f P(LoadingSaving::loadMatrix4f(poses[i]));
-        trajectoryGroundTruth.push_back(P);
-        //Visualize::addCameraPoseGroundTruth(P);
-
+        Isometry3f P = posesGroundTruth[i];
+        currentFrame->setPoseGroundTruth(P);
 
         //Transformation estimate
-        Isometry3f P_est(LoadingSaving::loadMatrix4f(posesEst[i]));
-        //Visualize::addCameraPose(P_est);
-        trajectoryEst.push_back(P_est);
-
+        Isometry3f P_est = posesEst[i];
         currentFrame->setPose(P_est);
 
-        //currentFrame.project(P_est);
-
         frames.push_back(currentFrame);
-
-        //Visualize::addCloud(currentFrame);
-
-        //Visualize::spinToggle(2);
     }
-
-    Visualize::spin();
 
     int n = frames.size();
 
 
+    for(int k=0; k<nGraphUpdates; k++){ //Pose Graph updates
+
+        for(int i=0; i<n; i++){
+            frames[i]->computePoseNeighbours(&frames,i,tra_thresh,rot_thresh);
+        }
+
+     cout<<"pose edges computed"<<endl;
+     Visualize::spinToggle(2);
+
+
+
+    //if(i>0) currentFrame->neighbours.push_back(i-1);
+
     //Global icp
-    for (int j=0; j < 1000;j++) {  //ICP
+    for (int j=0; j < 1000/nGraphUpdates;j++) {  //ICP
+
+        timer.tic();
 
         vector<Isometry3f> P_incrementals(frames.size());
 
@@ -97,57 +115,63 @@ int main(int argc, char * argv[])
 
         //int startHere = start+1;
 
-        for(int i=start; i<n; i++){  //leave frame 0 fixed;
-            vector<Vector3f> src,dst;
-            //int k = i==start ? frames.size()-1 : i-1;
-            //int k = i+1; if(k==frames.size()) k=0;
+        for(int i=0; i<n; i++){  //leave frame 0 fixed;
 
-            int k = mod(i+1,n);
+            if(frames[i]->neighbours.size()>0){
 
-            //if(i==start+1){
-            int k2 = mod(i-1,n);
-            //}
+    //            shared_ptr<vector<Vector3f>> src(new vector<Vector3f>());
+    //            shared_ptr<vector<Vector3f>> dst(new vector<Vector3f>());
+    //            shared_ptr<vector<Vector3f>> nor(new vector<Vector3f>());
+                vector<Vector3f> src1,dst1,nor1;
+                vector<Vector3f>* src=&src1;
+                vector<Vector3f>* dst=&dst1;
+                vector<Vector3f>* nor=&nor1;
 
-            //int k3 = mod(i+2,n);
+                int k = mod(i+1,n);
 
-            //vector<PointCloud> neighbours = {frames[k],frames[k2]};
-            //PointCloudManipulation::getClosesPoints(frames[i],neighbours,src,dst,ddist);
-            accumICPErr += PointCloudManipulation::getClosesPoints(*frames[i],*frames[k],src,dst,ddist);
-
-            //Visualize::setLines(src,dst);
-            //Visualize::spin(3);
-
-            //PointCloudManipulation::getClosesPoints(frames,i,src,dst,ddist);
+                //vector<PointCloud> neighbours = {frames[k],frames[k2]};
+                //PointCloudManipulation::getClosesPoints(frames[i],neighbours,src,dst,ddist);
 
 
-            //cout<<"Iteration "<<i<<endl;
-            //cout<<"# Scene to Model Correspondences: "<<src.size()<<"=="<<dst.size()<<endl;
-            //cout<<"ICP "<<endl;
+                accumICPErr += frames[i]->computeClosestPointsToNeighbours(&frames,*src,*dst,ddist,useFlann,*nor);
 
-            Isometry3f P_incemental = ICP::computeStep(src,dst,false);
-            P_incrementals[i] = P_incemental;
+                //accumICPErr += PointCloudManipulation::getClosesPoints(*frames[i],*frames[k],*src,*dst,ddist,useFlann,*nor);
+
+                Isometry3f P_incemental;
+                if(pointToPlane){
+                    P_incemental = ICP::computeStep(*src,*dst,*nor); //point to plane
+                }else{
+                    P_incemental = ICP::computeStep(*src,*dst,false); //point to point
+                }
+
+                P_incrementals[i] = P_incemental;
+            }
         }
 
 
 
-        for(int i=start; i<frames.size(); i++){
+        for(int i=0; i<frames.size(); i++){
+            if(frames[i]->neighbours.size()>0){
+
             //printPose(P_incemental, "P incremental ICP");
             Isometry3f P_rereferenced = P_incrementals[i] * P_incrementals[0].inverse();
 
-            trajectoryEst[i] = P_rereferenced * trajectoryEst[i];
-            accumErr+=err(trajectoryGroundTruth[i],trajectoryEst[i] );
+            Isometry3f P_est = P_rereferenced * frames[i]->pose;
+            frames[i]->setPose(P_est);
+            }
 
-            frames[i]->setPose(trajectoryEst[i]);
+            accumErr+=frames[i]->getPoseError();
+
         }
 
-        cout<<"[Global ] [ICP "<<j<<"] GroundTruth Error: "<<accumErr<<"\t ICP dist error:"<<accumICPErr<<endl;
+        cout<<"[Global ] [ICP "<<j<<"] GroundTruth Error: "<<accumErr<<"\t ICP dist error:"<<accumICPErr<<" time: "<<timer.tocSeconds()<<endl;
 
 
-        if(j%3==0) Visualize::spinToggle(1);
+        Visualize::spinToggle(2);
 
     }
 
-    cout<<"frame 0"<<err(trajectoryEst[0],trajectoryGroundTruth[0])<<endl;
+    }
 
     Visualize::spinLast();
 

@@ -37,8 +37,6 @@ namespace PointPairFeatures{
     //void printMap(GlobalModelDescription m);
     //KeyBucketPairList print10(GlobalModelDescription &mymap);
 
-    bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra);
-
     bool isPoseCloseToIdentity(Isometry3f P1, float eps);
 
     bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra);
