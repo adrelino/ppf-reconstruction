@@ -31,6 +31,9 @@
 #endif
 
 #include <eigen3/Eigen/Dense>
+
+#include "Params.h"
+
 #include "Constants.h"
 
 #define glRED glColor3f(0.0,1,0.2);
@@ -66,12 +69,13 @@ public:
 
     //static void setModelTransformed(PointCloud& mT);
 
-    static void setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst);
+//    static void setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst);
 
 //    static void addCloud(PointCloud &mypair);
 //    static void setLastCloud(PointCloud &mypair);
     static void setClouds(vector< shared_ptr<PointCloud> >* mypair);
 
+    static void setCallbackForKey(char key, std::function<void()> f);
 
 //    static void addCameraPose(Isometry3f pose);
 //    static void setLastCameraPose(Isometry3f pose);
@@ -97,13 +101,15 @@ private:
 
 //    vector<int> closestPtsSceneToModel;
 
-    shared_ptr< vector<Vector3f> > src,dst;
+//    shared_ptr< vector<Vector3f> > src,dst;
 
  //   int current_object;
 
     void drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane);
 
     bool keyToggle[256];
+
+    std::function<void()> functions[256];
 
 
     Visualize(); // singleton, acces via factory

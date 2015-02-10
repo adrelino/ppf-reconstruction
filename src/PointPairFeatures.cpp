@@ -39,8 +39,10 @@ vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
 
     vector<MatrixXi> accVec;
 
+    cout<<"Voting Dense nangle"<<Params::getInstance()->nangle<<endl;
+
     for (int i=0; i<Ns; i++) {
-        accVec.push_back(MatrixXi::Zero(Nm,nangle));
+        accVec.push_back(MatrixXi::Zero(Nm,Params::getInstance()->nangle));
     }
 
     //i and j start 0 i.e first element
@@ -63,7 +65,7 @@ vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
        for(int k = i; s1[k]==s2[j]; k++){ //iterate over multiple same keys in model
 
            float alpha=getAngleDiffMod2Pi(s1[k].alpha,alpha_scene);
-           int alphaDiscretised=alpha/dangle;
+           int alphaDiscretised=alpha/Params::getInstance()->dangle;
 
            int mr=s1[k].i;
 
@@ -133,14 +135,14 @@ Poses getTransformationBetweenPointClouds(PointCloud& mSmall, PointCloud& sSmall
     }
 
 
-    //cout<<"beforeClustering: "<<Pests.size()<<endl;
-    //printPoses(Pests);
+    cout<<"beforeClustering: "<<Pests.size()<<endl;
+    printPoses(Pests);
     //timer.tic();
     vector<Poses> clusters = clusterPoses(Pests);
     Pests = averagePosesInClusters(clusters);
     //timer.toc("average and cluster poses");
-    //cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
-    //printPoses(Pests);
+    cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
+    printPoses(Pests);
 
     //Isometry3f P_meaned = Pests[0].first;
 
@@ -364,7 +366,7 @@ Poses computePoses(vector<MatrixXi>& accVec, PointCloud& m, PointCloud& s){//,ve
         int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
 
 
-        float alpha=alphaD*dangle;
+        float alpha=alphaD*Params::getInstance()->dangle;
 
         //ref points (just one, not both of the ppf)
         Vector3f s_m=s.pts[sr];

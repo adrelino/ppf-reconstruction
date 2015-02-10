@@ -9,6 +9,8 @@
 #ifndef PointPairFeatures_Params_h
 #define PointPairFeatures_Params_h
 
+#include "Params.h"
+
 #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <unordered_map>
@@ -28,48 +30,11 @@ typedef vector<KeyBucketPair> KeyBucketPairList;
 typedef pair<Isometry3f,int> Pose;
 typedef vector<Pose> Poses;
 
-//typedef std::pair< Matches,vector<int> > MatchesWithSceneRefIdx;
-
-
-
-//struct TrainedModel{GlobalModelDescription modelDescr;
-//                    PointCloud mSmall;
-//                    //Translation3f centroid;
-//                   };
-
-//Params
-//
-
-//model diameter, downsampling
-static float diamM=0.15f; //model diameter //stanford bunny // max dist is diagonal
-static float tau_d=0.1f; //sampling rate, set like in paper. ddist=tau_d*diam(M);
-static float ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
-
-// reestimate normals after downsampling
-//static float neighbourBallSize=ddist*2.5f; //neighbors in 2*ddist ball around p1 (e.g. 2cm)
-
-//ppf's
-static int ndist=1/tau_d; //number of distance buckets
-static int nangle=30;     //number of angle buckets
-static float dangle = 2*M_PI/nangle; //normal's derivation of up to 12 degree like in paper (360/30=12)
-
-static int minPtsPerVoxel = 20; //outlier rejection in downsampling, makes normals more stable
-
-//static float sceneRefPtsFraction = 0.8f; //20percent of pts in scene picked (at random so far) as reference points to compute ppfs to all other model points
-
-//for pose cluster averaging
-//static float thresh_tra = 0.05f * diamM; //float thresh_tra=0.02; //2cm
-//static float thresh_rot_degrees = 20; //180 max
-
-//for syntetic bunny
-static float thresh_tra = 0.02f; //0.02f * diamM; //float thresh_tra=0.02; //2cm
-static float thresh_rot = 15; //180 max
-
 
 //Macros
 //
-#define rad2deg(r) (180*(r)/M_PI)
-#define deg2rad(d) (M_PI*(d)/180)
+#define rad2degM(r) (180*(r)/M_PI)
+#define deg2radM(d) (M_PI*(d)/180)
 
 #define mod(a,b) ( (a + b) % b ) //works only if |a|<b
 
@@ -103,6 +68,8 @@ static RowVector3f Jet(float gray){
     return RowVector3f(red(gray),green(gray),blue(gray));
 }
 
+static Vector4f MAG1=Vector4f(0.3,0,0.8,1);
+static Vector4f MAG2=Vector4f(0.1,0.0,0.5,0.5);
 static Vector4f RED1=Vector4f(0.8,0,0.4,1);
 static Vector4f RED2=Vector4f(0.4,0.0,0.1,0.5);
 static Vector4f GREEN1=Vector4f(0.0,1.0,0.5,1);
@@ -138,7 +105,7 @@ static void printPoses(Poses vec){
     }
 }
 
-static float err(Isometry3f P, Isometry3f Pest, bool fullOutput=false){
+static float err(Isometry3f P, Isometry3f Pest, bool fullOutput=false, bool withRot=false){
     Vector3f tra(P.translation());
     Quaternionf q(P.linear());
     Vector4f rot(q.x(),q.y(),q.z(),q.w());
@@ -161,6 +128,10 @@ static float err(Isometry3f P, Isometry3f Pest, bool fullOutput=false){
 //    }
 
     float meanError=(tra_error);// + rot_error)*0.5f;
+    if(withRot){
+        meanError+=rot_error;
+        meanError/=2;
+    }
 
     if(fullOutput){
 
@@ -187,66 +158,6 @@ static float err(Isometry3f P, Pose PoseEst){
     return err(P,Pest);
 }
 
-// parameter processing
-template<typename T> bool getParam(std::string param, T &var, int argc, char **argv)
-{
-    const char *c_param = param.c_str();
-    for(int i=argc-1; i>=1; i--)
-    {
-        if (argv[i][0]!='-') continue;
-        if (strcmp(argv[i]+1, c_param)==0)
-        {
-            if (!(i+1<argc)) continue;
-            std::stringstream ss;
-            ss << argv[i+1];
-            ss >> var;
-            std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
-            return (bool)ss;
-        }
-    }
-    std::cout<<"PARAM[DEF]: "<<param<<" : "<<var<<std::endl;
-    return false;
-}
-
-// parameter processing: template specialization for T=bool
-//template<> inline bool getParam<bool>(std::string param, bool &var, int argc, char **argv)
-//{
-//    const char *c_param = param.c_str();
-//    for(int i=argc-1; i>=1; i--)
-//    {
-//        if (argv[i][0]!='-') continue;
-//        if (strcmp(argv[i]+1, c_param)==0)
-//        {
-//            if (!(i+1<argc) || argv[i+1][0]=='-') {
-//                var = true;
-//                std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
-//                return true;
-//            }
-//            std::stringstream ss;
-//            ss << argv[i+1];
-//            ss >> var;
-//            std::cout<<"PARAM[SET]: "<<param<<" : "<<var<<std::endl;
-//            return (bool)ss;
-//        }
-//    }
-//    std::cout<<"PARAM[DEF]: "<<param<<" : "<<var<<std::endl;
-//    return false;
-//}
-
-static void getParams(int argc, char **argv){
-     getParam("diamM", diamM, argc, argv);
-     getParam("tau_d", tau_d, argc, argv);
-     ddist = tau_d*diamM;//0.01 paper: 0.05*diam(M)=o.o5*0.15=0.0075
-     ndist=1/tau_d;
-     cout<<"--> ddist=tau_d*diamM:"<<ddist<<" ndist:"<<ndist<<endl;
-
-     getParam("nangle", nangle, argc, argv);
-     getParam("thresh_tra",thresh_tra, argc, argv);
-     getParam("thresh_rot",thresh_rot,argc,argv);
-
-     getParam("minPtsPerVoxel",minPtsPerVoxel,argc,argv);
-}
-
 //https://forum.kde.org/viewtopic.php?f=74&t=94839
 static Matrix3Xf vec2mat(vector<Vector3f>& vec){
     Map<Matrix<float,3,Dynamic,ColMajor> > mat(&vec[0].x(), 3, vec.size());
@@ -264,7 +175,7 @@ static vector<Vector3f> mat2vec(const Matrix3Xf& mat){
     return vec;
 }
 
-static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra){
+static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=Params::getInstance()->thresh_rot, float thresh_tra_l=Params::getInstance()->thresh_tra){
     //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
     Vector3f    tra1 = P1.translation();
     Quaternionf rot1(P1.linear());
@@ -286,7 +197,7 @@ static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thres
     //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
     //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
 
-    float diff_rot_degrees = rad2deg(acos(2*d*d - 1));
+    float diff_rot_degrees = rad2degM(acos(2*d*d - 1));
 
     //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
     //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
@@ -303,7 +214,10 @@ static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=thres
     return false;
 }
 
-static void poseDiff(Isometry3f P1, Isometry3f P2){
+#include <string>
+#include <sstream>
+
+static std::string poseDiff(Isometry3f P1, Isometry3f P2){
     //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
     Vector3f    tra1 = P1.translation();
     Quaternionf rot1(P1.linear());
@@ -316,12 +230,29 @@ static void poseDiff(Isometry3f P1, Isometry3f P2){
     float diff_tra=(tra1-tra2).norm();
     //Rotation
     float d = rot1.dot(rot2);
-    float diff_rot_degrees = rad2deg(acos(2*d*d - 1));
+    float diff_rot_degrees = rad2degM(acos(2*d*d - 1));
 
 
-    cout<<"diff_tra:"<<diff_tra<<" diff_rot_degrees:"<<diff_rot_degrees<<endl;
+    stringstream ss;
+    ss<<"diff_tra:"<<diff_tra<<" diff_rot_degrees:"<<diff_rot_degrees<<endl;
+
+    return ss.str();
 
 }
+
+
+/*
+ * cv::Point3f colorMapped(int j, int max, int colorMap){
+    cv::Mat depthMap(1,max,CV_8UC1);
+    for (int i = 0; i <= max; ++i) {
+        depthMap.at<uint8_t>(0,i)=i;
+    }
+    cv::Mat heatMap;
+    cv::applyColorMap(depthMap, heatMap,colorMap);
+    return heatMap.at<cv::Point3f>(0,j);
+
+}
+*/
 
 
 

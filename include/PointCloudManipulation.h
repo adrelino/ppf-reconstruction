@@ -14,6 +14,10 @@
 #include <math.h>
 #include <unordered_map>
 #include <vector>
+
+#include "Params.h"
+
+
 #include "Constants.h"
 #include "CPUTimer.h"
 
@@ -24,6 +28,12 @@ using namespace std;
 class PointCloud;
 
 namespace PointCloudManipulation {    
+
+float registrationErrorTra(vector< std::shared_ptr<PointCloud> >& frames);
+
+float registrationErrorRot(vector< std::shared_ptr<PointCloud> >& frames);
+
+
     double getPointCloudDiameter(PointCloud& m);
 
     //PointCloud projectPointsAndNormals(Isometry3f P, PointCloud C);
@@ -43,7 +53,7 @@ namespace PointCloudManipulation {
 
     int nearestNeighbourIdx(vector<Vector3f>& pts, Vector3f pt);
 
-    float getClosesPoints(PointCloud& srcCloud, PointCloud& dstCloud, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor);
+    float getClosesPoints(PointCloud& srcCloud, PointCloud& dstCloud, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor, vector<Vector3f>& norSrc);
 
     //float getClosesPoints(PointCloud& srcCloud, vector<PointCloud>& dstClouds, vector<Vector3f> &src, vector<Vector3f> &dst,
     //float thresh);

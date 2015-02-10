@@ -1,6 +1,9 @@
 #include "PointCloud.h"
 #include "LoadingSaving.h"
 
+#include <algorithm>    // std::remove_if
+
+
 using namespace Eigen;
 using namespace std;
 
@@ -15,10 +18,10 @@ PointCloud::PointCloud(const PointCloud &other){
     nor=other.nor;
 }
 
-PointCloud::PointCloud(const string &filename, Matrix3f &K){
+PointCloud::PointCloud(const string &filename, Matrix3f &K, string maskname,bool showDepthMap){
     cout<<" PointCloud fromDepthMap constructor"<<endl;
 
-    LoadingSaving::loadPointCloudFromDepthMap(filename,K,pts,false);
+    LoadingSaving::loadPointCloudFromDepthMap(filename,K,pts,maskname,showDepthMap);
 }
 
 PointCloud::~PointCloud(){
@@ -108,7 +111,7 @@ void PointCloud::downsample(float voxelSize){
 
     for (auto it : voxels){
         int npts = it.second.size();
-        if(npts<minPtsPerVoxel) continue;
+        if(npts<Params::getInstance()->minPtsPerVoxel) continue;
 
         pts2.push_back(PointCloudManipulation::getCentroid(it.second));
         nor2.push_back(PointCloudManipulation::getNormal(it.second));
@@ -118,7 +121,7 @@ void PointCloud::downsample(float voxelSize){
     pts=pts2;
     nor=nor2;
 
-    cout<<"DownSampled "<<nOrig<<"->"<<pts.size()<< " pts with voxelSize:"<<voxelSize<<" minPtsPerVoxel:"<<minPtsPerVoxel<<endl;
+    cout<<"DownSampled "<<nOrig<<"->"<<pts.size()<< " pts with voxelSize:"<<voxelSize<<" minPtsPerVoxel:"<<Params::getInstance()->minPtsPerVoxel<<endl;
 }
 
 
@@ -170,25 +173,209 @@ float PointCloud::getClosestPoint(const Vector3f& query_pt, size_t& ret_index){ 
 
 void PointCloud::computePoseNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float tra_thresh, float rot_thresh){
     neighbours.clear();
+    Isometry3f& P1 = pose;
     for (int j = 0; j < (*frames).size(); ++j) {
         if(i==j) continue;
-        Isometry3f& other = (*frames)[j]->pose;
-        if (isPoseSimilar(pose,other,rot_thresh,tra_thresh)) {
+        Isometry3f& P2 = (*frames)[j]->pose;
+
+//        Quaternionf rot1(P1.linear());
+
+  //      Quaternionf rot2(P2.linear());
+
+
+        //Translation
+        float diff_tra=(P1.translation()-P2.translation()).norm();
+
+        neighboursDescr="diff_tra: ";
+        if (diff_tra<tra_thresh) {
             //cout<<i<<" similar to "<<j<<endl;
-            neighbours.push_back(j);
+            neighbours.push_back(make_pair(j,diff_tra));
         }
     }
 }
 
-void PointCloud::computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float poinCloudOverlap, float cutoffDist, float nearestNeighbourMeanDist_thresh){
+#include <iomanip>
+
+bool myfunction1 (std::pair<int,float> a, std::pair<int,float> b) { return (a.second<b.second); }
+
+void PointCloud::computePoseNeighboursKnn(vector< shared_ptr<PointCloud> >* frames, int i, int k,float cutoff){
+    neighbours.clear();
+    Isometry3f& P1 = pose;
+    for (int j = 0; j < (*frames).size(); ++j){
+        if(i==j) continue;
+        Isometry3f& P2 = (*frames)[j]->pose;
+
+
+
+        //Translation
+        float diff_tra=(P1.translation()-P2.translation()).norm();
+
+        neighboursDescr="diff_tra: ";
+
+        if (diff_tra<cutoff){// && meanDist < mean_nn_thresh){
+
+            //stringstream ss;
+            //ss<<setprecision(4)<<"cloud neighbours overlap: "<<overlapValue*100<<"% cutoff: "<<cutoff<<" meanDist: "<<meanDist ;
+
+            neighbours.push_back(make_pair(j,diff_tra));
+        }
+    }
+
+    if(neighbours.size()<k){
+        std::sort(neighbours.begin(),neighbours.end(),myfunction1);
+    }else{
+        std::partial_sort (neighbours.begin(), neighbours.begin()+k, neighbours.end(),myfunction1);
+        neighbours.resize(k);
+    }
+
+    //auto end = std::remove_if(neighbours.begin(), neighbours.end(), [&](std::pair<int,float> a) { return !frames->at(a.first)->fixed; } );
+    //cout<<"size before"<<neighbours.size();
+    //neighbours.erase(end, neighbours.end());
+    //cout<<"  after"<<neighbours.size()<<endl;
+
 
 }
 
-float PointCloud::computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor){
-    float accumICPErr = 0;
+void PointCloud::computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float overlap, float cutoff, float mean_nn_thresh){
+    neighbours.clear();
+    for (int j = 0; j < (*frames).size(); ++j) {
+        if(i==j) continue;
+        auto other = (*frames)[j];
+        if(!other->fixed) continue;
+        vector<Vector3f> src,dst,nor,norSrc;
+        float meanDist = PointCloudManipulation::getClosesPoints(*this,*other,src,dst,cutoff,true,nor,norSrc); //cutoffDist ==? radius search
 
-    for(int i : neighbours){
-        accumICPErr += PointCloudManipulation::getClosesPoints(*this,*(*frames)[i].get(),src,dst,ddist,useFlann,nor);
+        float overlapValue = dst.size()*1.0f / pts.size();
+
+        if (overlapValue>overlap){// && meanDist < mean_nn_thresh){
+
+            //stringstream ss;
+
+            //ss<<setprecision(4)<<"cloud neighbours overlap: ";//<<overlapValue*100<<"% cutoff: "<<cutoff<<" meanDist: "<<meanDist ;
+
+            neighboursDescr="cloud neighbours overlap: ";
+
+            neighbours.push_back(std::make_pair(j,overlapValue));
+        }
+    }
+}
+
+bool myfunction (std::pair<int,float> a, std::pair<int,float> b) { return (a.second>b.second); }
+
+void PointCloud::computeCloudNeighboursKnn(vector< shared_ptr<PointCloud> >* frames, int i, int k,float cutoff){
+    neighbours.clear();
+    int jMax=(*frames).size();
+    //cout<<"frames: "<<jMax<<endl;
+    for (int j = 0; j < (*frames).size(); ++j) {
+        if(i==j) continue;
+        auto other = (*frames)[j];
+        //if(!other->fixed) continue;
+
+        vector<Vector3f> src,dst,nor,norSrc;
+        float meanDist = PointCloudManipulation::getClosesPoints(*this,*other,src,dst,cutoff,true,nor,norSrc); //cutoffDist ==? radius search
+
+        float overlapValue = dst.size()*1.0f / pts.size();
+
+        neighboursDescr="cloud neighbours overlap Knn: ";
+
+        //if (overlapValue>overlap){// && meanDist < mean_nn_thresh){
+
+            //stringstream ss;
+            //ss<<setprecision(4)<<"cloud neighbours overlap: "<<overlapValue*100<<"% cutoff: "<<cutoff<<" meanDist: "<<meanDist ;
+
+            neighbours.push_back(make_pair(j,overlapValue));
+        //}
+    }
+
+    if(neighbours.size()<k){
+        std::sort(neighbours.begin(),neighbours.end(),myfunction);
+    }else{
+        std::partial_sort (neighbours.begin(), neighbours.begin()+k, neighbours.end(),myfunction);
+        neighbours.resize(k);
+    }
+
+    auto end = std::remove_if(neighbours.begin(), neighbours.end(), [&](std::pair<int,float> a) { return !frames->at(a.first)->fixed; } );
+    //cout<<"size before"<<neighbours.size();
+    neighbours.erase(end, neighbours.end());
+    //cout<<"  after"<<neighbours.size()<<endl;
+
+
+}
+
+float PointCloud::computeClosestPointsToNeighboursStacked(vector< shared_ptr<PointCloud> >* frames, float thresh){
+    float accumICPErr = 0;
+    src.clear();
+    dst.clear();
+    dstNor.clear();
+    srcNor.clear();
+
+    for(int j=0; j<neighbours.size(); j++){
+        int idxDstCloud=neighbours[j].first;
+        PointCloud& dstCloud = *(*frames)[idxDstCloud].get();
+        accumICPErr += PointCloudManipulation::getClosesPoints(*this,dstCloud,src,dst,thresh,true,dstNor,srcNor);
+    }
+
+    return accumICPErr;
+}
+
+
+float PointCloud::computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, float thresh){
+    float accumICPErr = 0;
+    src.clear();
+    dst.clear();
+    dstNor.clear();
+    srcNor.clear();
+
+    vector<Vector3f> preTras(neighbours.size());
+    vector<Matrix3f> preInvRots(neighbours.size());
+
+
+    for(int j=0; j<neighbours.size(); j++){
+        int idxDstCloud=neighbours[j].first;
+        PointCloud& dstCloud = *(*frames)[idxDstCloud].get();
+        preTras[j] = Vector3f(dstCloud.pose.translation());
+        preInvRots[j] = dstCloud.pose.linear().inverse();
+    }
+
+    PointCloud& srcCloud = *this;
+
+
+    for (int i = 0; i < srcCloud.pts.size(); ++i) {
+        Vector3f& srcPtOrig = srcCloud.pts[i];
+        Vector3f srcPtInGlobalFrame = srcCloud.pose*srcPtOrig;
+
+        float diffMin=999999;
+        size_t idxMin;
+        int idxDstCloudMin;
+
+        for(int j=0; j<neighbours.size(); j++){
+            int idxDstCloud=neighbours[j].first;
+            PointCloud& dstCloud = *(*frames)[idxDstCloud].get();
+
+            Vector3f srcPtinDstFrame =  preInvRots[j] * (srcPtInGlobalFrame-preTras[j]);
+            size_t idx;
+            float diff = sqrtf(dstCloud.getClosestPoint(srcPtinDstFrame,idx));
+            if(diff<diffMin){
+                diffMin=diff;
+                idxMin=idx;
+                idxDstCloudMin=idxDstCloud;
+            }
+        }
+
+        PointCloud& dstCloud = *(*frames)[idxDstCloudMin].get();
+
+
+        Vector3f dstPtInGlobalFrame = dstCloud.pose*dstCloud.pts[idxMin];
+
+        if(diffMin<thresh){ //get rid ouf outlier correspondences
+            //corresp.push_back(idxMin);
+            accumICPErr += diffMin;//(dstPtBest-srcPt).norm();
+            src.push_back(srcPtInGlobalFrame);
+            dst.push_back(dstPtInGlobalFrame);
+            if(dstCloud.nor.size()>0) dstNor.push_back(dstCloud.pose.linear()*dstCloud.nor[idxMin]);
+            if(srcCloud.nor.size()>0) srcNor.push_back(srcCloud.pose.linear()*srcCloud.nor[idxMin]);
+
+        }
     }
 
     return accumICPErr;

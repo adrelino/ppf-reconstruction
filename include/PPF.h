@@ -13,23 +13,26 @@
 #include <eigen3/Eigen/Dense>
 #include <vector>
 
+#include "Params.h"
+
+
 using namespace Eigen;
 using namespace std;
 
-struct PPF2 {unsigned int k;
-            float alpha;
-            unsigned short i;
-            //unsigned short j;
-            bool operator<(const PPF2 &o) const{
-                 return k < o.k;
-            }
-            bool operator>(const PPF2 &o) const{
-                  return k > o.k;
-            }
-            bool operator==(const PPF2 &o) const{
-                   return k == o.k;
-            }
-            };
+//struct PPF2 {unsigned int k;
+//            float alpha;
+//            unsigned short i;
+//            //unsigned short j;
+//            bool operator<(const PPF2 &o) const{
+//                 return k < o.k;
+//            }
+//            bool operator>(const PPF2 &o) const{
+//                  return k > o.k;
+//            }
+//            bool operator==(const PPF2 &o) const{
+//                   return k == o.k;
+//            }
+//            };
 
 
 class PPF {
@@ -37,7 +40,7 @@ class PPF {
 
 public:
 
-    static PPF2 makePPF2(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j);
+    //static PPF2 makePPF2(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j);
 
     PPF();
     PPF(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j);

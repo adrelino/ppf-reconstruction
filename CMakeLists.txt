@@ -3,7 +3,7 @@
 #reject frames if icp line lenght is too big
 #global optimization
 
-project(point-pair-features)
+project(ppf-reconstruction)
 
 cmake_minimum_required(VERSION 2.8)
 
@@ -51,6 +51,8 @@ include_directories(${GLUT_INCLUDE_DIRS})
 find_package(OpenGL)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
+include_directories(/usr/local/include/eigen3/)
+
 
 #Eigen     is required by all         https://forum.kde.org/viewtopic.php?f=74&t=94166
 #find_package(Eigen3 REQUIRED)
@@ -77,6 +79,7 @@ file(GLOB HEADERS
 
 #file(GLOB SOURCES src/*.cpp)
 set(SOURCES
+    src/Params.cpp
     src/PointCloud.cpp
     src/LoadingSaving.cpp
     src/PointCloudManipulation.cpp
@@ -111,25 +114,39 @@ set(VIZ
 #target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 #add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/samples)
 
+set(G2O_LIBRARIES
+    g2o_core g2o_stuff g2o_types_slam3d g2o_types_icp g2o_solver_csparse
+)
+
 add_executable(
     globalOptimization
     src/main_globalOptimization.cpp
-    ${SOURCES}
     ${HEADERS}
+    ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET globalOptimization PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:globalOptimization>/samples)
+target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
 add_executable(
     frameToFrame
     src/main_frameToFrame.cpp
-    ${SOURCES}
     ${HEADERS}
+    ${SOURCES}
     ${VIZ}
 )
-target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-add_custom_command(TARGET frameToFrame PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToFrame>/samples)
+target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
+
+
+
+ADD_EXECUTABLE(gicp_adrian
+  src/gicp_adrian.cpp
+)
+INCLUDE_DIRECTORIES(/usr/local/include/g2o)
+INCLUDE_DIRECTORIES(${CSPARSE_INCLUDE_DIR})
+
+TARGET_LINK_LIBRARIES(gicp_adrian ${OPENGL_LIBRARIES} ${G2O_LIBRARIES} )
+
+
 
 #add_executable(
 #    vector_of_vectors_example

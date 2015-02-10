@@ -155,7 +155,12 @@ void Visualize::drawNormals(const PointCloud* m, Vector3f& color){
 
 void Visualize::drawPointCloud(PointCloud* m, int i){
 
-    drawCameraPose(m->pose,i,Colormap::RED1,Colormap::RED2);
+    if(m->fixed){
+        drawCameraPose(m->pose,i,Colormap::MAG1,Colormap::MAG2);
+    }else{
+        drawCameraPose(m->pose,i,Colormap::RED1,Colormap::RED2);
+    }
+
     if(keyToggle['g']) drawCameraPose(m->poseGroundTruth,i,Colormap::GREEN1,Colormap::GREEN2);
 
     Vector3f color(0.6,0.1,0);
@@ -164,13 +169,16 @@ void Visualize::drawPointCloud(PointCloud* m, int i){
     if(selectedFrame==i){
         color = Colormap::BLUE1;
         colorNormals = (Colormap::BLUE2);
+        if(keyToggle['l']){
+            drawLines(m->src,m->dst);
+        }
     }
 
     glPushMatrix();
         glMultMatrixf(m->pose.matrix().data());
         drawPoints(m->pts,color);
         if(keyToggle['n']) drawNormals(m,colorNormals);
-        if(keyToggle['v']) drawCubes(m->pts,ddist);
+        if(keyToggle['v']) drawCubes(m->pts,Params::getInstance()->ddist);
 
     glPopMatrix();
 
@@ -273,6 +281,9 @@ void Visualize::drawLines(const vector<Vector3f>& v1, const vector<Vector3f>& v2
 
 void Visualize::drawCubes(const vector<Vector3f>& pts, double size){
     glColor3f(0.9,0.9,0.9);
+    float ddist = Params::getInstance()->ddist;
+
+
     for (int i=0; i<pts.size(); i++) {
         glPushMatrix();
         float x=floor(pts[i].x()/ddist)*ddist+ddist/2.0;
@@ -430,7 +441,8 @@ void::Visualize::drawEdges(int i){
         glColor4fv(Colormap::RED1.data());
     }
 
-    for(int j : v1->neighbours){
+    for(auto pair : v1->neighbours){
+        int j=pair.first;
         if(j==selectedFrame) continue; //should be blue, not red, only draw once
         glVertex3fv(mat);
         shared_ptr<PointCloud>& v2=(*ms)[j];
@@ -476,7 +488,7 @@ void Visualize::display(void)
 
             //if(matches.size()>0) drawMatches(matches);
             //if(keyToggle['l'] && closestPtsSceneToModel.size()>0) drawLines(closestPtsSceneToModel);
-            if(keyToggle['l'] && src && dst && src->size()>0) drawLines( (*src) ,(*dst) );
+            //if(keyToggle['l'] && src && dst && src->size()>0) drawLines( (*src) ,(*dst) );
 
             if(keyToggle['c'] && ms){
                 for(int i=0; i<ms->size(); i++){
@@ -521,6 +533,7 @@ void exitFun(){
     exit(0);
 }
 
+#include <iomanip>
 
 void Visualize::keyboard (unsigned char key, int x, int y)
 {
@@ -528,6 +541,8 @@ void Visualize::keyboard (unsigned char key, int x, int y)
     lastKey=key;
 
     keyToggle[key] = !keyToggle[key];
+
+    if(functions[key]) functions[key]();
 
 	switch (key) {
         case 'p':
@@ -563,15 +578,22 @@ void Visualize::keyboard (unsigned char key, int x, int y)
             if(bucketIndex>=1) bucketIndex--;
             bucketInfo();
             break;
+        case 's' : {
+            int i;
+            for (i = 0; i < ms->size(); ++i) {
+                std::stringstream ss;
+                PointCloud& cloud = *(*ms)[i];
+                ss<<Params::getInstance()->dir<<"/"<<Params::getInstance()->est_poses_prefix<<setfill('0')<< setw(6)<<cloud.imgSequenceIdx<<Params::getInstance()->est_poses_suffix;
+                LoadingSaving::saveMatrix4f(ss.str(),cloud.pose.matrix());
+            }
+            cout<<"Saved "<<i<<" estimated poses in dir: "<<Params::getInstance()->dir<<endl;
+            }break;
         case 'S': {
             cout<<"Save current viewing pose and keyToggleState"<<endl;
             Vector3f angles(angle,angle2,angle3);
             Vector3f zoomAndTransl(zoom,offsetX,offsetY);
             LoadingSaving::saveMatrixXf("viz-angles.txt",angles);
             LoadingSaving::saveMatrixXf("viz-zoomAndTransl.txt",zoomAndTransl);
-
-
-
             vector<bool> savedEntries(keyToggle,keyToggle+256);
             LoadingSaving::saveVector(filename,savedEntries);
             cout<<"keyToggleSaveSize: "<<savedEntries.size()<<endl;
@@ -701,7 +723,7 @@ int Visualize::mainVisualize(int argc, char **argv)
 	glutDisplayFunc(displayW);
 	glutMouseFunc(mouseW);
 	glutMotionFunc(motionW);
-	glutKeyboardFunc(keyboardW);
+    glutKeyboardFunc(keyboardW);
 
     glutCloseFunc(exitFun);
 
@@ -813,10 +835,10 @@ bool Visualize::waitKey(unsigned char key){
 //    getInstance()->modelT=&mT;
 //}
 
-void Visualize::setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst){
-    getInstance()->src=src;
-    getInstance()->dst=dst;
-}
+//void Visualize::setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst){
+//    getInstance()->src=src;
+//    getInstance()->dst=dst;
+//}
 
 //void Visualize::addCloud(PointCloud& &mypair){
 //    getInstance()->ms.push_back(mypair);
@@ -856,4 +878,8 @@ void Visualize::setClouds(vector< shared_ptr<PointCloud> >* mypair){
 
 void Visualize::setSelectedIndex(int i){
     getInstance()->selectedFrame=i;
+}
+
+void Visualize::setCallbackForKey(char key, std::function<void ()> f){
+    getInstance()->functions[key]=f;
 }

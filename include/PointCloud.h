@@ -4,6 +4,8 @@
 #include <eigen3/Eigen/Dense>
 #include <opencv2/core.hpp>
 
+#include "Params.h"
+
 #include <vector>
 #include "PPF.h"
 #include "Constants.h"
@@ -18,6 +20,8 @@ class PointCloud{
 public:
     vector<PPF> features;
     bool featuresComputed = false;
+
+    int imgSequenceIdx;
 
     typedef nanoflann::KDTreeSingleIndexAdaptor<
         nanoflann::L2_Simple_Adaptor<float, PointCloud > ,
@@ -58,7 +62,7 @@ public:
 
     PointCloud();
     PointCloud(const PointCloud& other);
-    PointCloud(const std::string& filename, Matrix3f& K);
+    PointCloud(const std::string& filename, Matrix3f& K, string maskname="", bool showDepthMap=false);
 
     vector<Vector3f> pts;
     vector<Vector3f> nor;
@@ -68,7 +72,15 @@ public:
     vector<Vector3f> pts_color;
     vector<Vector3f> nor_color;
 
-    vector<int> neighbours;
+    //for icp:
+    string neighboursDescr;
+    vector< pair<int,float> > neighbours;
+    vector<Vector3f> src;
+    vector<Vector3f> srcNor;
+    vector<Vector3f> dst;
+    vector<Vector3f> dstNor;
+
+    bool fixed=false;
 
     Isometry3f pose = Isometry3f::Identity();
     Isometry3f poseGroundTruth = Isometry3f::Identity();
@@ -95,26 +107,32 @@ public:
     void downsample(float voxelSize);
 
     void computePoseNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float tra_thresh, float rot_thresh);
-    void computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float poinCloudOverlap, float cutoffDist, float nearestNeighbourMeanDist_thresh);
+    void computePoseNeighboursKnn(vector< shared_ptr<PointCloud> >* frames, int i, int k,float cutoff=0.9f);
 
 
-    float computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, vector<Vector3f>& src, vector<Vector3f>& dst, float thresh, bool useFlann, vector<Vector3f>& nor);
+    void computeCloudNeighbours(vector< shared_ptr<PointCloud> >* frames, int i, float overlap, float cutoff, float mean_nn_thresh);
+    void computeCloudNeighboursKnn(vector< shared_ptr<PointCloud> >* frames, int i, int k,float cutoff);
+
+
+
+    float computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, float thresh);
+    float computeClosestPointsToNeighboursStacked(vector< shared_ptr<PointCloud> >* frames, float thresh);
 
 };
 
 inline std::ostream& operator<<(std::ostream& os, const PointCloud& v) {
-    os<<v.neighbours.size()<<" neighbours: ";
-    for(int j : v.neighbours){
-        os<<j<<",";
+    os<<v.neighbours.size()<<" neighbours: "<<endl;
+    for(auto pair : v.neighbours){
+        os<<pair.first<<" : "<<pair.second<<endl;
     }
     os<<endl;
 
-    Vector3f tra(v.pose.translation());
-    Quaternionf q(v.pose.linear());
-    Vector4f rot(q.x(),q.y(),q.z(),q.w());
+    //Vector3f tra(v.pose.translation());
+    //Quaternionf q(v.pose.linear());
+    //Vector4f rot(q.x(),q.y(),q.z(),q.w());
 
-    os<<"tra: "<<tra.transpose()<<endl;
-    os<<"rot: "<<rot.transpose()<<endl;
+    //os<<"tra: "<<tra.transpose()<<endl;
+    //os<<"rot: "<<rot.transpose()<<endl;
 
 
  // os << "size: " <<  v.pts.size() <<std::endl;

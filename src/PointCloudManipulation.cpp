@@ -13,6 +13,46 @@
 namespace PointCloudManipulation{
 CPUTimer timer = CPUTimer();
 
+float registrationErrorTra(vector< std::shared_ptr<PointCloud> >& frames){
+
+    float tra_mean=0;
+
+    for(std::shared_ptr<PointCloud> it : frames){
+        Vector3f    tra1 = it->pose.translation();
+
+        Vector3f    tra2 = it->poseGroundTruth.translation();
+
+        //Translation
+        float diff_tra=(tra1-tra2).norm();
+
+        tra_mean +=diff_tra;
+    }
+
+    tra_mean /= frames.size();
+
+    return tra_mean;
+}
+
+float registrationErrorRot(vector< std::shared_ptr<PointCloud> >& frames){
+
+    float rot_mean=0;
+
+    for(std::shared_ptr<PointCloud> it : frames){
+        Quaternionf rot1(it->pose.linear());
+        Quaternionf rot2(it->poseGroundTruth.linear());
+
+        //Rotation
+        float d = rot1.dot(rot2);
+        float diff_rot_degrees = rad2degM(acos(2*d*d - 1));
+
+        rot_mean +=diff_rot_degrees;
+    }
+
+    rot_mean /= frames.size();
+
+    return rot_mean;
+}
+
 }
 
 double PointCloudManipulation::getPointCloudDiameter(PointCloud& C){
@@ -436,7 +476,7 @@ Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool w
 
 //every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
 //note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
-float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, PointCloud& dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,float thresh, bool useFlann, vector<Vector3f> &nor){
+float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, PointCloud& dstCloud, vector<Vector3f> &src, vector<Vector3f> &dst,float thresh, bool useFlann, vector<Vector3f> &nor, vector<Vector3f> &norSrc){
 
     float totalDistMeasure = 0;
 
@@ -501,6 +541,8 @@ float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, PointCloud& 
             src.push_back(srcPtInGlobalFrame);
             dst.push_back(dstPtInGlobalFrame);
             if(dstCloud.nor.size()>0) nor.push_back(dstCloud.pose.linear()*dstCloud.nor[idxMin]);
+            if(srcCloud.nor.size()>0) norSrc.push_back(srcCloud.pose.linear()*srcCloud.nor[idxMin]);
+
         }
     }
 
@@ -529,10 +571,10 @@ Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud& model, PointClou
 
         int j = 0;
         for (; j < maxIter; ++j) {
-            vector<Vector3f> src,dst,nor;
+            vector<Vector3f> src,dst,nor,norSrc;
 
             //model.project(P_Iterative_ICP);
-            PointCloudManipulation::getClosesPoints(model,scene,src,dst,0.04f,false,nor);
+            PointCloudManipulation::getClosesPoints(model,scene,src,dst,0.04f,false,nor,norSrc);
 
             //Visualize::setLines(src,dst);
 

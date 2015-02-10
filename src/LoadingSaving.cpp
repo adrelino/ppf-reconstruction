@@ -49,7 +49,7 @@ namespace LoadingSaving{
 //    return make_pair(pts,nor);
 //}
 
-void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, vector<Vector3f>& pts, bool show){
+void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, vector<Vector3f>& pts, string maskname, bool show){
     std::ifstream ifs(filename.c_str());
     if (!ifs.is_open()) cout<<"Cannot open file:"<<filename<<endl;
 
@@ -60,20 +60,77 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
 
     cv::Mat mask; //is 1 at the object, 0 outside
 
+    bool maskGiven = false;
+
+    if(maskname!=""){
+        mask = cv::imread(maskname,cv::IMREAD_UNCHANGED);
+        //cout<<"LoadingSaving read mask: "<<maskname<<" "<< mask.rows <<","<<mask.cols<<endl;
+        maskGiven = true;
+    }
+
+    float fx = K(0,0);
+    float fy = K(1,1);
+    float cx = K(0,2);
+    float cy = K(1,2);
+
     //todo add possibility to add segmentation mask
     if(type==CV_16U && nc==1){ //depth_0.png from kinect cam, 0 means no measure, depth in mm (470 means 0.47m);
-        mask = (depth != 0);
+        if(!maskGiven) mask = (depth != 0);
+        depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
     }else if(type==CV_32FC3 && nc==3){ //depth_000000.exr made from blender, inf means no measure, depth in mm
         cv::cvtColor(depth,depth,cv::COLOR_BGR2GRAY);
-        mask = (depth != std::numeric_limits<float>::infinity());
+        if(!maskGiven) mask = (depth != std::numeric_limits<float>::infinity());
+        depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
+    }else if(type=CV_8UC3 && nc==3){ //Siemens steamturbine
+        cout<<"ATTENTTION DOWNSAMPLIG INPUT IMAGE"<<endl;
+        std::vector<cv::Mat> depth_channels;
+        cv::split( depth, depth_channels );
+        cv::Mat r_channel, g_channel, b_channel;
+        depth_channels[2].convertTo( r_channel, CV_32SC1 ); depth_channels[1].convertTo( g_channel, CV_32SC1 ); depth_channels[0].convertTo( b_channel, CV_32SC1 );
+        cv::Mat depthMap;
+        depthMap.create( depth.rows, depth.cols, CV_32FC1 );
+        //mask.create( depth.rows, depth.cols, CV_8UC1 );
+        for (int r = 0; r < depthMap.rows; ++r)
+            for (int c = 0; c < depthMap.cols; ++c) {
+                float val = 1e-6f * ( ( r_channel.at<int>(r,c) << 16 ) | ( g_channel.at<int>(r,c) << 8 ) | b_channel.at<int>(r,c) );
+                depthMap.at<float>(r,c) = val;
+                //mask.at<uchar>(r,c) = ( val > 0.f );
+            }
+        if(!maskGiven) mask = (depthMap > 0.f);
+
+        depth=depthMap;
+
+        //cout<<"mask type: "<<OpenCVHelpers::getImageType(mask.type())<<" channels:"<<mask.channels()<<endl;
+
+
+        float factor=0.2f;
+
+        resize(depth, depth, cv::Size(), factor, factor);
+        resize(mask, mask, cv::Size(), factor, factor);
+        //cout<<"mask type after resize: "<<OpenCVHelpers::getImageType(mask.type())<<" channels:"<<mask.channels()<<endl;
+
+        cx *= factor;
+        cy *= factor;
+        fx *= factor;
+        fy *= factor;
     }else{
         cout<<"unsupported depth image type"<<endl;
     }
 
-    depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
+
+
 
     if(show){
-        OpenCVHelpers::showDepthImage("showDepthImage",depth,mask,true);
+//        if(depth.rows>500){
+//            cv::Mat depthSmall, maskSmall;
+//            resize(depth, depthSmall, cv::Size(), 0.25, 0.25);
+//            resize(mask, maskSmall, cv::Size(), 0.25, 0.25);
+//            OpenCVHelpers::showDepthImage("showDepthImage",depthSmall,maskSmall,true);
+//       }else{
+            OpenCVHelpers::showDepthImage("depth",depth,mask,true);
+            OpenCVHelpers::showImage("mask",mask);
+
+ //      }
         cv::waitKey(2);
     }
 
@@ -82,17 +139,13 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
         int m=depth.rows; //Y
         int n=depth.cols; //X
 
-        float fx = K(0,0);
-        float fy = K(1,1);
-        float cx = K(0,2);
-        float cy = K(1,2);
-
         //int x=n,y=m,xM=0,yM=0;
 
         for (int i = 0; i < m; ++i) {
             for (int j = 0; j < n; ++j) {
-                if(mask.at<bool>(i,j)){
+                if(mask.at<unsigned char>(i,j)){ //values lower than 255 were achieved by non-border preserving smoothing before subsampling
                     float Z = depth.at<float>(i,j);
+                    if(Z<=0.0001 || Z > 999999) continue;
                     float X = (j-cx)*Z*(1/fx);
                     float Y = (i-cy)*Z*(1/fy);
                     pts.push_back(Vector3f(X,Y,Z));
@@ -364,11 +417,29 @@ vector<Isometry3f> loadPosesFromDir(std::string dir, std::string prefix){
         vec.push_back(Isometry3f(LoadingSaving::loadMatrix4f(it)));
     }
 
-    cout<<"posesfromdir"<<endl;
-    for(auto it : vec){
-        cout<<endl<<it.matrix()<<endl;
-    }
+//    cout<<"posesfromdir"<<endl;
+//    for(auto it : vec){
+//        cout<<endl<<it.matrix()<<endl;
+//    }
 
+    cout<<"loaded "<<vec.size()<<" poses from file "<<poses[0]<<endl;
+
+    return vec;
+}
+
+vector<Isometry3f> loadPoses(string dir, string prefix){
+    vector<string> poses = getAllTextFilesFromFolder(dir,prefix);
+    vector<Isometry3f> vec;
+    if(poses.size() == 1){
+        return loadPosesFromFile(poses[0]);
+    }else if(poses.size()>1){
+        for(auto it : poses){
+            vec.push_back(Isometry3f(LoadingSaving::loadMatrix4f(it)));
+        }
+        cout<<"loaded "<<vec.size()<<" poses from dir "<<dir<<" with prefix "<<prefix<<endl;
+    }else{
+        cerr<<"no poses provided"<<endl;
+    }
     return vec;
 }
 
@@ -517,21 +588,31 @@ string getOSSeparator() {
 #include <vector>
 
 bool isPrefixAndSuffix(const char* file, uint16_t filename_length, string prefix, string suffix){
-   /// const char* file = filename.c_str();
-    char* startPrefix=strstr(file,prefix.c_str());
-    char* startSuffix=strstr(file,suffix.c_str());
 
+
+   char* startSuffix=strstr(file,suffix.c_str());
+   bool isSuffix = (startSuffix-file) == filename_length - suffix.length();
+   if(!isSuffix) return false;
+
+
+   if(prefix[0]=='*'){
+        string contains = prefix.substr (1);
+        char* startContains=strstr(file,contains.c_str());
+        bool isContains = (startContains-file >= 0); //contains
+        return isContains;
+   }
+
+    char* startPrefix=strstr(file,prefix.c_str());
     bool isPrefix = (startPrefix-file == 0);
-    bool isSuffix = (startSuffix-file) == filename_length - suffix.length();
 
     //cout<<"start: "<<isPrefix<<" end:"<<isSuffix<<endl;
 
-    return isPrefix && isSuffix;
+    return isPrefix;
 }
 #include <algorithm>    // std::any_of
 //#include <array>        // std::array
 
-const vector<string> SUFFIX_IMAGE = {".png", ".jpg",".tif",".exr"};
+const vector<string> SUFFIX_IMAGE = {".png", ".jpg",".tif",".exr",".bmp"};
 const vector<string> SUFFIX_TEXT  = {".txt",".xyz"};
 //const std::array<string,1> SUFFIX_PLY   = {".ply"};
 
@@ -561,8 +642,9 @@ vector<string> getAllFilesFromFolder(string dirStr, string prefix, vector<string
   dir = opendir(dirStr.c_str());
 
   if (!dir) {
-    cerr << "Could not open directory " << dirStr << ". Exiting..." << endl;
-    exit(1);
+    cerr << "Could not open directory " << dirStr <<endl;//<< ". Exiting..." << endl;
+    return allImages;
+    //exit(1);
   }
 
   const string sep = getOSSeparator();

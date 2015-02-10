@@ -13,6 +13,9 @@
 #include <eigen3/Eigen/Dense>
 #include <math.h>
 
+#include "Params.h"
+
+
 #include "LoadingSaving.h"
 #include "PPF.h"
 #include "Constants.h"
@@ -39,7 +42,7 @@ namespace PointPairFeatures{
 
     bool isPoseCloseToIdentity(Isometry3f P1, float eps);
 
-    bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra);
+    bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l=Params::getInstance()->thresh_rot, float thresh_tra_l=Params::getInstance()->thresh_tra);
 
     //TrainedModel trainModel(PointCloud m);
     //GlobalModelDescription buildGlobalModelDescription(PointCloud m);
@@ -55,7 +58,7 @@ namespace PointPairFeatures{
     Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double angleAroundXAxis);
 
 
-    vector<Poses> clusterPoses(Poses, float thresh_rot_l=thresh_rot, float thresh_tra_l=thresh_tra); //todo: several poses can be returned if severel instances of object in scene
+    vector<Poses> clusterPoses(Poses, float thresh_rot_l=Params::getInstance()->thresh_rot, float thresh_tra_l=Params::getInstance()->thresh_tra); //todo: several poses can be returned if severel instances of object in scene
 
     vector<Pose> fromIsometry(vector<Isometry3f>& isom);
 

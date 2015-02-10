@@ -11,37 +11,37 @@
 #include <eigen3/Eigen/Geometry>
 #include <math.h>
 
-PPF2 PPF::makePPF2(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j){
-    PPF2 ppf;
-    ppf.i=i;
-    //ppf.j=j;
+//PPF2 PPF::makePPF2(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j){
+//    PPF2 ppf;
+//    ppf.i=i;
+//    //ppf.j=j;
 
-    Vector3f m1=pts[i];
-    Vector3f n1=nor[i];
-    Vector3f m2=pts[j];
-    Vector3f n2=nor[j];
+//    Vector3f m1=pts[i];
+//    Vector3f n1=nor[i];
+//    Vector3f m2=pts[j];
+//    Vector3f n2=nor[j];
 
-    Vector3f dist = m1-m2;
-    Vector3f dn=dist.normalized();
+//    Vector3f dist = m1-m2;
+//    Vector3f dn=dist.normalized();
 
-    //discretise
-    uint8_t d,n1d,n2d,n1n2;  //all of these are <255
-    d = dist.norm()/ddist; //Euclidean distance
-    n1d = acos(n1.dot(dn))/dangle;
-    n2d = acos(n2.dot(dn))/dangle;
-    n1n2 = acos(n1.dot(n2))/dangle;
+//    //discretise
+//    uint8_t d,n1d,n2d,n1n2;  //all of these are <255
+//    d = dist.norm()/Params::ddist; //Euclidean distance
+//    n1d = acos(n1.dot(dn))/Params::dangle;
+//    n2d = acos(n2.dot(dn))/Params::dangle;
+//    n1n2 = acos(n1.dot(n2))/Params::dangle;
 
-    //hashkey
-    //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
-    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
-    ppf.k = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
+//    //hashkey
+//    //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
+//    //return k.d + k.n1d*nangle + k.n2d*nangle*nangle + k.n1n2*nangle*nangle*nangle;  //ndist=20 must be smaller than nangle=30
+//    ppf.k = (d | (n1d<<8) | (n2d<<16) | (n1n2<<24));
 
-    //calculate angle
-    ppf.alpha = planarRotAngle(m1,n1,m2);
+//    //calculate angle
+//    ppf.alpha = planarRotAngle(m1,n1,m2);
 
-    return ppf;
+//    return ppf;
 
-}
+//}
 
 PPF::PPF(){
     //cout<<"default const"<<endl;
@@ -64,10 +64,10 @@ PPF::PPF(const vector<Vector3f> &pts, const vector<Vector3f> &nor, int i, int j)
 
     //discretise
     uint8_t d,n1d,n2d,n1n2;  //all of these are <255
-    d=f.x()/ddist;
-    n1d=f.y()/dangle;
-    n2d=f.z()/dangle;
-    n1n2=f.w()/dangle;
+    d=f.x()/Params::getInstance()->ddist;
+    n1d=f.y()/Params::getInstance()->dangle;
+    n2d=f.z()/Params::getInstance()->dangle;
+    n1n2=f.w()/Params::getInstance()->dangle;
 
     //hashkey
     //return p(0)*ndist*ndist*ndist + p(1)*nangle*nangle + p(2)*nangle + p(3);  //TODO does it still work if nangle != ndist?
