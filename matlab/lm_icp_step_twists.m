@@ -1,52 +1,72 @@
-function [] = lm_icp_step_twists(pts, ptsRef)
+function [P,h] = lm_icp_step_twists(ptsRef, pts,h)
 
 % initialization
 xi = [0 0 0 0 0 0]'; %twist
 
 % just do at most 20 steps.
-errLast = 1e10;
-for i=1:10
+errLast = 200000;
+%tau=0.1;
+
+%fitzgibbon, 2.2
+lambda=0.1;
+
+lambdaFac=2;
+
+for i=1:50
+    
+    Test = se3Exp(xi);
+    
+    
+    pts2=project(Test,pts);
+    
+    delete(h);
+    h=plotCloud(pts2,'g');
+    hold on;
+
+    pause(0.1);
 
     % calculate Jacobian of residual function (Matrix of dim (width*height) x 6)
     [Jac, residual] = deriveErrorNumeric(ptsRef,pts,xi);   % ENABLE ME FOR NUMERIC DERIVATIVES
-   %[Jac, residual] = deriveErrAnalytic(IRef,DRef,I,xi,Klvl);   % ENABLE ME FOR ANALYTIC DERIVATIVES
+    %[Jac, residual] = deriveErrorAnalytic(ptsRef,pts,xi);   % ENABLE ME FOR ANALYTIC DERIVATIVES
 
-    % just take the pixels that have no NaN (e.g. because
-    % out-of-bounds, or because the didnt have valid depth).
-    valid = ~isnan(sum(Jac,2));
-    residualTrim = residual(valid,:);
-    JacTrim = Jac(valid,:);
+   
 
+    
     % do Gauss-Newton step
-    upd = - (JacTrim' * JacTrim)^-1 * JacTrim' * residualTrim;
+    JTJ = Jac' * Jac;
+    %Quad = ( JTJ)^-1;
+    Quad = ( JTJ + lambda * eye(6))^-1;
+    Quad = real(Quad);
+    upd = - Quad * Jac' * residual;
+    
+    %upd = - Jac' * residual;
 
     % MULTIPLY increment from left onto the current estimate.
-    xi = se3Log(se3Exp(upd) * se3Exp(xi))
+    xi = real(se3Log(se3Exp(upd) * se3Exp(xi)));
+
+
 
     % get mean and display
-    err = mean(residualTrim .* residualTrim)
+    err = mean(residual .* residual); %mean
+    disp(['i: ' num2str(i) ' err: ' num2str(err) ' lambda: ' num2str(lambda)]);
 
+       % break if no improvement
+%      if(abs(err-errLast) < 1e-02)%err / errLast > 0.99)
+%          disp('Optmization stopped err-errLast < 1e-6');
+%          break;
+%      end
+%     elseif(err / errLast > 0.6)
+%        lambda = lambda * lambdaFac; 
+%     elseif (err / errLast < 0.4)
+%         lambda = lambda / lambdaFac;
+%    
+    %lambda = i*50;
 
-    Test = se3Exp(xi);
-    plotCloud(project(Test,pts),'r');
-    hold on;
-    plotCloud(ptsRef,'b');
-    axis vis3d;
-    hold off;
-
-
-    %calcErr(c1,d1,c2,xi,K);
-    pause(0.1);
-
-    % break if no improvement
-%         if(err / errLast > 0.99)
-%             break;
-%         end
+    
     errLast = err;
 end
+P = se3Exp(xi);
 end
-    
-    
     
 % Determine the RMS error between two point equally sized point clouds with
 % point correspondance.
@@ -56,11 +76,19 @@ function ER = rms_error(p1,p2)
     ER = sqrt(mean(dsq));
 end
 
+function [ D ] = project(P,C)
+    Cok=[C(:,1:3) ones(size(C,1),1)]';
+    Dbad=(P*Cok)';
+    D=Dbad(:,1:3); %D=D(1:end,:);
+end
+
+
+
 function [ err ] = calcError(ptsRef, pts, xi)
     T = se3Exp(xi);
     ptsProj = project(T,pts);
-    diffVec=ptsRef - ptsProj;
-    err = sqrt(sum(diffVec .* diffVec,2));
+    diffVec=ptsProj - ptsRef;
+    err = dot(diffVec,diffVec,2);
 end
 
 function [ Jac, residual ] = deriveErrorNumeric(ptsRef, pts, xi)
@@ -75,7 +103,34 @@ function [ Jac, residual ] = deriveErrorNumeric(ptsRef, pts, xi)
         xiPerm =  se3Log(se3Exp(epsVec) * se3Exp(xi));
         xiPerm = real(xiPerm);
         residualPerm = calcError(ptsRef,pts,xiPerm);
-        diff = (residual - residualPerm);
+        diff = (residualPerm - residual);
         Jac(:,j) = diff / eps;
     end
+end
+
+function [ Jac, residual ] = deriveErrorAnalytic(ptsRef, pts, xi)
+    Jac = zeros(size(pts,1),6);
+    T = se3Exp(xi);
+    ptsProj = project(T,pts);
+    
+    diffVec=ptsProj - ptsRef;
+    residual = dot(diffVec,diffVec,2);
+    
+    for i=1:size(pts,1)
+            p2=ptsProj(i,:);
+            d = [eye(3) -hat(p2)];
+            
+            pdiff=diffVec(i,:);
+            
+            bla=pdiff*d;
+            
+            Jac(i,:)=2*bla;
+
+        
+        
+    end
+    
+    
+    %Jac(:,1) = 
+    
 end
