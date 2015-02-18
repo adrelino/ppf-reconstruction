@@ -36,9 +36,11 @@ for k=1:n
     if(k==n)
         T = eye(4);
         T(1:3,4)=[0.01,0.02,0.03];
+        %T(1:3,4)=[0.1,0.5,3];
+        %T(1:3,1:3)=eulerAngle(pi/19,-pi*0.001,pi/23);
         poses{k}=poses{k}*T;
     end
-%     
+    
     cams(k,1:3)=poses{k}(1:3,4)';
     camsG(k,1:3)=posesGroundTruth{k}(1:3,4)';
 
@@ -52,10 +54,10 @@ for k=1:n
 
 end
 
-po=plot3(cams(:,1),cams(:,2),cams(:,3));
-hold on;
-plot3(camsG(:,1),camsG(:,2),camsG(:,3),'g');
-hold on;
+% po=plot3(cams(:,1),cams(:,2),cams(:,3));
+% hold on;
+% plot3(camsG(:,1),camsG(:,2),camsG(:,3),'g');
+% hold on;
 
 %poses{k}(1,4) = poses{k}(1,4);
 %cloud1 = clouds{k}(:,1:3);%project(poses{k},clouds{k});
@@ -86,9 +88,9 @@ for round=1:50
 
 
     %Test = lm_icp_step_eulerAngles(ptsRef,pts);
-    Test = lm_icp_step_twists(ptsRef,pts);
+    %Test = lm_icp_step_twistsSimple(ptsRef,pts);
 
-    %[Test,h2] = lm_icp_step_twists(ptsRef,pts,h{k});    h{k}=h2;
+    [Test,h2] = lm_icp_step_twists(ptsRef,pts,h{k});    h{k}=h2;
     cloud2=project(Test,cloud2);
     cloudsPr{k}=cloud2;
     
@@ -109,10 +111,10 @@ for round=1:50
 
     end
     
-    delete(po);
-    po=plot3(cams(:,1),cams(:,2),cams(:,3),'r');
-    hold on;
-    drawnow;
+%     delete(po);
+%     po=plot3(cams(:,1),cams(:,2),cams(:,3),'r');
+%     hold on;
+%     drawnow;
     
     disp(round);
     

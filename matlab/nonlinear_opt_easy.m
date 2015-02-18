@@ -1,26 +1,39 @@
 function [] = nonlinear_opt_easy()
 close all;
-axis vis3d;   
+axis vis3d;
+
+n = 1000;
+zNoise = 0.001;
+yNoise = 0.25;
 
 T = eye(4);
 T(1:3,4)=[0.1,0.5,3];
 T(1:3,1:3)=eulerAngle(pi/4,-pi*0.9,pi/2);
 
-ptsRef = randn(100,3);
-ptsRef(:,3) = ptsRef(:,3)*0.001;
-pts = project(T,ptsRef);
+ptsRef = rand(n,3);
+ptsRef(:,3) = ptsRef(:,3)*zNoise;
+ptsRef(:,2) = ptsRef(:,2)*yNoise;
+
+ptsPreProj = ptsRef;
+noise = randn(n,3)*0.01;
+noise(:,3) = noise(:,3)*zNoise;
+noise(:,2) = noise(:,2)*yNoise;
+ptsPreProj = ptsPreProj+noise;
+
+pts = project(T,ptsPreProj);
+
+
     
 plotCloud(ptsRef,'b');hold on;
 plotCloud(pts,'r');hold on;
 h=plotCloud(pts,'g');hold on;
 
-    
-%Test = lm_icp_step_eulerAngles(ptsRef,pts);
-%Test = lm_icp_step_twists(ptsRef,pts);
 
-[Test] = lm_icp_step_twists(ptsRef,pts,h);
+Ref = lm_icp_step_twistsSimple(pts,ptsRef);
+Test = lm_icp_step_twists(pts,ptsRef,h);
 
 disp(T);
+disp(Ref);
 disp(Test);
     
 end
