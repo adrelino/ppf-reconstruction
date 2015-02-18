@@ -30,11 +30,12 @@ h=plotCloud(pts,'g');hold on;
 
 
 Ref = lm_icp_step_twistsSimple(pts,ptsRef);
-Test = lm_icp_step_twists(pts,ptsRef,h);
+plotCloud(project(Ref,ptsRef),'m');
+%Test = lm_icp_step_twists(pts,ptsRef,h);
 
 disp(T);
 disp(Ref);
-disp(Test);
+%disp(Test);
     
 end
 

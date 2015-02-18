@@ -88,9 +88,9 @@ for round=1:50
 
 
     %Test = lm_icp_step_eulerAngles(ptsRef,pts);
-    %Test = lm_icp_step_twistsSimple(ptsRef,pts);
+    Test = lm_icp_step_twistsSimple(ptsRef,pts);
 
-    [Test,h2] = lm_icp_step_twists(ptsRef,pts,h{k});    h{k}=h2;
+    %[Test,h2] = lm_icp_step_twists(ptsRef,pts,h{k});    h{k}=h2;
     cloud2=project(Test,cloud2);
     cloudsPr{k}=cloud2;
     
