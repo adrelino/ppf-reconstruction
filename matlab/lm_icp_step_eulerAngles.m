@@ -1,4 +1,4 @@
-function [P] = lm_icp(q,p)
+function [P] = lm_icp_step_eulerAngles(q,p)
 
 p=p';
 q=q';

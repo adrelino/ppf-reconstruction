@@ -1,11 +1,11 @@
-function [] = nonlinear_opt()
+function [] = lm_icp_hard()
 %close all;
 %addpath('../PointPairFeaturesImpl');
 dir = '/Users/adrian/git/point-pair-features/samples/Bunny_RealData/';
 
 
-close all;
-%figure;
+%close all;
+figure;
 axis vis3d;
 
 n=2;
@@ -88,9 +88,9 @@ for round=1:50
 
 
     %Test = lm_icp_step_eulerAngles(ptsRef,pts);
-    Test = lm_icp_step_twistsSimple(ptsRef,pts);
+    %Test = lm_icp_step_twistsSimple(ptsRef,pts);
 
-    %[Test,h2] = lm_icp_step_twists(ptsRef,pts,h{k});    h{k}=h2;
+    Test = lm_icp_step_twists(pts,ptsRef);%    h{k}=h2;
     cloud2=project(Test,cloud2);
     cloudsPr{k}=cloud2;
     

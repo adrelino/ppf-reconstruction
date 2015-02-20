@@ -1,10 +1,12 @@
-function [] = nonlinear_opt_easy()
+function [] = lm_icp_easy()
 close all;
 axis vis3d;
 
 n = 1000;
 zNoise = 0.001;
 yNoise = 0.25;
+
+sigma = 0.1;
 
 T = eye(4);
 T(1:3,4)=[0.1,0.5,3];
@@ -15,27 +17,23 @@ ptsRef(:,3) = ptsRef(:,3)*zNoise;
 ptsRef(:,2) = ptsRef(:,2)*yNoise;
 
 ptsPreProj = ptsRef;
-noise = randn(n,3)*0.01;
+noise = randn(n,3)*sigma;
 noise(:,3) = noise(:,3)*zNoise;
 noise(:,2) = noise(:,2)*yNoise;
 ptsPreProj = ptsPreProj+noise;
 
 pts = project(T,ptsPreProj);
+%pts = T * ptsRef  <--> T : ptsRef -> pts
 
 
-    
-plotCloud(ptsRef,'b');hold on;
-plotCloud(pts,'r');hold on;
-h=plotCloud(pts,'g');hold on;
 
 
-Ref = lm_icp_step_twistsSimple(pts,ptsRef);
-plotCloud(project(Ref,ptsRef),'m');
-%Test = lm_icp_step_twists(pts,ptsRef,h);
+%Ref = lm_icp_step_twistsSimple(pts,ptsRef);
+Test = lm_icp_step_twists(ptsRef,pts);
 
 disp(T);
-disp(Ref);
-%disp(Test);
+%disp(Ref);
+disp(Test);
     
 end
 
