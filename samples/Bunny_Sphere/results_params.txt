@@ -1,0 +1,2 @@
+-nFrames 5\\
+-knn 5\\
