@@ -1,8 +1,8 @@
-function [ T ] = se3Exp( twist )
-M = [0 -twist(6) twist(5) twist(1);
-     twist(6) 0 -twist(4) twist(2);
-     -twist(5) twist(4) 0 twist(3);
-     0 0 0 0];
-T = expm(M);
+function [ T ] = se3Exp( xi )
+    xi_hat = [0 -xi(6) xi(5) xi(1);
+              xi(6) 0 -xi(4) xi(2);
+              -xi(5) xi(4) 0 xi(3);
+              0      0     0    0];
+    T = expm(xi_hat);
 end
 

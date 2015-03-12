@@ -29,11 +29,14 @@ pts = project(T,ptsPreProj);
 
 
 %Ref = lm_icp_step_twistsSimple(pts,ptsRef);
-Test = lm_icp_step_twists(ptsRef,pts);
+%Test = lm_icp_step_twists(ptsRef,pts);
+Test1 = pointToPoint_lm_twists(ptsRef,pts);
+Test2 = pointToPoint(ptsRef,pts);
 
-disp(T);
+
+disp(Test1-Test2);
 %disp(Ref);
-disp(Test);
+%disp(Test);
     
 end
 
