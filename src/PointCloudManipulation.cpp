@@ -10,8 +10,199 @@
 #include "Visualize.h"
 #include "PointPairFeatures.h"
 
+namespace ICP {
+
+//K called correlation matrix in eggert_comparison_mva97, is actually a covariance matrix multiplied by N
+//http://graphics.stanford.edu/~smr/ICP/comparison/eggert_comparison_mva97.pdf
+Isometry3f pointToPoint(vector<Vector3f>&src,vector<Vector3f>&dst){
+    int N = src.size(); assert(N==dst.size());
+    Map<Matrix3Xf> ps(&src[0].x(),3,N); //maps vector<Vector3f>
+    Map<Matrix3Xf> qs(&dst[0].x(),3,N); //to Matrix3Nf columnwise
+    Vector3f p_dash = ps.rowwise().mean();
+    Vector3f q_dash = qs.rowwise().mean();
+    Matrix3Xf ps_centered = ps.colwise() - p_dash;
+    Matrix3Xf qs_centered = qs.colwise() - q_dash;
+    Matrix3f K = qs_centered * ps_centered.transpose();
+    JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
+    Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
+    if(R.determinant()<0){
+        R.col(2) *= -1;
+    }
+    Isometry3f T = Isometry3f::Identity();
+    T.linear() = R;
+    T.translation() = q_dash - R*p_dash; return T;
+}
+
+// https://www.comp.nus.edu.sg/~lowkl/publications/lowk_point-to-plane_icp_techrep.pdf
+// http://www.cs.princeton.edu/~smr/papers/icpstability.pdf
+Isometry3f pointToPlane(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor){
+    assert(src.size()==dst.size() && src.size()==nor.size());
+    Matrix<float,6,6> C; C.setZero();
+    Matrix<float,6,1> d; d.setZero();
+
+    for(uint i=0;i<src.size();++i){
+        Vector3f cro = src[i].cross(nor[i]);
+        C.block<3,3>(0,0) += cro*cro.transpose();
+        C.block<3,3>(0,3) += nor[i]*cro.transpose();
+        C.block<3,3>(3,3) += nor[i]*nor[i].transpose();
+        float sum = (src[i]-dst[i]).dot(nor[i]);
+        d.head(3) -= cro*sum;
+        d.tail(3) -= nor[i]*sum;
+    }
+    C.block<3,3>(3,0) = C.block<3,3>(0,3);
+
+    Matrix<float,6,1> x = C.ldlt().solve(d);
+    Isometry3f T = Isometry3f::Identity();
+    T.linear() = (   AngleAxisf(x(0), Vector3f::UnitX())
+                   * AngleAxisf(x(1), Vector3f::UnitY())
+                   * AngleAxisf(x(2), Vector3f::UnitZ())
+                 ).toRotationMatrix();
+    T.translation() = x.block(3,0,3,1);
+    return T;
+}
+
+// Point to Point with Scale
+// http://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2005/Zinsser05-PSR.pdf
+Isometry3f computeStepPointToPointWithScale(vector<Vector3f> &src,vector<Vector3f> &dst,bool withScale)
+{
+    assert(src.size()==dst.size());
+    Vector3f a = PointCloudManipulation::getCentroid(src);
+    Vector3f b = PointCloudManipulation::getCentroid(dst);
+
+    Matrix3f K = Matrix3f::Zero();
+    for (uint i=0; i < src.size();i++)
+        K += (b-dst[i])*(a-src[i]).transpose();
+
+
+    JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
+    Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
+    if(R.determinant()<0) R.col(2) *= -1;
+
+    if (withScale)
+    {
+        float s_up=0,s_down=0;
+        for (uint i=0; i < src.size();i++)
+        {
+            Vector3f b_tilde = (b-dst[i]);
+            Vector3f a_tilde = R*(a-src[i]);
+            s_up += b_tilde.dot(a_tilde);
+            s_down += a_tilde.dot(a_tilde);
+        }
+        R *= s_up/s_down;
+    }
+
+    Isometry3f transform = Isometry3f::Identity();
+    transform.linear() = R;
+    transform.translation() = b - R*a;
+    return transform;
+}
+
+} //end namespace ICP
+
 namespace PointCloudManipulation{
 CPUTimer timer = CPUTimer();
+
+void pointSetPCA(const vector<Vector3f>& pts, Vector3f& centroid, Vector3f& normal, float& curvature){
+
+    assert(pts.size()>=3); //otherwise normals are undetermined
+    Map<const Matrix3Xf> P(&pts[0].x(),3,pts.size());
+
+    centroid = P.rowwise().mean();
+    MatrixXf centered = P.colwise() - centroid;
+    Matrix3f cov = centered * centered.transpose();
+
+    //eigvecs sorted in increasing order of eigvals
+    SelfAdjointEigenSolver<Matrix3f> eig(cov);
+    normal = eig.eigenvectors().col(0); //is already normalized
+    if (normal(2) > 0) normal = -normal; //flip towards camera
+    Vector3f eigVals = eig.eigenvalues();
+    curvature = eigVals(0) / eigVals.sum();
+}
+
+Isometry3d pointToPointD(vector<Vector3d>&src,vector<Vector3d>&dst){
+    int N = src.size(); assert(N==dst.size());
+    Map<Matrix3Xd> ps(&src[0].x(),3,N); //maps vector<Vector3f>
+    Map<Matrix3Xd> qs(&dst[0].x(),3,N); //to Matrix3Nf columnwise
+    Vector3d p_dash = ps.rowwise().mean();
+    Vector3d q_dash = qs.rowwise().mean();
+    Matrix3Xd ps_centered = ps.colwise() - p_dash;
+    Matrix3Xd qs_centered = qs.colwise() - q_dash;
+    Matrix3d K = qs_centered * ps_centered.transpose();
+    JacobiSVD<Matrix3d> svd(K, ComputeFullU | ComputeFullV);
+
+    //U,d,Vh = numpy.linalg.linalg.svd(W.transpose())
+    Matrix3d S = Matrix3d::Identity();
+    if(svd.matrixU().determinant() * svd.matrixV().transpose().determinant()<0){
+        S(2,2)= -1;
+    }
+    //rot = U*S*Vh
+    Matrix3d R = svd.matrixU()*S*svd.matrixV().transpose();
+
+
+//    Matrix3d R = svd.matrixU()*svd.matrixV().transpose();
+//    if(R.determinant()<0){
+//        R.col(2) *= -1;
+//    }
+
+    Isometry3d T = Isometry3d::Identity();
+    T.linear() = R;
+    T.translation() = q_dash - R*p_dash; return T;
+}
+
+Isometry3d leastSquaresEstimatedTrajectoryOntoGroundTruth(std::vector< std::shared_ptr<PointCloud> >& frames){
+    std::vector<Vector3d> src,dst;
+    for (int i = 0; i < frames.size(); ++i) {
+        PointCloud& currentFrame = *frames[i];
+        //if(currentFrame.neighbours.size()>0 || currentFrame.fixed){
+            src.push_back(currentFrame.pose.translation().cast<double>());
+            dst.push_back(currentFrame.poseGroundTruth.translation().cast<double>());
+        //}
+    }
+    return pointToPointD(src,dst);
+}
+
+vector<double> ateVector(std::vector< std::shared_ptr<PointCloud> >& frames, Isometry3d S){
+    int N = frames.size();
+    vector<double> ateVec(N);
+
+    for (int i = 0; i < N; ++i) {
+        PointCloud& currentFrame = *frames[i];
+        Isometry3d Q_i = currentFrame.poseGroundTruth.cast<double>();
+        Isometry3d P_i = currentFrame.pose.cast<double>();
+
+        Isometry3d F_i = Q_i.inverse() * S * P_i;
+        Vector3d t = F_i.translation();
+
+        ateVec[i] = t.norm();
+    }
+
+    return ateVec;
+}
+
+vector<double> rpeVector(std::vector< std::shared_ptr<PointCloud> >& frames, int delta){
+    int N = frames.size();
+    int m = N - delta;
+    assert(delta>0 && delta<=N);
+    vector<double> rpeVec(m);
+
+    for (int i = 0; i < m; ++i) {
+        PointCloud& currentFrame = *frames[i];
+        Isometry3d Q_i = currentFrame.poseGroundTruth.cast<double>();
+        Isometry3d P_i = currentFrame.pose.cast<double>();
+
+        Isometry3d Q_i_plus_delta = frames[i+delta]->poseGroundTruth.cast<double>();
+        Isometry3d P_i_plus_delta = frames[i+delta]->pose.cast<double>();
+
+        Isometry3d E = (Q_i.inverse() * Q_i_plus_delta ).inverse() * (P_i.inverse() * P_i_plus_delta);
+
+        Vector3d t = E.translation();
+        rpeVec[i] = t.norm();
+    }
+
+    return rpeVec;
+}
+
+
 
 float registrationErrorTra(vector< std::shared_ptr<PointCloud> >& frames){
 
@@ -319,118 +510,9 @@ Vector3f PointCloudManipulation::getNormal(vector<Vector3f>& pts){
     return no;
 }
 
-//point to plane
-Isometry3f ICP::computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor)
-
-{
-
-    assert(src.size()==dst.size() && src.size()==nor.size());
 
 
 
-// Maybe also have a look at that?
-
-   // https://www.comp.nus.edu.sg/~lowkl/publications/lowk_point-to-plane_icp_techrep.pdf
-
-
-
-    // http://www.cs.princeton.edu/~smr/papers/icpstability.pdf
-
-    Matrix<float,6,6> C;
-
-    Matrix<float,6,1> b;
-
-    C.setZero();
-
-    b.setZero();
-
-    for(uint i=0;i<src.size();++i)
-
-    {
-
-        Vector3f cro = src[i].cross(nor[i]);
-
-        C.block<3,3>(0,0) += cro*cro.transpose();
-
-        C.block<3,3>(0,3) += nor[i]*cro.transpose();
-
-        C.block<3,3>(3,3) += nor[i]*nor[i].transpose();
-
-
-
-        float sum = (src[i]-dst[i]).dot(nor[i]);
-
-        b.head(3) -= cro*sum;
-
-        b.tail(3) -= nor[i]*sum;
-
-    }
-
-    C.block<3,3>(3,0) = C.block<3,3>(0,3);
-
-    Matrix<float,6,1> x = C.ldlt().solve(b);
-
-
-
-    Isometry3f transform = Isometry3f::Identity();
-
-    transform.linear() =
-
-            (AngleAxisf(x(0), Vector3f::UnitX())
-
-             * AngleAxisf(x(1), Vector3f::UnitY())
-
-             * AngleAxisf(x(2), Vector3f::UnitZ())).toRotationMatrix();
-
-    transform.translation() = x.block(3,0,3,1);
-
-
-
-    return transform;
-
-}
-
-
-//point to point
-//a,b sind centroids
-Isometry3f ICP::computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,Vector3f &a,Vector3f &b,bool withScale)
-{
-    assert(src.size()==dst.size());
-
-    // http://www5.informatik.uni-erlangen.de/Forschung/Publikationen/2005/Zinsser05-PSR.pdf
-
-    Matrix3f K = Matrix3f::Zero();
-    for (uint i=0; i < src.size();i++)
-        K += (b-dst[i])*(a-src[i]).transpose();
-
-    JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
-    Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
-    if(R.determinant()<0) R.col(2) *= -1;
-
-    if (withScale)
-    {
-        float s_up=0,s_down=0;
-        for (uint i=0; i < src.size();i++)
-        {
-            Vector3f b_tilde = (b-dst[i]);
-            Vector3f a_tilde = R*(a-src[i]);
-            s_up += b_tilde.dot(a_tilde);
-            s_down += a_tilde.dot(a_tilde);
-        }
-        R *= s_up/s_down;
-    }
-
-    Isometry3f transform = Isometry3f::Identity();
-    transform.linear() = R;
-    transform.translation() = b - R*a;
-    return transform;
-}
-
-Isometry3f ICP::computeStep(vector<Vector3f> &src, vector<Vector3f> &dst, bool withScale){
-    Vector3f a = PointCloudManipulation::getCentroid(src);
-    Vector3f b = PointCloudManipulation::getCentroid(dst);
-    return computeStep(src,dst,a,b,withScale);
-}
 
 //every point in srcCloud is matched with the closest point to it in dstCloud, if this distance is smaller than thresh
 //note: not every point in dstCloud is matched (e.g. back of bunny when srcCloud is a  frame)
@@ -562,45 +644,3 @@ float PointCloudManipulation::getClosesPoints(PointCloud& srcCloud, PointCloud& 
 
 //    return PPP;
 //}
-
-Isometry3f ICP::getTransformationBetweenPointClouds(PointCloud& model, PointCloud& scene, int maxIter, float eps){
-
-    Isometry3f P_Iterative_ICP = Isometry3f::Identity(); //initialize with ppf coarse alignment
-
-
-
-        int j = 0;
-        for (; j < maxIter; ++j) {
-            vector<Vector3f> src,dst,nor,norSrc;
-
-            //model.project(P_Iterative_ICP);
-            PointCloudManipulation::getClosesPoints(model,scene,src,dst,0.04f,false,nor,norSrc);
-
-            //Visualize::setLines(src,dst);
-
-            //cout<<"Iteration "<<j<<endl;
-            cout<<"# Scene to Model Correspondences: "<<src.size()<<"=="<<dst.size()<<endl;
-
-            //Visualize::spin(3);
-
-
-            //cout<<"ICP "<<endl;
-
-            Isometry3f P_incemental = ICP::computeStep(src,dst,false);
-            //PointPairFeatures::printPose(P_incemental, "P incremental ICP");
-            if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,eps)){
-                break;
-            }
-            P_Iterative_ICP = P_Iterative_ICP * P_incemental;
-
-
-            //Visualize::setModelTransformed(curr);
-
-
-        }
-
-        cout<<"ICP converged after #steps="<<j<<endl;
-
-        return P_Iterative_ICP;
-
-}

@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include "Eigen/Dense"
 
 
 // parameter processing
@@ -55,12 +56,16 @@ template<typename T> bool getParam(std::string param, T &var, int argc, char **a
 using namespace std;
 
 #include <math.h>
+#include <opencv2/core.hpp>
+#include <map>
 
 class Params
 {
 private:
 
     static Params* instance;
+
+    //std::map<string,string> nonDefaultParams;
 
     Params(){
         //model diameter, downsampling
@@ -86,7 +91,10 @@ private:
 
 
 
+
 public:
+    cv::Mat grayMap,colorMap;
+
 
     static string getDir(){
         return getInstance()->dir;
@@ -145,6 +153,8 @@ public:
 
 
     }
+
+    Eigen::Vector3f colorJet(float val, float min, float max);
 
 
 };

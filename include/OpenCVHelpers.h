@@ -11,15 +11,16 @@
 #include <iostream>
 
 namespace OpenCVHelpers {
+
 using namespace std;
 using namespace cv;
 
-void showImage(const string &wndTitle, const Mat& img){
+static void showImage(const string &wndTitle, const Mat& img){
     cv::namedWindow(wndTitle, WINDOW_AUTOSIZE);
     cv::imshow(wndTitle.c_str(), img);
 }
 
-void imagesc(std::string title, cv::Mat mat,InputArray mask = noArray()) {
+static void imagesc(std::string title, cv::Mat mat,InputArray mask = noArray()) {
   double min,max;
   cv::minMaxLoc(mat,&min,&max, 0, 0, mask);
 
@@ -40,31 +41,54 @@ void imagesc(std::string title, cv::Mat mat,InputArray mask = noArray()) {
   showImage(title, scaled);
 }
 
-
-void showDepthImage(const string &wndTitle, const Mat& img, InputArray mask = noArray(),bool print=false) {
+//http://stackoverflow.com/questions/13840013/opencv-how-to-visualize-a-depth-image
+static void showDepthImage(const string &wndTitle, const Mat& img) {
   double min, max;
+  Mat mask = (img>0.001f) & (img<100000000.0f);
   minMaxIdx(img, &min, &max, 0, 0, mask);
 
-  if(print) cout<<"    showDepthImage scaled:  min: "<<min<<" max:"<<max;
+  cout<<"  showDepthImage scaled:  min: "<<min<<" max:"<<max;
 
-
-
-
-  //Mat img2=img*mask;
   Mat depthMap;
 
   float scale = 255.0f / (max - min);
   img.convertTo(depthMap, CV_8UC1, scale, -min*scale);
 
-
   Mat heatMap;
   applyColorMap(depthMap, heatMap, cv::COLORMAP_JET);
+
+  heatMap.setTo(255,255-mask);
+
 
   cv::namedWindow(wndTitle, WINDOW_AUTOSIZE);
   cv::imshow(wndTitle.c_str(), heatMap);
 }
 
-std::string getImageType(int imgTypeInt)
+//http://stackoverflow.com/questions/13840013/opencv-how-to-visualize-a-depth-image
+static void showDepthImage(const string &wndTitle, const Mat& img, Mat maskO) {
+  double min, max;
+  Mat mask = (img>0.001f) & (img<100000000.0f) & maskO;
+  minMaxIdx(img, &min, &max, 0, 0, mask);
+
+  cout<<"  showDepthImageWithMask scaled:  min: "<<min<<" max:"<<max;
+
+  Mat depthMap;
+
+  float scale = 255.0f / (max - min);
+  img.convertTo(depthMap, CV_8UC1, scale, -min*scale);
+
+  Mat heatMap;
+  applyColorMap(depthMap, heatMap, cv::COLORMAP_JET);
+
+  heatMap.setTo(255,255-mask);
+
+
+  cv::namedWindow(wndTitle, WINDOW_AUTOSIZE);
+  cv::imshow(wndTitle.c_str(), heatMap);
+}
+
+
+static std::string getImageType(int imgTypeInt)
 {
     int numImgTypes = 35; // 7 base types, with five channel options each (none or C1, ..., C4)
 

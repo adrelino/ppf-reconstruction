@@ -64,8 +64,8 @@ static float blue( float gray ) {
     return base( gray + 0.5 );
 }
 
-static RowVector3f Jet(float gray){
-    return RowVector3f(red(gray),green(gray),blue(gray));
+static Vector3f Jet(float gray){
+    return Vector3f(red(gray),green(gray),blue(gray));
 }
 
 static Vector4f MAG1=Vector4f(0.3,0,0.8,1);
@@ -76,6 +76,8 @@ static Vector4f GREEN1=Vector4f(0.0,1.0,0.5,1);
 static Vector4f GREEN2=Vector4f(0.0,.4,0.1,0.5);
 static Vector3f BLUE1=Vector3f(0.0,0,0.5);
 static Vector3f BLUE2=Vector3f(0.0,0,0.8);
+static Vector3f ORANGE1=Vector3f(1,0.6,0);
+static Vector3f ORANGE2=Vector3f(1,0.6,0);
 
 }
 
@@ -86,6 +88,17 @@ static void printPose(Isometry3f P,string title=""){
     Vector3f tra(P.translation());
     Quaternionf q(P.linear());
     Vector4f rot(q.x(),q.y(),q.z(),q.w());
+    //cout<<setprecision(3);
+    if(title!="") cout<<title<<endl;
+    cout<<"tra: "<<tra.transpose()<<endl;
+    cout<<"rot: "<<rot.transpose()<<endl;
+}
+
+static void printPose(Isometry3d P,string title=""){
+    //cout<<P.matrix()<<endl;
+    Vector3d tra(P.translation());
+    Quaterniond q(P.linear());
+    Vector4d rot(q.x(),q.y(),q.z(),q.w());
     //cout<<setprecision(3);
     if(title!="") cout<<title<<endl;
     cout<<"tra: "<<tra.transpose()<<endl;
@@ -175,43 +188,41 @@ static vector<Vector3f> mat2vec(const Matrix3Xf& mat){
     return vec;
 }
 
-static bool isPoseSimilar(Isometry3f P1, Isometry3f P2, float thresh_rot_l=Params::getInstance()->thresh_rot, float thresh_tra_l=Params::getInstance()->thresh_tra){
-    //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
-    Vector3f    tra1 = P1.translation();
-    Quaternionf rot1(P1.linear());
 
-    Vector3f    tra2 = P2.translation();
-    Quaternionf rot2(P2.linear());
+//float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
 
+//float diff_rot2 = rot1.angularDistance(rot2);
 
+//http://math.stackexchange.com/questions/90081/quaternion-distance
+//float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
+//float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
+//cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
+//cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
+
+//cout<<std::fixed<<std::setprecision(3);
+
+//cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
+
+static
+bool isPoseSimilar(Isometry3f P_i, Isometry3f P_j, float t_rot, float t_tra){
+    Vector3f    tra1 = P_i.translation();
+    Quaternionf rot1(P_i.linear());
+
+    Vector3f    tra2 = P_j.translation();
+    Quaternionf rot2(P_j.linear());
 
     //Translation
-    float diff_tra=(tra1-tra2).norm();
+    float d_tra=(tra1-tra2).norm();
+
     //Rotation
     float d = rot1.dot(rot2);
-    //float diff_rot= 1 - d*d; //http://www.ogre3d.org/forums/viewtopic.php?f=10&t=79923
+    float d_rot = rad2degM(acos(2*d*d - 1));
 
-    //float diff_rot2 = rot1.angularDistance(rot2);
+    return d_rot <= t_rot && d_tra <= t_tra;
+}
 
-    //http://math.stackexchange.com/questions/90081/quaternion-distance
-    //float thresh_rot=0.25; //0 same, 1 180deg ////M_PI/10.0; //180/15 = 12
-    //float diff_rot_bertram = acos((rot1.inverse() * rot2).norm()); //bertram
-
-    float diff_rot_degrees = rad2degM(acos(2*d*d - 1));
-
-    //cout<<"diff_rot_0to1nor\t="<<diff_rot<<endl;
-    //cout<<"diff_rot_bertram\t="<<diff_rot_bertram<<endl;
-
-    //cout<<std::fixed<<std::setprecision(3);
-
-    //cout<<"rot="<<diff_rot_degrees<<"<="<<thresh_rot_degrees<<" && tra="<<diff_tra<<"<= "<<thresh_tra<<" ?: ";
-
-    if(diff_rot_degrees <= thresh_rot_l && diff_tra <= thresh_tra_l){
-      //  cout<<"yes"<<endl;
-        return true;
-    }
-    //cout<<"no"<<endl;
-    return false;
+static bool isPoseSimilar(Isometry3f P1, Isometry3f P2){
+    return isPoseSimilar(P1,P2,Params::getInstance()->thresh_rot,Params::getInstance()->thresh_tra);
 }
 
 #include <string>
@@ -240,6 +251,46 @@ static std::string poseDiff(Isometry3f P1, Isometry3f P2){
 
 }
 
+static std::string poseDiff(Isometry3d P1, Isometry3d P2){
+    //cout<<"isPoseSimilar tra: "<<thresh_tra_l<<" rot: "<<thresh_rot_l<<endl;
+    Vector3d    tra1 = P1.translation();
+    Quaterniond rot1(P1.linear());
+
+    Vector3d    tra2 = P2.translation();
+    Quaterniond rot2(P2.linear());
+
+
+    //Translation
+    double diff_tra=(tra1-tra2).norm();
+    //Rotation
+    double d = rot1.dot(rot2);
+    double val = 2*d*d - 1;
+    if(val< -1) val = -1;
+    if(val> 1) val = 1;
+    double diff_rot_degrees = rad2degM(acos(val));
+
+
+    stringstream ss;
+    ss<<"diff_tra:"<<diff_tra<<" diff_rot_degrees:"<<diff_rot_degrees<<endl;
+
+    return ss.str();
+
+}
+
+static bool isPoseCloseToIdentity(Isometry3f P1, float eps){
+    Vector3f    tra1 = P1.translation();
+    Quaternionf rot1(P1.linear());
+
+    //Translation
+    float diff_tra=tra1.norm();
+    //Rotation
+    Vector3f rot1V(rot1.x(),rot1.y(),rot1.z());  //w should be close to 1
+    float diff_rot=rot1V.norm();
+
+    return diff_tra < eps && diff_rot < eps;
+
+}
+
 
 /*
  * cv::Point3f colorMapped(int j, int max, int colorMap){
@@ -253,6 +304,14 @@ static std::string poseDiff(Isometry3f P1, Isometry3f P2){
 
 }
 */
+
+static Eigen::Matrix3f hat(Vector3f x){
+    Matrix3f mat;
+    mat<< 0,    -x(3), x(2),
+          x(3),  0 ,   -x(1),
+          -x(2), x(1), 0;
+    return mat;
+}
 
 
 

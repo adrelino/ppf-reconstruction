@@ -366,7 +366,7 @@ Poses computePoses(vector<MatrixXi>& accVec, PointCloud& m, PointCloud& s){//,ve
         int score=acc.maxCoeff(&mr, &alphaD); //TODO detect multiple peaks, but ask betram if this only happens if there are multiple object instances in the scene
 
 
-        float alpha=alphaD*Params::getInstance()->dangle;
+        float alpha=(alphaD+0.5f)*Params::getInstance()->dangle;
 
         //ref points (just one, not both of the ppf)
         Vector3f s_m=s.pts[sr];
@@ -376,9 +376,9 @@ Poses computePoses(vector<MatrixXi>& accVec, PointCloud& m, PointCloud& s){//,ve
         Vector3f m_n=m.nor[mr];
 
 
-        Isometry3f P = alignSceneToModel(s_m,s_n,m_m,m_n,alpha);
+        Isometry3f P = alignModelToScene(s_m,s_n,m_m,m_n,alpha);
 
-        P = s.pose * P * m.pose.inverse();
+        //P = s.pose * P * m.pose.inverse();
 
         vec.push_back(std::make_pair(P,score));
     }
@@ -401,14 +401,14 @@ void printPoses(Poses vec){
     RandomN::summary(scores);
 }
 
-Isometry3f alignSceneToModel(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double alpha){
+Isometry3f alignModelToScene(Vector3f s_m,Vector3f s_n,Vector3f m_m,Vector3f m_n,double alpha){
     //Isometry3f Tgs(ppfScene.T.inverse()); //TODO: check if it makes sense to store and reuse T from ppf's
-    Isometry3f Tgs = PPF::twistToLocalCoords(s_m,s_n).inverse();
+    Isometry3f Tgs = PPF::alignToOriginAndXAxis(s_m,s_n).inverse();
 
     AngleAxisf Rx(alpha, Vector3f::UnitX());
 
     //Isometry3f Tmg(ppfModel.T);
-    Isometry3f Tmg = PPF::twistToLocalCoords(m_m,m_n);
+    Isometry3f Tmg = PPF::alignToOriginAndXAxis(m_m,m_n);
 
     Isometry3f Pest = Tgs*Rx*Tmg;
 
@@ -424,20 +424,6 @@ bool isClusterSimilar(Poses cluster1, Poses cluster2, float thresh_rot_l, float 
     }
 
     return true;
-}
-
-bool isPoseCloseToIdentity(Isometry3f P1, float eps){
-    Vector3f    tra1 = P1.translation();
-    Quaternionf rot1(P1.linear());
-
-    //Translation
-    float diff_tra=tra1.norm();
-    //Rotation
-    Vector3f rot1V(rot1.x(),rot1.y(),rot1.z());  //w should be close to 1
-    float diff_rot=rot1V.norm();
-
-    return diff_tra < eps && diff_rot < eps;
-
 }
 
 vector<Pose> fromIsometry(vector<Isometry3f> &isom){

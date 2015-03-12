@@ -86,6 +86,9 @@ set(SOURCES
     src/PPF.cpp
     src/PointPairFeatures.cpp
     src/CPUTimer.cpp
+    #src/types_icp.cpp
+    #src/g2oTypeSim3Sophus.cpp
+    src/ApproachComponents.cpp
 )
 
 set(VIZ
@@ -115,7 +118,7 @@ set(VIZ
 #add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/samples)
 
 set(G2O_LIBRARIES
-    g2o_core g2o_stuff g2o_types_slam3d g2o_types_icp g2o_solver_csparse
+    g2o_core g2o_stuff g2o_types_slam3d g2o_types_icp g2o_solver_csparse g2o_csparse_extension
 )
 
 add_executable(
@@ -136,26 +139,37 @@ add_executable(
 )
 target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
-
-
-ADD_EXECUTABLE(gicp_adrian
-  src/gicp_adrian.cpp
+add_executable(
+    ppf_reconstruction
+    src/main_ppf_reconstruction.cpp
+    ${HEADERS}
+    ${SOURCES}
+    ${VIZ}
 )
-INCLUDE_DIRECTORIES(/usr/local/include/g2o)
-INCLUDE_DIRECTORIES(${CSPARSE_INCLUDE_DIR})
-
-TARGET_LINK_LIBRARIES(gicp_adrian ${OPENGL_LIBRARIES} ${G2O_LIBRARIES} )
+target_link_libraries(ppf_reconstruction ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
 
 
-#add_executable(
-#    vector_of_vectors_example
-#    src/vector_of_vectors_example.cpp
+#ADD_EXECUTABLE(gicp_adrian
+#  src/gicp_adrian.cpp
+#    ${HEADERS}
 #    ${SOURCES}
 #    ${VIZ}
 #)
-#target_link_libraries(vector_of_vectors_example ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
-#add_custom_command(TARGET vector_of_vectors_example PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:vector_of_vectors_example>/samples)
+#INCLUDE_DIRECTORIES(/usr/local/include/g2o)
+#INCLUDE_DIRECTORIES(${CSPARSE_INCLUDE_DIR})
+
+#TARGET_LINK_LIBRARIES(gicp_adrian ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
+
+
+
+#add_executable(lm-icp
+#    src/main_lm-icp.cpp
+#    ${HEADERS}
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#TARGET_LINK_LIBRARIES(lm-icp ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
 
 #add_executable(

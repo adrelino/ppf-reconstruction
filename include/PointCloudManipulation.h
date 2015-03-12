@@ -27,11 +27,13 @@ using namespace std;
 
 class PointCloud;
 
-namespace PointCloudManipulation {    
+namespace PointCloudManipulation {
 
-float registrationErrorTra(vector< std::shared_ptr<PointCloud> >& frames);
+    void pointSetPCA(const vector<Vector3f>& pts, Vector3f& centroid, Vector3f& normal, float& curvature);
 
-float registrationErrorRot(vector< std::shared_ptr<PointCloud> >& frames);
+    float registrationErrorTra(vector< std::shared_ptr<PointCloud> >& frames);
+
+    float registrationErrorRot(vector< std::shared_ptr<PointCloud> >& frames);
 
 
     double getPointCloudDiameter(PointCloud& m);
@@ -61,18 +63,20 @@ float registrationErrorRot(vector< std::shared_ptr<PointCloud> >& frames);
     //float getClosesPoints(vector<PointCloud>& frames, int srcIndex, vector<Vector3f> &src, vector<Vector3f> &dst,
     //float thresh);
 
+    Isometry3d leastSquaresEstimatedTrajectoryOntoGroundTruth(std::vector< std::shared_ptr<PointCloud> >& frames);
+    vector<double> ateVector(std::vector< std::shared_ptr<PointCloud> >& frames, Isometry3d S);
+    vector<double> rpeVector(std::vector< std::shared_ptr<PointCloud> >& frames, int delta);
+
+
+
+
 }
 
 namespace ICP {
 
-
-    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,Vector3f &a,Vector3f &b,bool withScale);
-    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor);
-    Isometry3f computeStep(vector<Vector3f> &src,vector<Vector3f> &dst,bool withScale);
-
-    //Isometry3f computeStepUnordered(MatrixXf modelPoseEst, MatrixXf sSmall, float thresh);
-
-    Isometry3f getTransformationBetweenPointClouds(PointCloud& modelEst, PointCloud& scene, int maxiter=100, float eps = 1e-3);
+    Isometry3f computeStepPointToPointWithScale(vector<Vector3f> &src,vector<Vector3f> &dst,bool withScale);
+    Isometry3f pointToPlane(vector<Vector3f> &src,vector<Vector3f> &dst,vector<Vector3f> &nor);
+    Isometry3f pointToPoint(vector<Vector3f> &src,vector<Vector3f> &dst);
 
 }
 

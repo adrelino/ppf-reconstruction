@@ -13,9 +13,11 @@
 #include <string>
 #include "Constants.h"
 
-//#include "OpenCVHelpers.h"
+#include "OpenCVHelpers.h"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+#include <iomanip>
 
 using namespace std;
 
@@ -23,21 +25,22 @@ int main(int argc, char * argv[])
 {
     int start = 0;
     bool doICP = true;
-
-
     bool showDepthMap = false;
-
     int step = 1;
-    int nFrames = 1; //number of last frames for ppf matching
+    int nFrames = 4; //number of last frames for ppf matching
 
     getParam("start", start, argc, argv);
     getParam("doICP", doICP, argc, argv);
-
     getParam("showDepthMap", showDepthMap, argc, argv);
     getParam("step", step, argc, argv);
     getParam("nFrames", nFrames, argc, argv);
 
+
     Params* inst = Params::getInstance();
+
+    float cutoff=inst->ddist*2;//0.01f;
+    getParam("cutoff", cutoff, argc, argv);
+
     inst->getParams(argc,argv);
 
     vector<string> images = LoadingSaving::getAllImagesFromFolder(Params::getDir(),"*depth");
@@ -52,9 +55,32 @@ int main(int argc, char * argv[])
 
     vector<Isometry3f> posesGroundTruth = LoadingSaving::loadPoses(Params::getDir(),"pose");
 
+    LoadingSaving::savePosesEvalutationGroundTruth(posesGroundTruth);
+
     vector< std::shared_ptr<PointCloud> > frames;
 
     Visualize::setClouds(&frames);
+
+
+    Visualize::setCallbackForKey('s',[&]() -> void{
+        int i;
+        for (i = 0; i < frames.size(); ++i) {
+            std::stringstream ss;
+            PointCloud& cloud = *frames[i];
+            ss<<Params::getInstance()->dir<<"/"<<Params::getInstance()->est_poses_prefix<<std::setfill('0')<<std::setw(6)<<cloud.imgSequenceIdx<<Params::getInstance()->est_poses_suffix;
+            LoadingSaving::saveMatrix4f(ss.str(),cloud.pose.matrix());
+        }
+        cout<<"Saved "<<i<<" estimated poses in dir: "<<Params::getInstance()->dir<<endl;
+
+        LoadingSaving::savePosesEvalutationEstimates(frames,"pairwise");
+       });
+
+
+
+//    Visualize::setCallbackForKey('k',[&]() -> void{
+////       cout<<"tra: "<<originalErrorTra<<" rot: "<<originalErrorRot<<endl;
+//       cout<<"tra: "<<PointCloudManipulation::registrationErrorTra(frames)<<" rot: "<<PointCloudManipulation::registrationErrorRot(frames)<<endl;
+//     });
 
     int i_frame=0;
 
@@ -63,6 +89,7 @@ int main(int argc, char * argv[])
         cout<<"[Frame "<<i_frame<<" Image "<<i<<"] ";
 
         Visualize::setSelectedIndex(i_frame);
+        if(i_frame>0) Visualize::getInstance()->ingoingEdgeFrame=i_frame-1;
 
         string maskname = ""; //no mask
         if(i<imagesMasks.size()){
@@ -71,15 +98,6 @@ int main(int argc, char * argv[])
 
         shared_ptr<PointCloud> currentFrame(new PointCloud(images[i],K,maskname,showDepthMap));
 
-        //cout<<"downsample"<<endl;
-        currentFrame->downsample(inst->ddist);
-        //cout<<"framePush"<<endl;
-        frames.push_back(currentFrame);
-        //cout<<"after framePush"<<endl;
-
-        currentFrame->imgSequenceIdx=i;
-
-
         Isometry3f P = Isometry3f::Identity();
         //Transformation groundTruth
         if(i<posesGroundTruth.size()){
@@ -87,9 +105,26 @@ int main(int argc, char * argv[])
             currentFrame->setPoseGroundTruth(P);
         }
 
-
         //Transformation estimate
         Isometry3f P_est = Isometry3f::Identity();
+        //get inter frame motion
+        if(i==start) P_est=P;
+
+        currentFrame->setPose(P_est);
+        currentFrame->imgSequenceIdx=i;
+
+        currentFrame->downsample(inst->ddist);
+        frames.push_back(currentFrame);
+
+        if(i==start){
+            Visualize::getInstance()->setOffset((-1)*(currentFrame->pose*currentFrame->centerOfMass));
+        }
+
+
+        //Visualize::spin();
+
+
+
         //get inter frame motion
         if(i==start){
             P_est=P;
@@ -122,12 +157,12 @@ int main(int argc, char * argv[])
 
                 if(poses[0].second>=ppfMaxVotes){ //ppfMinVotes){
                     ppfMaxVotes=poses[0].second;
-                    stringstream ss;
-                    ss<<"votes: "<<ppfMaxVotes<<endl;
+                   // stringstream ss;
+                   // ss<<"votes: "<<ppfMaxVotes<<endl;
                     P_est=poses[0].first;
-                    currentFrame->neighboursDescr=ss.str();
+                    currentFrame->neighboursDescr="votes";//ss.str();
                     currentFrame->neighbours.clear();
-                    currentFrame->neighbours.push_back(make_pair(j,ppfMaxVotes));
+                    currentFrame->neighbours.push_back({j,static_cast<float>(ppfMaxVotes)});
                     //currentFrame->setPose(P_est);
                 }/*else{
                     cout<<"score too low, click q for next try"<<endl;
@@ -137,7 +172,7 @@ int main(int argc, char * argv[])
 
             }
 
-            cout<<"[Frame "<<i_frame<<"] [PPF to Frame "<<currentFrame->neighbours.back().first<<"] \tmaxVotes: "<<ppfMaxVotes<<endl;
+            cout<<"[Frame "<<i_frame<<"] [PPF to Frame "<<currentFrame->neighbours.back().neighbourIdx<<"] \tmaxVotes: "<<ppfMaxVotes<<endl;
         }
 
         currentFrame->setPose(P_est);
@@ -150,24 +185,18 @@ int main(int argc, char * argv[])
                 int j;
                 float icpInlierError;
                 for (j=0; j < 50;j++) {  //ICP
-                    icpInlierError = currentFrame->computeClosestPointsToNeighbours(&frames,inst->ddist);
+                    icpInlierError = currentFrame->computeClosestPointsToNeighbours(&frames,cutoff);
 
-                    Isometry3f P_incemental;
-                    if(inst->pointToPlane){
-                        P_incemental = ICP::computeStep(currentFrame->src,currentFrame->dst,currentFrame->dstNor);//*src,*dst,*nor); //point to plane
-                    }else{
-                        P_incemental = ICP::computeStep(currentFrame->src,currentFrame->dst,false); //point to point
-                    }
+                    //cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] ICP dist error:"<<icpInlierError<<endl;
 
-                    if(PointPairFeatures::isPoseCloseToIdentity(P_incemental,0.00001)){
-                        break;
-                    }
-                    P_est = P_incemental * P_est;
 
-                    currentFrame->setPose(P_est);
+                    if(currentFrame->alignToFirstNeighbourWithICP(&frames,inst->pointToPlane,false)) break;
+                    P_est=currentFrame->pose;
+                    Visualize::spin(3);
+
                 }
-            cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] GroundTruth error:"<<err(P,P_est)<<"\t ICP dist error:"<<icpInlierError<<endl;
-            Visualize::spinToggle(2);
+                cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] GroundTruth error:"<<err(P,P_est)<<"\t ICP dist error:"<<icpInlierError<<endl;
+            //Visualize::spinToggle(5);
 
             } //end doICP
 
@@ -177,6 +206,40 @@ int main(int argc, char * argv[])
 
         Visualize::spinToggle(2);
     }
+
+
+    if(!doICP){
+        cout<<"now start icp"<<endl;
+        Visualize::spin();
+
+
+        for(int i_frame=start+1;i_frame<frames.size(); i_frame++){
+
+            cout<<"[Frame "<<i_frame;
+
+            Visualize::setSelectedIndex(i_frame);
+            if(i_frame>0) Visualize::getInstance()->ingoingEdgeFrame=i_frame-1;
+
+            shared_ptr<PointCloud> currentFrame=frames[i_frame];
+
+            int j;
+            float icpInlierError;
+            for (j=0; j < 50;j++) {  //ICP
+                icpInlierError = currentFrame->computeClosestPointsToNeighboursRelative(&frames,cutoff);
+
+                //cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] ICP dist error:"<<icpInlierError<<endl;
+
+
+                if(currentFrame->alignToFirstNeighbourWithICP(&frames,inst->pointToPlane,true)) break;
+
+                Visualize::spin(3);
+
+            }
+            cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] GroundTruth error:"<<err(currentFrame->poseGroundTruth,currentFrame->pose)<<"\t ICP dist error:"<<icpInlierError<<endl;
+
+        }
+    }
+
 
     Visualize::spinLast();
 

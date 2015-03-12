@@ -75,7 +75,7 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
 
     //todo add possibility to add segmentation mask
     if(type==CV_16U && nc==1){ //depth_0.png from kinect cam, 0 means no measure, depth in mm (470 means 0.47m);
-        if(!maskGiven) mask = (depth != 0);
+        if(!maskGiven) mask = (depth > 0.001f);
         depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
     }else if(type==CV_32FC3 && nc==3){ //depth_000000.exr made from blender, inf means no measure, depth in mm
         cv::cvtColor(depth,depth,cv::COLOR_BGR2GRAY);
@@ -127,8 +127,9 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
 //            resize(mask, maskSmall, cv::Size(), 0.25, 0.25);
 //            OpenCVHelpers::showDepthImage("showDepthImage",depthSmall,maskSmall,true);
 //       }else{
-            OpenCVHelpers::showDepthImage("depth",depth,mask,true);
-            OpenCVHelpers::showImage("mask",mask);
+            OpenCVHelpers::showDepthImage("depth",depth);
+            OpenCVHelpers::showDepthImage("depthWithMask",depth,mask);
+            //OpenCVHelpers::showImage("mask",mask);
 
  //      }
         cv::waitKey(2);
@@ -551,6 +552,117 @@ void saveVector(std::string filename, vector<Number> vec){
     cout<<"Wrote "<<vec.size()<<" numbers to "<<filename<<endl;
 }
 void saveVector(std::string filename, vector<bool> vec){saveVector<bool>(filename,vec);}
+void saveVectorf(std::string filename, vector<float> vec){saveVector<float>(filename,vec);}
+
+void savePosesEvalutationGroundTruth(vector<Isometry3f>& poses){
+    std::stringstream ss;
+    ss<<Params::getInstance()->dir<<"/"<<"evaluationQ.txt";
+    //<<setfill('0')<< setw(6)<<cloud.imgSequenceIdx<<Params::getInstance()->est_poses_suffix;
+    string filename = ss.str();
+    std::ofstream outputFile(filename, std::ofstream::out) ;
+
+    //std::ostream& o = std::cout;
+
+    for (int i = 0; i< poses.size(); i++){
+        std::stringstream timestampss;
+        timestampss<<setfill('0')<< setw(6)<<i; //cloud.imgSequenceIdx<<Params::getInstance()->est_poses_suffix;
+
+        outputFile<<timestampss.str()<<" ";
+
+        outputFile<<std::setprecision(8);
+
+        Isometry3f pose = poses[i];
+        outputFile<<pose.translation().transpose()<<" ";
+        Quaternionf q(pose.linear());
+        outputFile<<q.coeffs().transpose()<<endl;
+        //o<<q.x()<< " "<<q.y()<<" "<<q.z() << " "<<q.w();
+
+        //outputFile << timestampss.str() << " " <<   endl;
+    }
+
+   outputFile.close( );
+
+    cout<<"Wrote "<<poses.size()<<" poses to "<<filename<<endl;
+}
+
+void savePosesEvalutation(const vector<std::shared_ptr<PointCloud> >& frames){
+    std::stringstream ss,ss2;
+    string suffix="";
+    ss<<Params::getInstance()->dir<<"/"<<"P"<<suffix<<".txt";
+    ss2<<Params::getInstance()->dir<<"/"<<"Q"<<suffix<<".txt";
+
+    string filename = ss.str();
+    std::ofstream outputFile(filename, std::ofstream::out) ;
+    string filename2 = ss2.str();
+    std::ofstream outputFile2(filename2, std::ofstream::out) ;
+
+    //std::ostream& o = std::cout;
+
+    for (int i = 0; i< frames.size(); i++){
+        std::stringstream timestampss;
+        timestampss<<setfill('0')<< setw(6)<<frames[i]->imgSequenceIdx;//<<Params::getInstance()->est_poses_suffix;
+
+        //P
+        {
+            outputFile<<timestampss.str()<<" ";
+
+            outputFile<<std::setprecision(12);
+
+            Isometry3d pose = frames[i]->pose.cast<double>();
+            outputFile<<pose.translation().transpose()<<" ";
+            Quaterniond q(pose.linear());
+            outputFile<<q.coeffs().transpose()<<endl;
+        }
+
+        //Q
+        {
+            outputFile2<<timestampss.str()<<" ";
+
+            outputFile2<<std::setprecision(12);
+
+            Isometry3d pose2 = frames[i]->poseGroundTruth.cast<double>();
+            outputFile2<<pose2.translation().transpose()<<" ";
+            Quaterniond q2(pose2.linear());
+            outputFile2<<q2.coeffs().transpose()<<endl;
+        }
+    }
+
+     outputFile.close( );
+     outputFile2.close();
+
+    cout<<"Wrote "<<frames.size()<<" poses to "<<filename<< " and "<<filename2<<endl;
+}
+
+void savePosesEvalutationEstimates(const vector<std::shared_ptr<PointCloud> >& frames,string suffix){
+    std::stringstream ss;
+    ss<<Params::getInstance()->dir<<"/"<<"evaluationP_"<<suffix<<".txt";
+    //<<setfill('0')<< setw(6)<<cloud.imgSequenceIdx<<Params::getInstance()->est_poses_suffix;
+    string filename = ss.str();
+    std::ofstream outputFile(filename, std::ofstream::out) ;
+
+    //std::ostream& o = std::cout;
+
+    for (int i = 0; i< frames.size(); i++){
+        std::stringstream timestampss;
+        timestampss<<setfill('0')<< setw(6)<<frames[i]->imgSequenceIdx;//<<Params::getInstance()->est_poses_suffix;
+
+        outputFile<<timestampss.str()<<" ";
+
+        outputFile<<std::setprecision(12);
+
+        Isometry3d pose = frames[i]->pose.cast<double>();
+        outputFile<<pose.translation().transpose()<<" ";
+        Quaterniond q(pose.linear());
+        outputFile<<q.coeffs().transpose()<<endl;
+        //o<<q.x()<< " "<<q.y()<<" "<<q.z() << " "<<q.w();
+
+        //outputFile << timestampss.str() << " " <<   endl;
+    }
+
+   outputFile.close( );
+
+    cout<<"Wrote "<<frames.size()<<" poses to "<<filename<<endl;
+}
 
 
 template<typename Number>
@@ -574,6 +686,7 @@ vector<Number> loadVector(std::string filename){
 }
 
 vector<bool> loadVector(std::string filename){return loadVector<bool>(filename);}
+vector<float> loadVectorf(std::string filename){return loadVector<float>(filename);}
 
 
 string getOSSeparator() {

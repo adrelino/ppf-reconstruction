@@ -15,6 +15,13 @@
 using namespace Eigen;
 using namespace std;
 
+struct OutgoingEdge{
+    int neighbourIdx;
+    float weight; //==error of correspondances
+    vector< std::pair<int,int> > correspondances;  //src dst in camera coordinate frame
+    Isometry3f P_relative;
+};
+
 class PointCloud{
 
 public:
@@ -61,24 +68,31 @@ public:
     bool kdtree_get_bbox(BBOX& /*bb*/) const { return false; }
 
     PointCloud();
-    PointCloud(const PointCloud& other);
+    //PointCloud(const PointCloud& other);
     PointCloud(const std::string& filename, Matrix3f& K, string maskname="", bool showDepthMap=false);
 
+    vector<Vector3f> ptsOrig; //non-downsampled original points
     vector<Vector3f> pts;
     vector<Vector3f> nor;
-//    std::vector<float> cur;
+    std::vector<float> cur;
 
+    Vector3f centerOfMass;
     //if 0 entries we take default Visualizer color, if 1 entry all points share color, else per point color
-    vector<Vector3f> pts_color;
-    vector<Vector3f> nor_color;
+//    vector<Vector3f> pts_color;
+//    vector<Vector3f> nor_color;
 
     //for icp:
     string neighboursDescr;
-    vector< pair<int,float> > neighbours;
-    vector<Vector3f> src;
-    vector<Vector3f> srcNor;
-    vector<Vector3f> dst;
-    vector<Vector3f> dstNor;
+    vector<OutgoingEdge> neighbours;
+    float accumError;
+
+    vector<int> children; //their poses depend on my pose
+//    vector<Vector3f> src;
+//    vector<Vector3f> srcNor;
+//    vector<Vector3f> dst;
+//    vector<Vector3f> dstNor;
+
+    float recalcError(vector< shared_ptr<PointCloud> >* frames);
 
     bool fixed=false;
 
@@ -100,6 +114,8 @@ public:
 
     float getPoseError();
 
+    float getClosestPointInGlobalFrameLinear(const Vector3f& query_ptInGlobalFrame, size_t& ret_index);
+
     float getClosestPoint(const Vector3f& query_pt, size_t& ret_index);
 
     ~PointCloud();
@@ -115,15 +131,26 @@ public:
 
 
 
+    float computeClosestPointsToNeighboursRelative(vector< shared_ptr<PointCloud> >* frames, float thresh);
+
     float computeClosestPointsToNeighbours(vector< shared_ptr<PointCloud> >* frames, float thresh);
     float computeClosestPointsToNeighboursStacked(vector< shared_ptr<PointCloud> >* frames, float thresh);
+
+    bool alignToFirstNeighbourWithICP(vector< shared_ptr<PointCloud> >* frames, bool pointToPlane,bool useRelativeEdge);
+
+    void updateChildrenAbsolutePoses(vector< shared_ptr<PointCloud>>& frames, int myIdx);
+
+    vector<Vector3f> getCurvColors();
+private:
+    vector<Vector3f> curColor;
+
 
 };
 
 inline std::ostream& operator<<(std::ostream& os, const PointCloud& v) {
     os<<v.neighbours.size()<<" neighbours: "<<endl;
-    for(auto pair : v.neighbours){
-        os<<pair.first<<" : "<<pair.second<<endl;
+    for(OutgoingEdge pair : v.neighbours){
+        os<<pair.neighbourIdx<<" : "<<pair.weight<<endl;
     }
     os<<endl;
 

@@ -24,6 +24,7 @@
   #include <OpenGL/gl.h>
   //#include <OpenGL/glu.h>
   #include <GL/freeglut.h>
+    //#include <GL/glxew.h>
 #else
  //LINUX
  #include "GL/freeglut.h"
@@ -58,66 +59,49 @@ public:
     static void spinToggle(int iterations);
     static void spinLast();
 
-    //static void spinOnce(int millis);
-
-    //TODO make private, make better interface
     static Visualize* getInstance();
 
-    //static void setModel(PointCloud& m);
-
-    //static void setScene(PointCloud& m);
-
-    //static void setModelTransformed(PointCloud& mT);
-
-//    static void setLines(shared_ptr< vector<Vector3f> > src, shared_ptr< vector<Vector3f> > dst);
-
-//    static void addCloud(PointCloud &mypair);
-//    static void setLastCloud(PointCloud &mypair);
     static void setClouds(vector< shared_ptr<PointCloud> >* mypair);
+
+    static void setS(Isometry3f S); //least squares alignment of P to Q;
 
     static void setCallbackForKey(char key, std::function<void()> f);
 
-//    static void addCameraPose(Isometry3f pose);
-//    static void setLastCameraPose(Isometry3f pose);
-//    static void setCameraPoses(vector<Isometry3f> &pose);
-
-
-//    static void addCameraPoseGroundTruth(Isometry3f pose);
-//    static void setLastCameraPoseGroundTruth(Isometry3f pose);
-//    static void setCameraPosesGroundTruth(vector<Isometry3f> &pose);
-
     static void setSelectedIndex(int i);
 
-private:
+    void setOffset(Vector3f offset);
 
-    //KeyBucketPairList b;
-    //PointCloud *model,*scene,*modelT;
-    //Matches matches;
+    int selectedFrame=255;
+    int selectedOutgoingEdgeIdx=255;
+    int ingoingEdgeFrame=255;
+
+    bool enableSaving=false;
+
+    static void simulateKeypress(char key);
+
+    //const static int WINDOW_SIZE = 800;
+    const static int WINDOW_WIDTH = 768;//1024;
+    const static int WINDOW_HEIGHT = 768;
+
+private:
+    Visualize(); // singleton, acces via factory
 
     vector< shared_ptr<PointCloud> >* ms;
- //   vector<Isometry3f>* cameraPoses;
- //   vector<Isometry3f>* cameraPosesGroundTruth;
 
-
-//    vector<int> closestPtsSceneToModel;
-
-//    shared_ptr< vector<Vector3f> > src,dst;
-
- //   int current_object;
+    Isometry3f S; //aligns P to Q in least squares sense
 
     void drawFrustumIntrinsics(Vector4f colorLine, Vector4f colorPlane);
 
-    bool keyToggle[256];
-
-    std::function<void()> functions[256];
-
-
-    Visualize(); // singleton, acces via factory
+    bool keyToggle[256];//key toggle states
+    std::function<void()> functions[256]; //functions to call on keys
 
 
-    void readPose();
+    void readPose(char key);
+    void writePose(char key);
+    void readKeyToggle(char key);
+    void writeKeyToggle(char key);
+
     static bool isInitalized;
-
 
     int modifier;
     
@@ -127,19 +111,16 @@ private:
     GLfloat zoom;
     GLfloat offsetY;
     GLfloat offsetX;
+    GLfloat offsetZ;
+
 
     int mouseButton;
     int moving, startx, starty;
-    
-    
-    const static int WINDOW_SIZE = 800;
     
     void bucketInfo();
 
     static Visualize *instance;
     
-    //MatrixXf m;
-
     unsigned char lastKey;
 
     std::thread* visThread;
@@ -149,10 +130,7 @@ private:
     int bucketIndex;
     int matchIndex;
 
-    int selectedFrame=255;
-
     void glColorHex(int rgbHex);
-
 
     void drawCylinderAdvanced(double r, double l, bool coverback, bool coverfront, bool normalInwards);
     void drawCylinder(double r, double l);
@@ -162,34 +140,23 @@ private:
     void drawPointCloud(PointCloud* C, int i);
 
     void drawPoints(const vector<Vector3f>& pts, const Vector3f& color, float pointSize = 4.0f);
-    //void drawLines(const vector<int>& vertices);
+    void drawPoints(const vector<Vector3f>& pts, const vector<Vector3f>& colors, float pointSize = 4.0f);
+
     void drawLines(const vector<Vector3f>& v1, const vector<Vector3f>& v2);
     void drawCubes(const vector<Vector3f>& C, double size);
     void drawSpheres(const vector<Vector3f>& C, double radius);
 
     //void drawPPF(int i, int j, PointCloud& m);
-    //void drawPPfs(Bucket&, PointCloud& m);
+    //void drawLines(const vector<int>& vertices);
 
     void drawCameraPose(Isometry3f& P,int i,Vector4f& colorLine,Vector4f& colorPlane);
     void drawCameraPoses(vector<Isometry3f>& cameraPoses,Vector4f& colorLine, Vector4f& colorPlane);
 
     void drawEdges(int i);
 
-
-
-    //void drawMatches(Matches& matches);
-    //void printMatches(Matches matches);
-
-
     void drawAll(PointCloud* m, Vector3f color, Vector3f colorNormals);
 
-
-
-    void drawEllipticParaboloid(double max, double a, double b, double c, bool backSideNormal);
-    void drawHyperbolicParaboloid(double maxx, double maxy, double a, double b, double c, bool backSideNormal);
-
     double getRotationAngleApprox(double xdiff, double ydiff, double x, double y);
-
 
     void display(void);
     void keyboard (unsigned char key, int x, int y);
@@ -200,7 +167,6 @@ private:
     static void keyboardW (unsigned char key, int x, int y);
     static void mouseW(int button, int state, int x, int y);
     static void motionW(int x, int y);
-
 
     int mainVisualize(int argc, char **argv);
 

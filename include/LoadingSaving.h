@@ -51,12 +51,23 @@ namespace LoadingSaving {
 
     //template<typename Number>
     void saveVector(std::string filename, vector<bool> vec);
+    void saveVectorf(std::string filename, vector<float> vec);
+
 
     //template<typename Number>
     vector<bool> loadVector(std::string filename);
+    vector<float> loadVectorf(std::string filename);
+
 
     vector<string> getAllImagesFromFolder(string dirStr, string prefix);
     vector<string> getAllTextFilesFromFolder(string dirStr, string prefix);
+
+
+    void savePosesEvalutationGroundTruth(vector<Isometry3f>& poses);
+
+    void savePosesEvalutation(const vector<std::shared_ptr<PointCloud> >& frames);
+
+    void savePosesEvalutationEstimates(const vector< std::shared_ptr<PointCloud> >& frames, string suffix);
 }
 
 #endif /* defined(__PointPairFeatures__LoadingSaving__) */
