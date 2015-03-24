@@ -87,6 +87,8 @@ private:
         dir = "../samples/Bunny_RealData";
         est_poses_prefix = "estimates_";
         est_poses_suffix = ".txt";
+
+        stopFrames=true;
     }
 
 
@@ -128,6 +130,9 @@ public:
      bool useFlann = true;
      bool pointToPlane = true; //otherwise pointToPoint
 
+     bool stopFrames=false;
+
+
      void getParams(int argc, char **argv){
 
          getParam("dir", dir, argc, argv);
@@ -150,6 +155,8 @@ public:
 
          getParam("pointToPlane", pointToPlane,argc,argv);
          getParam("useFlann", useFlann,argc,argv);
+
+         getParam("stopFrames",stopFrames,argc,argv);
 
 
     }

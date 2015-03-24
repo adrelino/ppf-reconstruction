@@ -224,6 +224,16 @@ void Visualize::drawPointCloud(PointCloud* m, int i){
                 }
                 if(keyToggle['V']) drawCubes(m->ptsOrig,Params::getInstance()->ddist);
 
+                if(keyToggle['b']){
+                    int N=m->pts.size();
+                    int j=refPtIdx;
+                    if(j<0) j=0;
+                    if(j>=N) j=N-1;
+                    for(int i=0; i<N; i++){
+                        drawPPF(j,i,m);
+                    }
+                }
+
             glPopMatrix();
         }
 
@@ -261,33 +271,29 @@ void Visualize::setOffset(Vector3f offset){
 }
 
 
-//void Visualize::drawPPF(int i, int j, const PointCloud& m)
-//{
-//    glLineWidth(0.05f);
-//    glBegin(GL_LINE_STRIP);
-//        Vector3f& p=m.pts[i];
-//        Vector3f& n=m.nor[i];
-//        Vector3f& p2=m.pts[j];
-//        Vector3f& n2=m.nor[j];
-//        n.normalize();
-//        n/=100;
-//        n2.normalize();
-//        n2/=100;
-//        Vector3f q=p+n;
-//        Vector3f q2=p2+n2;
+void Visualize::drawPPF(int i, int j, const PointCloud* m)
+{
+    glLineWidth(0.05f);
+    glBegin(GL_LINE_STRIP);
+        const Vector3f& p=m->pts[i];
+        const Vector3f& n=m->nor[i];
+        const Vector3f& p2=m->pts[j];
+        const Vector3f& n2=m->nor[j];
+        Vector3f q=p+n/100;
+        Vector3f q2=p2+n2/100;
     
-//        glColor3f(0.0,0.2,1);
-//        glVertex3f(q(0),q(1),q(2)); //first normal
-//        glVertex3f(p(0),p(1),p(2));
+        glColor3f(0.0,0.2,1);
+        glVertex3f(q(0),q(1),q(2)); //first normal
+        glVertex3f(p(0),p(1),p(2));
     
-//        glColor3f(0.8,0,0.8);
-//        glVertex3f(p2(0),p2(1),p2(2));  //distance line
+        glColor3f(0.8,0,0.8);
+        glVertex3f(p2(0),p2(1),p2(2));  //distance line
 
-//        glColor3f(0.0,0.2,1);
-//        glVertex3f(q2(0),q2(1),q2(2));  //second normal
+        glColor3f(0.0,0.2,1);
+        glVertex3f(q2(0),q2(1),q2(2));  //second normal
     
-//	glEnd();
-//}
+    glEnd();
+}
 
 //void Visualize::drawLines(const vector<int>& vertices)
 //{
@@ -646,6 +652,11 @@ void Visualize::keyboard (unsigned char key, int x, int y)
         case 'K':
             S = Isometry3f::Identity();
             break;
+        case '+':
+            refPtIdx++;
+            break;
+        case '-':
+            refPtIdx--;
         default:
             break;
 	}
@@ -906,6 +917,12 @@ void Visualize::setClouds(vector< shared_ptr<PointCloud> >* mypair){
 
 void Visualize::setSelectedIndex(int i){
     getInstance()->selectedFrame=i;
+    if(i<getInstance()->ms->size()){
+        PointCloud& cloud = *(getInstance()->ms->at(i));
+        if(cloud.neighbours.size()>0){
+            getInstance()->ingoingEdgeFrame=cloud.neighbours[0].neighbourIdx;
+        }
+    }
 }
 
 void Visualize::setCallbackForKey(char key, std::function<void ()> f){

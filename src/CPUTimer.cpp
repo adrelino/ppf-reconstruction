@@ -21,6 +21,9 @@
 #include <stdio.h>
 #include <iomanip> 
 
+#include <iostream>
+#include <sstream>
+
 using namespace std;
 
 CPUTimer::CPUTimer() : startWasSet(false), stopWasSet(true)  {
@@ -97,10 +100,30 @@ void CPUTimer::toc(std::string name){
 
 void CPUTimer::printAllTimings(){
   typedef std::map<std::string,float>::iterator it_type;
+    cout<<"=====  TIMINGS ===="<<endl;
 
   for(it_type it = timingsMap.begin(); it != timingsMap.end(); ++it) {
-    cout<< left << setw(20) << it->first<<":";
+    cout<< left << setw(20) << it->first<<":\t";
     printf("%0.3f\n",it->second);
   }
 }
 
+string CPUTimer::getHeader(){
+    typedef std::map<std::string,float>::iterator it_type;
+    std::stringstream ss;
+
+    for(it_type it = timingsMap.begin(); it != timingsMap.end(); ++it) {
+        ss<<","<<it->first;
+    }
+    return ss.str();
+}
+
+string CPUTimer::getMeasurements(){
+    typedef std::map<std::string,float>::iterator it_type;
+    std::stringstream ss;
+
+    for(it_type it = timingsMap.begin(); it != timingsMap.end(); ++it) {
+        ss<<","<<it->second;
+    }
+    return ss.str();
+}

@@ -108,8 +108,10 @@ void ApproachComponents::g2oOptimizer(vector< std::shared_ptr<PointCloud> >& fra
 
     //cout<<"global error accum: "<<error<<" version 2 : "<<error2<<endl;
 
+if(Params::getInstance()->stopFrames){
     cout<<"graph structure romputed, press q to refine"<<endl;
     Visualize::spin();
+}
 
 
 
@@ -218,7 +220,7 @@ void ApproachComponents::g2oOptimizer(vector< std::shared_ptr<PointCloud> >& fra
 
 
 
-       optimizer.optimize(150);
+       optimizer.optimize(100);
 
        optimizer.computeActiveErrors();
        double newchi=optimizer.chi2();
@@ -230,18 +232,22 @@ void ApproachComponents::g2oOptimizer(vector< std::shared_ptr<PointCloud> >& fra
        cout << "round: " << innerround << " chi2: " << FIXED(newchi) << " impr: "<<impr<<endl;
 
        if(impr>0.0){
-           cout<<"impr > 0%, press q to continue"<<endl;
-           for (int i = 0; i < frames.size(); ++i) {
-               frames[i]->pose= dynamic_cast<VertexSE3*>(optimizer.vertices().find(i)->second)->estimate().cast<float>();
-           }
-           Visualize::simulateKeypress('k'); //calc error
-           Visualize::spinToggle(1);
+           cout<<"impr > 0%"<<endl;
+           if(Params::getInstance()->stopFrames){
+               for (int i = 0; i < frames.size(); ++i) {
+                   frames[i]->pose= dynamic_cast<VertexSE3*>(optimizer.vertices().find(i)->second)->estimate().cast<float>();
+               }
+               cout<<"press q to continue"<<endl;
+
+               //Visualize::simulateKeypress('k'); //calc error
+               Visualize::spinToggle(1);
+            }
        }else{
            noImpr++;
        }
 
-       if(noImpr>25){
-           cout<<"25 times no impr, break";
+       if(noImpr>10){
+           cout<<"10 times no impr, break";
            break;
        }
 
@@ -292,8 +298,6 @@ void ApproachComponents::preprocessing(std::vector<std::shared_ptr<PointCloud> >
 
     vector<Isometry3f> posesGroundTruth = LoadingSaving::loadPoses(Params::getDir(),"pose");
 
-    Visualize::setClouds(&frames);
-
     int i_frame=0;
     int start = 0;
 
@@ -323,20 +327,18 @@ void ApproachComponents::preprocessing(std::vector<std::shared_ptr<PointCloud> >
 
         currentFrame->downsample(Params::getInstance()->ddist);
         frames.push_back(currentFrame);
-
-        if(i==start){
-            Visualize::getInstance()->setOffset((-1)*(currentFrame->pose*currentFrame->centerOfMass));
-        }
     }
 }
 
-void alignFrame(std::vector<std::shared_ptr<PointCloud> > &frames, int nFrames, int i_frame){
+void ApproachComponents::alignFrame(std::vector<std::shared_ptr<PointCloud> > &frames, int nFrames, int i_frame){
     std::shared_ptr<PointCloud> currentFrame = frames[i_frame];
     Isometry3f pose = currentFrame->pose;
 
-    cout<<"[Frame "<<i_frame<<" Image "<<frames[i_frame]->imgSequenceIdx<<"] ";
+   // cout<<"[Frame "<<i_frame<<" Image "<<frames[i_frame]->imgSequenceIdx<<"] ";
 
-    Visualize::setSelectedIndex(i_frame);
+    if(Params::getInstance()->stopFrames){
+        Visualize::setSelectedIndex(i_frame);
+    }
 
     Isometry3f P_relative;
 
@@ -364,13 +366,17 @@ void alignFrame(std::vector<std::shared_ptr<PointCloud> > &frames, int nFrames, 
 
     frames[jBest]->children.push_back(i_frame);
 
-    Visualize::getInstance()->ingoingEdgeFrame=jBest;
+    if(Params::getInstance()->stopFrames){
+        Visualize::getInstance()->ingoingEdgeFrame=jBest;
+    }
+
+
+    //P_relative is motion from jBest -> i, so actually it is scene to model
+    pose = frames[jBest]->pose * P_relative; //absolute pose for visualizatoin
+    currentFrame->setPose(pose);
 
     cout<<"[Frame "<<i_frame<<"] [PPF to Frame "<<jBest<<"] \tmaxVotes: "<<ppfMaxVotes<<endl;
 
-    //P_relative is motion from jBest -> i, so actually it is scene to model
-    pose = frames[jBest]->pose * P_relative;
-    currentFrame->setPose(pose);
 
 }
 
@@ -378,7 +384,9 @@ void ApproachComponents::pairwiseAlignment(std::vector<std::shared_ptr<PointClou
 
     for(int i_frame=1; i_frame<frames.size(); i_frame++){
         alignFrame(frames,nFrames,i_frame);
-        Visualize::spin(2);
+        if(Params::getInstance()->stopFrames){
+            Visualize::spinToggle(1);
+        }
     }
 }
 
@@ -387,21 +395,17 @@ void ApproachComponents::pairwiseAlignmentAndRefinement(std::vector<std::shared_
     for(int i_frame=1; i_frame<frames.size(); i_frame++){
         alignFrame(frames,nFrames,i_frame);
         std::shared_ptr<PointCloud> currentFrame = frames[i_frame];
-
-        cout<<"[Frame "<<i_frame<<" Image "<<frames[i_frame]->imgSequenceIdx<<"] ";
-        Visualize::setSelectedIndex(i_frame);
-
+        //if(Params::getInstance()->stopFrames) Visualize::setSelectedIndex(i_frame);
             int j;
             float icpInlierError;
-            for (j=0; j < 50;j++) {  //ICP
+            for (j=0; j < 8;j++) {  //ICP
                 icpInlierError = currentFrame->computeClosestPointsToNeighbours(&frames,cutoff);
                 if(currentFrame->alignToFirstNeighbourWithICP(&frames,Params::getInstance()->pointToPlane,false)) break;
-                //P_est=currentFrame->pose;
-                Visualize::spin(1);
+                if(Params::getInstance()->stopFrames) Visualize::spin(1);
             }
-            //cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] GroundTruth error:"<<err(currentFrame->poseGroundTruth,P_est)<<"\t ICP dist error:"<<icpInlierError<<endl;
-        Visualize::spinToggle(5);
-       // Visualize::spin();
+            cout<<"[Frame "<<i_frame<<"] [ICP itertions "<<j<<"]"<<"\t ICP dist error:"<<icpInlierError<<endl;
+
+            if(Params::getInstance()->stopFrames) Visualize::spin(1);
     }
 }
 
@@ -409,21 +413,21 @@ void ApproachComponents::pairwiseRefinement(std::vector<std::shared_ptr<PointClo
 
     for(int i_frame=1; i_frame<frames.size(); i_frame++){
         std::shared_ptr<PointCloud> currentFrame = frames[i_frame];
-
-        cout<<"[Frame "<<i_frame<<" Image "<<frames[i_frame]->imgSequenceIdx<<"] ";
-        Visualize::setSelectedIndex(i_frame);
+        if(Params::getInstance()->stopFrames) Visualize::setSelectedIndex(i_frame);
 
             int j;
             float icpInlierError;
-            for (j=0; j < 50;j++) {  //ICP
+            for (j=0; j < 8;j++) {  //ICP
                 icpInlierError = currentFrame->computeClosestPointsToNeighboursRelative(&frames,cutoff);
+                //if(Params::getInstance()->stopFrames) Visualize::spinToggle(1);
                 if(currentFrame->alignToFirstNeighbourWithICP(&frames,Params::getInstance()->pointToPlane,true)) break;
-                Visualize::spin(1);
             }
-            currentFrame->updateChildrenAbsolutePoses(frames,i_frame);  // update absolute poses of children of this node in dependecy tree
+            cout<<"[Frame "<<i_frame<<"] [ICP itertions "<<j<<"]"<<"\t ICP dist error:"<<icpInlierError<<endl;
+        if(Params::getInstance()->stopFrames){
+                    currentFrame->updateChildrenAbsolutePoses(frames,i_frame);  // update absolute poses of children of this node in dependecy tree
+                    Visualize::spinToggle(5);
+        }
 
-            //cout<<"[Frame "<<i_frame<<"] [ICP "<<j<<"] GroundTruth error:"<<err(currentFrame->poseGroundTruth,P_est)<<"\t ICP dist error:"<<icpInlierError<<endl;
-        Visualize::spinToggle(5);
     }
 
 }

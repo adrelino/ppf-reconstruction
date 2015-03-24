@@ -205,19 +205,11 @@ static vector<Vector3f> mat2vec(const Matrix3Xf& mat){
 
 static
 bool isPoseSimilar(Isometry3f P_i, Isometry3f P_j, float t_rot, float t_tra){
-    Vector3f    tra1 = P_i.translation();
-    Quaternionf rot1(P_i.linear());
-
-    Vector3f    tra2 = P_j.translation();
-    Quaternionf rot2(P_j.linear());
-
     //Translation
-    float d_tra=(tra1-tra2).norm();
-
+    float d_tra=(P_i.translation()-P_j.translation()).norm();
     //Rotation
-    float d = rot1.dot(rot2);
+    float d = Quaternionf(P_i.linear()).dot(Quaternionf(P_j.linear()));
     float d_rot = rad2degM(acos(2*d*d - 1));
-
     return d_rot <= t_rot && d_tra <= t_tra;
 }
 

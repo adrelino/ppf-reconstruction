@@ -6,8 +6,11 @@ lambda = 0.01;
 for round=1:200
     
     %row number depends on #corr in each edge
-    Jblock =zeros(0,6*n);
+    Jblock = sparse(0,6*n);%zeros(0,6*n);
     residualblock =zeros(0,1);
+    
+    JTest = zeros(0,n); %block structure of Jblock
+    resTest = zeros(0,1);
     
     for i=1:n
         for j=1:n
@@ -23,6 +26,9 @@ for round=1:200
                         
             Jblock(end+1:end+size(Jac,1),i*6-5:i*6)=Jac;
             residualblock(end+1:end+size(residual,1),:)=residual;
+            
+            JTest(end+1:end+2,i)=size(Jac,1);
+            resTest(end+1:end+2,:)=size(residual,1);
             
         end
     end

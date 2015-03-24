@@ -61,5 +61,8 @@ class CPUTimer {
   float tocSeconds();
 
   void printAllTimings();
+
+  std::string getHeader();
+  std::string getMeasurements();
 };
 #endif

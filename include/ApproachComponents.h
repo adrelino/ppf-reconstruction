@@ -19,6 +19,12 @@ public:
 
     static void g2oOptimizer(std::vector< std::shared_ptr<PointCloud> >& frames, float cutoff, int iter=5, int knn=5, double huberWidth=-1, bool useLevenberg=false);
 
+    static bool stopFrames;
+
+
+private:
+    static void alignFrame(std::vector<std::shared_ptr<PointCloud> > &frames, int nFrames, int i_frame);
+
 };
 
 #endif // MULTIVIEWREFINEMENT_H

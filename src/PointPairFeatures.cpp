@@ -19,7 +19,7 @@
 
 namespace PointPairFeatures{
 
-CPUTimer timer = CPUTimer();
+//CPUTimer timer = CPUTimer();
 
 vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
     //they are sorted
@@ -37,12 +37,12 @@ vector<MatrixXi> votingDense(PointCloud& mSmall, PointCloud& sSmall){
     int Ns = sSmall.pts.size();
 
 
-    vector<MatrixXi> accVec;
+    vector<MatrixXi> accVec(Ns);
 
-    cout<<"Voting Dense nangle"<<Params::getInstance()->nangle<<endl;
+    //cout<<"Voting Dense nangle"<<Params::getInstance()->nangle<<endl;
 
     for (int i=0; i<Ns; i++) {
-        accVec.push_back(MatrixXi::Zero(Nm,Params::getInstance()->nangle));
+        accVec[i]=MatrixXi::Zero(Nm,Params::getInstance()->nangle);
     }
 
     //i and j start 0 i.e first element
@@ -135,14 +135,14 @@ Poses getTransformationBetweenPointClouds(PointCloud& mSmall, PointCloud& sSmall
     }
 
 
-    cout<<"beforeClustering: "<<Pests.size()<<endl;
-    printPoses(Pests);
+//    cout<<"beforeClustering: "<<Pests.size()<<endl;
+//    printPoses(Pests);
     //timer.tic();
     vector<Poses> clusters = clusterPoses(Pests);
     Pests = averagePosesInClusters(clusters);
     //timer.toc("average and cluster poses");
-    cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
-    printPoses(Pests);
+//    cout<<"afterClusteringAndAveraging: "<<Pests.size()<<endl;
+//    printPoses(Pests);
 
     //Isometry3f P_meaned = Pests[0].first;
 
@@ -337,13 +337,15 @@ void printBucket(Bucket v){
 //}
 
 float getAngleDiffMod2Pi(float modelAlpha, float sceneAlpha){
-    float alpha = sceneAlpha - modelAlpha; //correct direction
+    float alpha =  sceneAlpha - modelAlpha; //correct direction
 
     //cout<<"modelAlpha: "<<degrees(modelAlpha)<<endl;
     //cout<<"sceneAlpha: "<<degrees(sceneAlpha)<<endl;
     //cout<<"alpha: "<<degrees(alpha)<<endl;
 
-    while(alpha<0.0) alpha += M_PI*2;
+    while(alpha<0.0){
+        alpha += M_PI*2;
+    }
     alpha=fmod(alpha,M_PI*2.0f);
 
     //now alpha is in interval 0 -> 2*pi
@@ -446,7 +448,6 @@ vector<Poses> clusterPoses (Poses vec, float rot, float tra){
         clusters.push_back(cluster);
     }
 
-    int i=0;
     int n=clusters.size();
 
     for(int i=0; i<n; n=clusters.size(),i++){

@@ -33,12 +33,21 @@
 #include <g2o/core/block_solver.h>
 #include <g2o/core/solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
+
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/types/icp/types_icp.h>
+
+#include "PointCloudManipulation.h"
+#include "LoadingSaving.h"
+
+
+//#include "types_icp.h"
 
 using namespace Eigen;
 using namespace std;
 using namespace g2o;
+//using namespace g2o2;
 
 // sampling distributions
   class Sample
@@ -140,6 +149,8 @@ int main()
     vertex_id++;                
   }
 
+  vector<Vector3f> src,dst;
+
   // set up point matches
   for (size_t i=0; i<true_points.size(); ++i)
   {
@@ -171,7 +182,7 @@ int main()
     nm1.normalize();
 
     Edge_V_V_GICP * e           // new edge with correct cohort for caching
-        = new Edge_V_V_GICP(); 
+        = new Edge_V_V_GICP();
 
     e->setVertex(0, vp0);      // first viewpoint
 
@@ -183,40 +194,74 @@ int main()
     meas.normal0 = nm0;
     meas.normal1 = nm1;
 
+    src.push_back(pt0.cast<float>());
+    dst.push_back(pt1.cast<float>());
+
     e->setMeasurement(meas);
     //        e->inverseMeasurement().pos() = -kp;
     
     meas = e->measurement();
     // use this for point-plane
-    e->information() = meas.prec0(0.01);
+    //e->information() = meas.prec0(0.01);
 
     // use this for point-point 
-    //    e->information().setIdentity();
+       e->information().setIdentity();
 
     //    e->setRobustKernel(true);
     //e->setHuberWidth(0.01);
 
     optimizer.addEdge(e);
   }
+  VertexSE3* vc0 = dynamic_cast<VertexSE3*>(optimizer.vertices().find(0)->second);
+  Eigen::Isometry3d cam0 = vc0->estimate();
 
   // move second cam off of its true position
-  VertexSE3* vc = 
-    dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second);
-  Eigen::Isometry3d cam = vc->estimate();
-  cam.translation() = Vector3d(0,0,0.2);
+  VertexSE3* vc = dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second);
+  //vector<Isometry3f> posesGroundTruth = LoadingSaving::loadPoses(Params::getDir(),"pose");
+
+  //Eigen::Isometry3d camOrig = vc->estimate();
+  Eigen::Isometry3d cam;// = posesGroundTruth[8].cast<double>();//vc->estimate();
+  cam = Translation3d(Vector3d(10,0.4,0.2))*AngleAxisd(1.5,Vector3d::UnitX())*AngleAxisd(0.6,Vector3d::UnitY())*AngleAxisd(50,Vector3d::UnitZ());
+//  cam.translation() = ;
+//  cam.rotation() = Quaterniond();
   vc->setEstimate(cam);
 
+  //solver->setUserLambdaInit(400);
   optimizer.initializeOptimization();
   optimizer.computeActiveErrors();
-  cout << "Initial chi2 = " << FIXED(optimizer.chi2()) << endl;
+  cerr << "Initial chi2 = " << FIXED(optimizer.chi2()) << endl;
 
-  //optimizer.setVerbose(true);
+  optimizer.setVerbose(true);
 
-  optimizer.optimize(5);
+  optimizer.optimize(200);
 
-  cout << endl << "Second vertex should be near 0,0,1" << endl;
-  cout <<  dynamic_cast<VertexSE3*>(optimizer.vertices().find(0)->second)
-    ->estimate().translation().transpose() << endl;
-  cout <<  dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second)
-    ->estimate().translation().transpose() << endl;
+
+  //cout << endl << "Second vertex should be near 0,0,1" << endl;
+  //cout <<  dynamic_cast<VertexSE3*>(optimizer.vertices().find(0)->second)->estimate().translation().transpose() << endl;
+  Isometry3d test = dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second)->estimate();
+  //cout <<  test.translation().transpose() << endl;
+  printPose(test,"test");
+
+  float initialchi2=0;
+  for (int i = 0; i < src.size(); ++i) {
+      src[i] = cam0.cast<float>()*src[i];
+      dst[i] = cam.cast<float>()*dst[i];
+      Vector3f diff = src[i]-dst[i];
+      initialchi2 += diff.dot(diff);
+      //initialchi2 += diff.sum();
+  }
+  cout<<"initialchi2 icp: "<<initialchi2<<endl;
+
+  Isometry3f step = ICP::pointToPoint(dst,src);  //src is fixed
+  Isometry3d corr = step.cast<double>()*cam;
+  printPose(corr,"corr");
+  cout<<poseDiff(corr,test);
+
+  float finalchi2=0;
+  for (int i = 0; i < src.size(); ++i) {
+      Vector3f diff = src[i]-step*dst[i];
+      finalchi2 += diff.dot(diff);
+      //initialchi2 += diff.sum();
+  }
+  cout<<"finalchi2 icp: "<<finalchi2<<endl;
 }

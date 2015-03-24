@@ -84,6 +84,7 @@ public:
     const static int WINDOW_HEIGHT = 768;
 
 private:
+    int refPtIdx=0;
     Visualize(); // singleton, acces via factory
 
     vector< shared_ptr<PointCloud> >* ms;
@@ -146,7 +147,7 @@ private:
     void drawCubes(const vector<Vector3f>& C, double size);
     void drawSpheres(const vector<Vector3f>& C, double radius);
 
-    //void drawPPF(int i, int j, PointCloud& m);
+    void drawPPF(int i, int j,const PointCloud* m);
     //void drawLines(const vector<int>& vertices);
 
     void drawCameraPose(Isometry3f& P,int i,Vector4f& colorLine,Vector4f& colorPlane);

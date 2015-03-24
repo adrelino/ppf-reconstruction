@@ -121,23 +121,23 @@ set(G2O_LIBRARIES
     g2o_core g2o_stuff g2o_types_slam3d g2o_types_icp g2o_solver_csparse g2o_csparse_extension
 )
 
-add_executable(
-    globalOptimization
-    src/main_globalOptimization.cpp
-    ${HEADERS}
-    ${SOURCES}
-    ${VIZ}
-)
-target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
+#add_executable(
+#    globalOptimization
+#    src/main_globalOptimization.cpp
+#    ${HEADERS}
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#target_link_libraries(globalOptimization ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
-add_executable(
-    frameToFrame
-    src/main_frameToFrame.cpp
-    ${HEADERS}
-    ${SOURCES}
-    ${VIZ}
-)
-target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
+#add_executable(
+#    frameToFrame
+#    src/main_frameToFrame.cpp
+#    ${HEADERS}
+#    ${SOURCES}
+#    ${VIZ}
+#)
+#target_link_libraries(frameToFrame ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS} ${G2O_LIBRARIES})
 
 add_executable(
     ppf_reconstruction

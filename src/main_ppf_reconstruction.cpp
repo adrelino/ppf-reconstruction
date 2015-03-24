@@ -22,6 +22,8 @@
 
 #include <fstream>
 
+#include "CPUTimer.h"
+
 using namespace std;
 
 typedef Matrix<double,6,1> Vector6d;
@@ -119,6 +121,8 @@ void saveImage(string pre, char key){
     cv::waitKey(1);
 }
 
+//#define VIS
+
 int main(int argc, char * argv[])
 {
 
@@ -132,6 +136,17 @@ int main(int argc, char * argv[])
     int limit = 1000;
 
     bool useLevenberg = false; //dogleg otherwise
+
+
+
+    bool stopStages=true;
+    getParam("stopStages",stopStages,argc,argv);
+
+    bool saveAccuracy = false;
+    getParam("saveAccuracy",saveAccuracy,argc,argv);
+
+    bool saveTimings = false;
+    getParam("saveTimings",saveTimings,argc,argv);
 
 
     getParam("knn",knn,argc,argv);
@@ -148,15 +163,14 @@ int main(int argc, char * argv[])
     inst->getParams(argc,argv);
 
     float cutoff=inst->ddist;//0.01f;
-    getParam("cutoff", cutoff, argc, argv);
+    getParam("dmax", cutoff, argc, argv);
 
-    float cutoffGlobal=inst->ddist;//0.01f;
-    getParam("cutoffGlobal", cutoffGlobal, argc, argv);
+    float cutoffGlobal=cutoff;
+    getParam("dmaxG", cutoffGlobal, argc, argv);
 
 
     float huberWidth=-1;//inst->ddist*0.5f;
     getParam("huberWidth", huberWidth, argc, argv);
-
 
     vector< std::shared_ptr<PointCloud> > frames;
 
@@ -170,7 +184,7 @@ int main(int argc, char * argv[])
 
 
             Isometry3d S = PointCloudManipulation::leastSquaresEstimatedTrajectoryOntoGroundTruth(frames);
-            Visualize::setS(S.cast<float>());
+           // Visualize::setS(S.cast<float>());
             vector<double> ates = PointCloudManipulation::ateVector(frames,S);
             Vector6d ate=summary(ates);
 
@@ -200,7 +214,18 @@ int main(int argc, char * argv[])
     });
 
 
+    CPUTimer timer = CPUTimer();
+
+
+    timer.tic();
     ApproachComponents::preprocessing(frames,step,showDepthMap,limit);
+    timer.toc("0");
+
+    Visualize::setClouds(&frames);
+
+    //if(i==0){
+        Visualize::getInstance()->setOffset((-1)*(frames[0]->pose*frames[0]->centerOfMass));
+    //}
 
     std::pair<Vector6d,Vector6d> A,B,C;
 
@@ -208,20 +233,28 @@ int main(int argc, char * argv[])
         S="B";
         cout<<"press for pairwise alignment and refinment"<<endl;
         Visualize::spin();
+        timer.tic();
         ApproachComponents::pairwiseAlignmentAndRefinement(frames,nFrames,cutoff);
+        timer.toc("AB");
         B = e();
         cout<<"& B"<<endl<<printErrors(B);
     }else{
         cout<<"press for pairwise coarse alignment"<<endl;
-        Visualize::spin();
+        if(stopStages) Visualize::spin();
+        timer.tic();
         ApproachComponents::pairwiseAlignment(frames,nFrames);
+        timer.toc("A");
         A = e();
         cout<<"& A"<<endl<<printErrors(A);
 
-        cout<<"press for pairwise refinement"<<endl;
-        Visualize::spin();
+        cout<<"press for pair-wise refinement"<<endl;
+        if(stopStages) Visualize::spin();
         S = "B";
+        timer.tic();
         ApproachComponents::pairwiseRefinement(frames,cutoff);
+        timer.toc("B");
+        frames[0]->updateChildrenAbsolutePoses(frames,0);  // update absolute poses of children of this node in dependecy tree
+
         B = e();
         cout<<"& A"<<endl<<printErrors(A);
         cout<<"& $\\downarrow$"<<endl<<printImpr(A,B);
@@ -229,53 +262,84 @@ int main(int argc, char * argv[])
     }
 
     cout<<"press for global refinement"<<endl;
-    Visualize::spin();
+    if(stopStages) Visualize::spin();
     S ="C";
+    timer.tic();
     ApproachComponents::g2oOptimizer(frames,cutoffGlobal,iter,knn,huberWidth,useLevenberg);
+    timer.toc("C");
+
     C = e();
 
+    stringstream ss;
+    if(!directICP){
+        ss<<"& A"<<endl<<printErrors(A);
+        ss<<"& $\\downarrow$"<<endl<<printImpr(A,B);
+    }
+    ss<<"& B"<<endl<<printErrors(B);
+    ss<<"& $\\downarrow$"<<endl<<printImpr(B,C);
+    ss<<"& C"<<endl<<printErrors(C);
+    cout<<"=====  ACCURACY ====="<<endl;
+    cout<<ss.str()<<endl;
+
+
+    std::stringstream ssP;
+    std::stringstream ssP2;
+    for(int i=0; i<argc; i++)
     {
-        stringstream ss;
-        if(!directICP){
-            ss<<"& A"<<endl<<printErrors(A);
-            ss<<"& $\\downarrow$"<<endl<<printImpr(A,B);
+        if (argv[i][0]!='-') continue;
+        if (argv[i][1]=='d' && argv[i][2]=='i' && argv[i][3]=='r') continue;
+        if (argv[i][1]=='s' && argv[i][2]=='a' && argv[i][3]=='v' && argv[i][4]=='e') continue;
+        if (argv[i][1]=='s' && argv[i][2]=='t' && argv[i][3]=='o' && argv[i][4]=='p') continue;
+
+        ssP << argv[i] <<" "<< argv[i+1]<<"\\\\"<<endl;
+        ssP2 << argv[i] <<" "<< argv[i+1]<<" ";
+    }
+    cout<<"=====  PARAMS ====="<<endl;
+    cout<<ssP.str()<<endl;
+
+    timer.printAllTimings();
+
+    if(saveTimings){
+        string filenameT = Params::getDir()+string("/results_timings.txt");  //"allTimings.txt"
+
+        std::ifstream infile(filenameT);
+        bool addHeader=false;
+        if(!infile.good()){
+            addHeader=true;
         }
-        ss<<"& B"<<endl<<printErrors(B);
-        ss<<"& $\\downarrow$"<<endl<<printImpr(B,C);
-        ss<<"& C"<<endl<<printErrors(C);
+        infile.close();
 
+        string header = timer.getHeader();
+        string timings = timer.getMeasurements();
 
-        std::stringstream filename;
-        filename<<Params::getDir()<<"/results.txt";
+        header = header + string(",RPE-A,RPE-B,RPE-C,ATE-A,ATE-B,ATE-C \n");
+        stringstream ss2;
+        ss2<<","<<A.first[0]<<","<<B.first[0]<<","<<C.first[0]<<","<<A.second[0]<<","<<B.second[0]<<","<<C.second[0]<<" \n";
+        timings = timings + ss2.str();
 
-        std::ofstream outputFile(filename.str()) ;
-        outputFile<<ss.str();
-        outputFile.close();
+        cout<<"header "<<header<<endl;
+        cout<<"timings "<<timings<<endl;
 
-        cout<<ss.str()<<endl;
-        cout<<"saved results to: "<<filename.str()<<endl;
+        string paraaams = ssP2.str();
+        if(paraaams.length()<2) paraaams="none";
+
+        std::ofstream outfile;
+        outfile.open(filenameT, std::ios_base::app);
+        if(addHeader) outfile << "params"<<header; //dir,
+        outfile<<paraaams<< timings;   //Params::GetDir
+        outfile.close();
     }
 
 
-    {
-        std::stringstream ss;
-        for(int i=0; i<argc; i++)
-        {
-            if (argv[i][0]!='-') continue;
-            if (argv[i][1]=='d' && argv[i][2]=='i' && argv[i][3]=='r') continue;
-            ss << argv[i] <<" "<< argv[i+1]<<"\\\\"<<endl;
-        }
-        //cout<<"params: "<<endl<<ss.str()<<endl;
-        std::stringstream filename;
-        filename<<Params::getDir()<<"/results_params.txt";
-
-        std::ofstream outputFile(filename.str()) ;
+    if(saveAccuracy){
+        std::ofstream outputFile(Params::getDir()+std::string("/results.txt")) ;
         outputFile<<ss.str();
         outputFile.close();
 
-        cout<<ss.str()<<endl;
-        cout<<"saved params to: "<<filename.str()<<endl;
-
+        std::ofstream paramsFile(Params::getDir()+std::string("/results_params.txt")) ;
+        paramsFile<<ssP.str();
+        paramsFile.close();
+        cout<<"saved accuracy and params to: "<<Params::getDir()<<endl;
     }
     Visualize::spinLast();
 

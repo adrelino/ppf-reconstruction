@@ -43,7 +43,7 @@ end
 frames{1}.fixed=true;
 
 %pose neighbour search
-knn=2;
+knn=5;
 [idxCams,distCams] = knnsearch(cams,cams,'K',knn+1); %first column is cam itself
 neighbours = idxCams(:,2:end);
 
