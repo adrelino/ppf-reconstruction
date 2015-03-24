@@ -1,2 +1,2 @@
--nFrames 5\\
 -knn 5\\
+-nFrames 5\\
