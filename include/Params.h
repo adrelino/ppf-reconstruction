@@ -56,7 +56,7 @@ template<typename T> bool getParam(std::string param, T &var, int argc, char **a
 using namespace std;
 
 #include <math.h>
-#include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 #include <map>
 
 class Params

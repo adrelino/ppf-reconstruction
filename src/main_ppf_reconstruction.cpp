@@ -18,7 +18,7 @@
 
 #include "ApproachComponents.h"
 
-#include <opencv2/highgui.hpp>
+#include <opencv2/opencv.hpp>
 
 #include <fstream>
 
@@ -139,7 +139,7 @@ int main(int argc, char * argv[])
 
 
 
-    bool stopStages=true;
+    bool stopStages=false;
     getParam("stopStages",stopStages,argc,argv);
 
     bool saveAccuracy = false;
@@ -217,6 +217,7 @@ int main(int argc, char * argv[])
     CPUTimer timer = CPUTimer();
 
 
+    cout<<"STAGE 0: preprocessing"<<endl;
     timer.tic();
     ApproachComponents::preprocessing(frames,step,showDepthMap,limit);
     timer.toc("0");
@@ -231,15 +232,15 @@ int main(int argc, char * argv[])
 
     if(directICP){
         S="B";
-        cout<<"press for pairwise alignment and refinment"<<endl;
-        Visualize::spin();
+        cout<<"STAGE AB: pairwise alignment and refinment"<<endl;
+        if(stopStages) Visualize::spin();
         timer.tic();
         ApproachComponents::pairwiseAlignmentAndRefinement(frames,nFrames,cutoff);
         timer.toc("AB");
         B = e();
         cout<<"& B"<<endl<<printErrors(B);
     }else{
-        cout<<"press for pairwise coarse alignment"<<endl;
+        cout<<"STAGE A: pairwise coarse alignment"<<endl;
         if(stopStages) Visualize::spin();
         timer.tic();
         ApproachComponents::pairwiseAlignment(frames,nFrames);
@@ -247,7 +248,7 @@ int main(int argc, char * argv[])
         A = e();
         cout<<"& A"<<endl<<printErrors(A);
 
-        cout<<"press for pair-wise refinement"<<endl;
+        cout<<"STAGE B: pairwise refinement"<<endl;
         if(stopStages) Visualize::spin();
         S = "B";
         timer.tic();
@@ -261,7 +262,7 @@ int main(int argc, char * argv[])
         cout<<"& B"<<endl<<printErrors(B);
     }
 
-    cout<<"press for global refinement"<<endl;
+    cout<<"STAGE C: multiview refinement"<<endl;
     if(stopStages) Visualize::spin();
     S ="C";
     timer.tic();
@@ -341,6 +342,7 @@ int main(int argc, char * argv[])
         paramsFile.close();
         cout<<"saved accuracy and params to: "<<Params::getDir()<<endl;
     }
+    cout<<"Q (capital q) to quit"<<endl;
     Visualize::spinLast();
 
 }

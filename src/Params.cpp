@@ -1,6 +1,5 @@
 #include "Params.h"
 #include "math.h"
-#include "opencv2/imgproc.hpp"
 
 using namespace std;
 

@@ -5,7 +5,7 @@
 #include <g2o/core/solver.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
 #include <g2o/solvers/dense/linear_solver_dense.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
+// #include <g2o/solvers/csparse/linear_solver_csparse.h>
 
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/core/optimization_algorithm_dogleg.h>
@@ -108,10 +108,10 @@ void ApproachComponents::g2oOptimizer(vector< std::shared_ptr<PointCloud> >& fra
 
     //cout<<"global error accum: "<<error<<" version 2 : "<<error2<<endl;
 
-if(Params::getInstance()->stopFrames){
-    cout<<"graph structure romputed, press q to refine"<<endl;
-    Visualize::spin();
-}
+// if(stopStages){
+//     cout<<"graph structure romputed, press q to refine"<<endl;
+//     Visualize::spin();
+// }
 
 
 

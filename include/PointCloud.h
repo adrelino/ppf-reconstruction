@@ -2,7 +2,7 @@
 #define POINTCLOUD_H
 
 #include <eigen3/Eigen/Dense>
-#include <opencv2/core.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "Params.h"
 

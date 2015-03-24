@@ -12,9 +12,7 @@
 #include <iostream>
 #include <iomanip>
 
-#include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
-#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 
 #include "OpenCVHelpers.h"
 
@@ -81,7 +79,7 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
         cv::cvtColor(depth,depth,cv::COLOR_BGR2GRAY);
         if(!maskGiven) mask = (depth != std::numeric_limits<float>::infinity());
         depth.convertTo( depth, CV_32FC1, 0.001); // convert to meters
-    }else if(type=CV_8UC3 && nc==3){ //Siemens steamturbine
+    }else if(type==CV_8UC3 && nc==3){ //Siemens steamturbine
         cout<<"ATTENTTION DOWNSAMPLIG INPUT IMAGE"<<endl;
         std::vector<cv::Mat> depth_channels;
         cv::split( depth, depth_channels );

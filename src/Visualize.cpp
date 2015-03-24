@@ -91,11 +91,13 @@ Visualize::Visualize()
     keyToggle['c']=true;
     keyToggle['e']=true;
     keyToggle['a']=true;
-    keyToggle['o']=true;
     keyToggle['m']=true;
     keyToggle['l']=true; //lines for icp
     keyToggle['t']=true; //trajectory
     keyToggle['p']=true; //poses
+    keyToggle['d']=true; //downsampled cloud
+    keyToggle['r']=true; //keyToggle
+    keyToggle['g']=true;
     S = Isometry3f::Identity();
     readKeyToggle('1');
 }

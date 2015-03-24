@@ -1,22 +1,86 @@
 ppf-reconstruction
 ===================
 
-3D Object Reconstruction using Point Pair Features aims at reconstructing 3D objects by robustly registering multiple scans of an object from different viewpoints.
+This work aims at reconstructing 3D objects by robustly and accurately registering multiple range images of an object from different viewpoints.
 
-An initial alignment between any two overlapping point clouds is obtained via a voting scheme which matches similar point pair features and thus constrains the 6dof rigid body motion between two frames. This initial estimate is then refined using standard point-to-plane or point-to-point ICP.
+An initial alignment between any two overlapping scans is obtained via a voting scheme which matches similar point pair features and thus constrains the relative 6DoF rigid body motion between the poses of two viewpoints. This initial alignment is then refined using pairwise point-to-plane ICP.
 
-In a subsequent global optimization step, we build up a pose graph of the initial pose estimates.
-A Vertex is connected to its k-nearest-neighbours, where we either use the distances of the translational part of the SE(3) camera poses or their percentual point cloud overlap. Edges are added for all the nearest neighbours between the point clouds belonging to a vertex which distances fall below a certain threshold. This graph is fed into the g2o framework, which minimizes the global geometric point-to-plane distance between all pairs of connected vertices using Levenberg-Marquardt Generalized-ICP.
+The result of this step is a tree of relative pose constraints. In a subsequent global optimization step, we build up a graph of absolute poses, our vertices, from the tree of initial relative pose estimates by adding further edges. We add edges for the k-nearest-neighbors of a vertex, taking the translational difference of the corresponding poses as a distance measure. Constraints between two vertices are added for each closest point correspondence in their respective point clouds. The global point-toplane energy is then minimized iteratively using the nonlinear least-squares method called Multiview Levenberg-Marquardt ICP.
 
 This refined registration of all the scans used may now be integrated and their corresponding point clouds fused and then meshed to obtain the final reconstructed 3D object mesh.
 
 ### References
-Drost, B., Ulrich, M., Navab, N., & Ilic, S. (2010). [Model globally, match locally: Efficient and robust 3D object recognition](http://campar.cs.tum.edu/pub/drost2010CVPR/drost2010CVPR.pdf). In Computer Vision and Pattern Recognition (CVPR), 2010 IEEE Conference on (pp. 998-1005). IEEE
+* Haarbach, Adrian [3D Object Reconstruction using Point Pair Features](http://adrian-haarbach.de/bscthesis_adrian.pdf). Bachelor's thesis, Technical University Munich, 2015.
 
-Zhang, Z. (1994). Iterative point matching for registration of free-form curves and surfaces. International journal of computer vision, 13(2), 119-152.
+* Drost, B., Ulrich, M., Navab, N., & Ilic, S. (2010). [Model globally, match locally: Efficient and robust 3D object recognition](http://campar.cs.tum.edu/pub/drost2010CVPR/drost2010CVPR.pdf). In Computer Vision and Pattern Recognition (CVPR), 2010 IEEE Conference on (pp. 998-1005). IEEE
 
-Kummerle, R., Grisetti, G., Strasdat, H., Konolige, K., & Burgard, W. (2011, May). g 2 o: A general framework for graph optimization. In Robotics and Automation (ICRA), 2011 IEEE International Conference on (pp. 3607-3613). IEEE.
+* Chen, Y., Medioni, G (1991). Object modeling by registration of multiple range images. In Robotics and Automation, 1991. Proceedings., 1991 IEEE International Conference on, pages 2724–2729. IEEE, 1991.
+
+* Fantoni, S., Castellani, U., & Fusiello, A. (2012, October). Accurate and Automatic Alignment of Range Surfaces. In 3DIMPVT (pp. 73-80). ISO 690	
+
+* Kummerle, R., Grisetti, G., Strasdat, H., Konolige, K., & Burgard, W. (2011, May). g 2 o: A general framework for graph optimization. In Robotics and Automation (ICRA), 2011 IEEE International Conference on (pp. 3607-3613). IEEE.
 
 
 ### Dependencies
-Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o
+CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o
+
+### Installation on Mac Yosemite using homebrew
+
+make sure brew is installed correctly
+```sh
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+brew doctor
+```
+
+```sh
+brew install cmake
+brew install eigen
+```
+
+ready to install g2o
+```sh
+cd ~/projects
+git clone https://github.com/RainerKuemmerle/g2o.git
+cd g2o
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+
+opencv is needed to load the range images
+```sh
+brew tap homebrew/science
+brew install opencv
+```
+
+We need xquartz for freeglut to run. For that we first need to accept a license:
+```sh
+sudo xcodebuild -license   //accept license
+```
+then we can install xquartz on the command line using cast (or alternatively downlaod and install from http://xquartz.macosforge.org/)
+```sh
+brew install Caskroom/cask/xquartz
+```
+
+Freeglut is needed for the visualizer. We might need a restart if a "cannot open display error" appears later on when running our code.
+```sh
+brew tap homebrew/x11
+brew install freeglut 
+```
+
+Now we are ready to build our code
+```sh
+cd ~/projects
+git clone https://github.com/adrelino/ppf-reconstruction.git
+cd ppf-reconstruction
+mkdir build && cd build
+cmake ..
+make
+```
+
+### Run with sample bunny sequences
+```sh
+./ppf-reconstruction
+./ppf_reconstruction -dir ../samples/Bunny_Sphere/ -knn 5 -nFrames 5
+```

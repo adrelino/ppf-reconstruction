@@ -494,23 +494,23 @@ float PointCloud::recalcError(vector< shared_ptr<PointCloud> >* frames){
     return numbEdges;
 }
 
-#include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
-#include <g2o/core/solver.h>
-#include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/dense/linear_solver_dense.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
+// #include <g2o/core/sparse_optimizer.h>
+// #include <g2o/core/block_solver.h>
+// #include <g2o/core/solver.h>
+// #include <g2o/core/optimization_algorithm_levenberg.h>
+// #include <g2o/solvers/dense/linear_solver_dense.h>
+// #include <g2o/solvers/csparse/linear_solver_csparse.h>
 
-#include <g2o/core/optimization_algorithm_gauss_newton.h>
-//#include <g2o/core/optimization_algorithm_dogleg.h>
+// #include <g2o/core/optimization_algorithm_gauss_newton.h>
+// //#include <g2o/core/optimization_algorithm_dogleg.h>
 
-#include <g2o/types/icp/types_icp.h>
+// #include <g2o/types/icp/types_icp.h>
 
 //#include "types_icp.h"
 
 using namespace Eigen;
 using namespace std;
-using namespace g2o;
+// using namespace g2o;
 //using namespace g2o2;
 
 float eps = 0.0001f;
@@ -524,11 +524,11 @@ bool PointCloud::alignToFirstNeighbourWithICP(vector< shared_ptr<PointCloud> >* 
 
     PointCloud& dstCloud = *frames->at(dstEdge.neighbourIdx);
 
-    bool normalICP = true;
+    // bool normalICP = true;
 
     Isometry3f P_relative = dstEdge.P_relative;
 
-    if(normalICP){
+    // if(normalICP){
         vector<Vector3f> src,dst,dstNor;
         for (auto corr : dstEdge.correspondances) {
             if(useRelativeEdge){
@@ -563,86 +563,86 @@ bool PointCloud::alignToFirstNeighbourWithICP(vector< shared_ptr<PointCloud> >* 
            pose = P_incemental * pose;
         }
 
-    }else{
-        SparseOptimizer optimizer;
-        optimizer.setVerbose(true);
-        BlockSolverX::LinearSolverType * linearSolver = new LinearSolverDense<g2o::BlockSolverX::PoseMatrixType>();
-        BlockSolverX * solver_ptr = new BlockSolverX(linearSolver);
-        g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
-        optimizer.setAlgorithm(solver);
+    // }else{
+    //     SparseOptimizer optimizer;
+    //     optimizer.setVerbose(true);
+    //     BlockSolverX::LinearSolverType * linearSolver = new LinearSolverDense<g2o::BlockSolverX::PoseMatrixType>();
+    //     BlockSolverX * solver_ptr = new BlockSolverX(linearSolver);
+    //     g2o::OptimizationAlgorithmLevenberg* solver = new g2o::OptimizationAlgorithmLevenberg(solver_ptr);
+    //     optimizer.setAlgorithm(solver);
 
-        {
-            VertexSE3 *vc = new VertexSE3();
-            vc->setEstimate(dstCloud.pose.cast<double>());
-            dstCloud.fixed=true;
-            vc->setFixed(true);
-            vc->setId(0);
-            optimizer.addVertex(vc);
-        }
+    //     {
+    //         VertexSE3 *vc = new VertexSE3();
+    //         vc->setEstimate(dstCloud.pose.cast<double>());
+    //         dstCloud.fixed=true;
+    //         vc->setFixed(true);
+    //         vc->setId(0);
+    //         optimizer.addVertex(vc);
+    //     }
 
-        {
-            VertexSE3 *vc = new VertexSE3();
-            vc->setEstimate(pose.cast<double>());
-            fixed=false;
-            vc->setFixed(false);
-            vc->setId(1);
-            optimizer.addVertex(vc);
-        }
+    //     {
+    //         VertexSE3 *vc = new VertexSE3();
+    //         vc->setEstimate(pose.cast<double>());
+    //         fixed=false;
+    //         vc->setFixed(false);
+    //         vc->setId(1);
+    //         optimizer.addVertex(vc);
+    //     }
 
-        // get two poses
-        VertexSE3* vp0 =
-          dynamic_cast<VertexSE3*>(optimizer.vertices().find(0)->second); //dstCloud fixed
-        VertexSE3* vp1 =
-          dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second); //srcCloud ==this
+    //     // get two poses
+    //     VertexSE3* vp0 =
+    //       dynamic_cast<VertexSE3*>(optimizer.vertices().find(0)->second); //dstCloud fixed
+    //     VertexSE3* vp1 =
+    //       dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second); //srcCloud ==this
 
-        for (auto corr : dstEdge.correspondances) {
+    //     for (auto corr : dstEdge.correspondances) {
 
-            Edge_V_V_GICP * e = new Edge_V_V_GICP();
+    //         Edge_V_V_GICP * e = new Edge_V_V_GICP();
 
-            e->setVertex(0, vp0);      // first viewpoint
-            e->setVertex(1, vp1);      // second viewpoint
+    //         e->setVertex(0, vp0);      // first viewpoint
+    //         e->setVertex(1, vp1);      // second viewpoint
 
-            EdgeGICP meas;
-            meas.pos0 = dstCloud.pts[corr.second].cast<double>();
-            meas.pos1 = pts[corr.first].cast<double>();
-            meas.normal0 = dstCloud.nor[corr.second].cast<double>();
-            meas.normal1 = nor[corr.first].cast<double>();
+    //         EdgeGICP meas;
+    //         meas.pos0 = dstCloud.pts[corr.second].cast<double>();
+    //         meas.pos1 = pts[corr.first].cast<double>();
+    //         meas.normal0 = dstCloud.nor[corr.second].cast<double>();
+    //         meas.normal1 = nor[corr.first].cast<double>();
 
-            e->setMeasurement(meas);
+    //         e->setMeasurement(meas);
 
-            if(pointToPlane){
+    //         if(pointToPlane){
 
-            //meas = e->measurement();
-            // use this for point-plane
-            e->information() = meas.prec0(0.01);
-            }else{
+    //         //meas = e->measurement();
+    //         // use this for point-plane
+    //         e->information() = meas.prec0(0.01);
+    //         }else{
 
-            // use this for point-point
-            e->information().setIdentity();
-            }
+    //         // use this for point-point
+    //         e->information().setIdentity();
+    //         }
 
-            optimizer.addEdge(e);
-        }
+    //         optimizer.addEdge(e);
+    //     }
 
-        int numbEdges = recalcError(frames);
+    //     int numbEdges = recalcError(frames);
 
-        cerr<<"errrorrrr: "<<accumError<<"  numbEdges: "<<numbEdges <<" pointToPlane"<<pointToPlane<<endl;
+    //     cerr<<"errrorrrr: "<<accumError<<"  numbEdges: "<<numbEdges <<" pointToPlane"<<pointToPlane<<endl;
 
 
-        optimizer.initializeOptimization();
-        optimizer.computeActiveErrors();
-        cerr << "Initial activeChi2 = " << FIXED(optimizer.activeChi2()) << endl;
-        cerr << "Initial chi2 = " << FIXED(optimizer.chi2()) << endl;
+    //     optimizer.initializeOptimization();
+    //     optimizer.computeActiveErrors();
+    //     cerr << "Initial activeChi2 = " << FIXED(optimizer.activeChi2()) << endl;
+    //     cerr << "Initial chi2 = " << FIXED(optimizer.chi2()) << endl;
 
-        optimizer.setVerbose(true);
+    //     optimizer.setVerbose(true);
 
-        solver->setUserLambdaInit(50000);
-        optimizer.optimize(300);
+    //     solver->setUserLambdaInit(50000);
+    //     optimizer.optimize(300);
 
-        Isometry3d test = dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second)->estimate();
+    //     Isometry3d test = dynamic_cast<VertexSE3*>(optimizer.vertices().find(1)->second)->estimate();
 
-        pose = test.cast<float>();
-    }
+    //     pose = test.cast<float>();
+    // }
 
 
     return false;
