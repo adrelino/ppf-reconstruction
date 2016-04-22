@@ -58,11 +58,8 @@
 
 <p>CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o</p>
 
-<h3>
-<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h3>
-
 <h5>
-<a id="on-mac-osx-yosemite-using-homebrew" class="anchor" href="#on-mac-osx-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>on Mac OSX Yosemite using homebrew</h5>
+<a id="install-on-mac-osx-yosemite-using-homebrew" class="anchor" href="#install-on-mac-osx-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install on Mac OSX Yosemite using homebrew</h5>
 
 <p>make sure brew is installed correctly</p>
 
@@ -71,16 +68,6 @@ brew doctor</pre></div>
 
 <div class="highlight highlight-source-shell"><pre>brew install cmake
 brew install eigen</pre></div>
-
-<p>ready to install g2o</p>
-
-<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
-git clone https://github.com/RainerKuemmerle/g2o.git
-<span class="pl-c1">cd</span> g2o
-mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
-cmake ..
-make
-sudo make install</pre></div>
 
 <p>opencv is needed to load the range images</p>
 
@@ -100,22 +87,23 @@ brew install opencv</pre></div>
 <div class="highlight highlight-source-shell"><pre>brew tap homebrew/x11
 brew install freeglut </pre></div>
 
-<p>Now we are ready to build our code</p>
+<p>ready to build and install g2o</p>
 
 <div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
-git clone https://github.com/adrelino/ppf-reconstruction.git
-<span class="pl-c1">cd</span> ppf-reconstruction
+git clone https://github.com/RainerKuemmerle/g2o.git
+<span class="pl-c1">cd</span> g2o
 mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
 cmake ..
-make</pre></div>
+make
+sudo make install</pre></div>
 
 <h5>
-<a id="on-linux-ubuntu-1404" class="anchor" href="#on-linux-ubuntu-1404" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>on Linux Ubuntu 14.04</h5>
+<a id="install-on-linux-ubuntu-1404" class="anchor" href="#install-on-linux-ubuntu-1404" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install on Linux Ubuntu 14.04</h5>
 
-<div class="highlight highlight-source-shell"><pre>sudo apt-get install cmake libeigen3-dev freeglut opencv</pre></div>
+<div class="highlight highlight-source-shell"><pre>sudo apt-get install cmake libeigen3-dev opencv freeglut </pre></div>
 
 <h6>
-<a id="install-g2o" class="anchor" href="#install-g2o" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install g2o</h6>
+<a id="build-and-install-g2o" class="anchor" href="#build-and-install-g2o" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Build and install g2o</h6>
 
 <ul>
 <li>if you have ROS indigo installed (<a href="http://wiki.ros.org/indigo/Installation/Ubuntu">http://wiki.ros.org/indigo/Installation/Ubuntu</a>), there is a package for g2o:</li>
@@ -124,7 +112,7 @@ make</pre></div>
 <div class="highlight highlight-source-shell"><pre>sudo apt-get install ros-indigo-libg2o</pre></div>
 
 <ul>
-<li>otherwise manually download and build g2o:</li>
+<li>otherwise manually download and build and install g2o:</li>
 </ul>
 
 <div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
@@ -136,7 +124,19 @@ make
 sudo make install</pre></div>
 
 <h3>
-<a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run with sample bunny sequences</h3>
+<a id="build-and-run-ppf-reconstruction" class="anchor" href="#build-and-run-ppf-reconstruction" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Build and run ppf-reconstruction</h3>
+
+<p>Now we are ready to build our code</p>
+
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
+git clone https://github.com/adrelino/ppf-reconstruction.git
+<span class="pl-c1">cd</span> ppf-reconstruction
+mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
+cmake ..
+make</pre></div>
+
+<h5>
+<a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run with sample bunny sequences</h5>
 
 <p>Real dataset aquired with a PrimeSense sensor:</p>
 
