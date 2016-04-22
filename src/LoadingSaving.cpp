@@ -51,10 +51,11 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
     std::ifstream ifs(filename.c_str());
     if (!ifs.is_open()) cout<<"Cannot open file:"<<filename<<endl;
 
+    //cout<<"LoadingSaving::loadPointCloudFromDepthMap before cv::imread "<<filename<<endl;
     cv::Mat depth = cv::imread(filename,cv::IMREAD_UNCHANGED);
     int type=depth.type();
     int nc=depth.channels();
-    //cout<<"type: "<<OpenCVHelpers::getImageType(type)<<" channels:"<<nc<<endl;
+    //cout<<"LoadingSaving::loadPointCloudFromDepthMap after cv::imread "<<filename<<" \t type: "<<OpenCVHelpers::getImageType(type)<<" channels:"<<nc<<endl;
 
     cv::Mat mask; //is 1 at the object, 0 outside
 
@@ -701,19 +702,19 @@ string getOSSeparator() {
 bool isPrefixAndSuffix(const char* file, uint16_t filename_length, string prefix, string suffix){
 
 
-   char* startSuffix=strstr(file,suffix.c_str());
+   const char* startSuffix=strstr(file,suffix.c_str());
    bool isSuffix = (startSuffix-file) == filename_length - suffix.length();
    if(!isSuffix) return false;
 
 
    if(prefix[0]=='*'){
         string contains = prefix.substr (1);
-        char* startContains=strstr(file,contains.c_str());
+        const char* startContains=strstr(file,contains.c_str());
         bool isContains = (startContains-file >= 0); //contains
         return isContains;
    }
 
-    char* startPrefix=strstr(file,prefix.c_str());
+    const char* startPrefix=strstr(file,prefix.c_str());
     bool isPrefix = (startPrefix-file == 0);
 
     //cout<<"start: "<<isPrefix<<" end:"<<isSuffix<<endl;
@@ -761,7 +762,8 @@ vector<string> getAllFilesFromFolder(string dirStr, string prefix, vector<string
   const string sep = getOSSeparator();
 
   while((entry = (readdir(dir)))) {
-    if (hasPrefixAndSuffixes(entry->d_name,entry->d_namlen,prefix,suffixes)){
+      string fileName(entry->d_name);
+    if (hasPrefixAndSuffixes(entry->d_name,/*entry->d_namlen*/fileName.size(),prefix,suffixes)){
       string fileName(entry->d_name);
       string fullPath = dirStr + sep + fileName;
       allImages.push_back(fullPath);

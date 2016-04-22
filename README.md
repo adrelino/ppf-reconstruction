@@ -24,7 +24,9 @@ This refined registration of all the scans used may now be integrated and their 
 ### Dependencies
 CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o
 
-### Installation on Mac Yosemite using homebrew
+### Installation 
+
+##### on Mac OSX Yosemite using homebrew
 
 make sure brew is installed correctly
 ```sh
@@ -79,8 +81,37 @@ cmake ..
 make
 ```
 
+##### on Linux Ubuntu 14.04
+
+```sh
+sudo apt-get install cmake libeigen3-dev freeglut opencv
+```
+###### Install g2o
+
+* if you have ROS indigo installed (http://wiki.ros.org/indigo/Installation/Ubuntu), there is a package for g2o:
+```sh
+sudo apt-get install ros-indigo-libg2o
+```
+
+* otherwise manually download and build g2o:
+```sh
+cd ~/projects
+git clone https://github.com/RainerKuemmerle/g2o.git
+cd g2o
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+
+
 ### Run with sample bunny sequences
+Real dataset aquired with a PrimeSense sensor:
 ```sh
 ./ppf-reconstruction
+```
+
+Synthetic dataset rendered using Blender:
+```sh
 ./ppf_reconstruction -dir ../samples/Bunny_Sphere/ -knn 5 -nFrames 5
 ```

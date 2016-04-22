@@ -4,7 +4,8 @@
 #include <string>
 #include <iostream>
 #include <sstream>
-#include "Eigen/Dense"
+#include <Eigen/Dense>
+#include <memory>
 
 
 // parameter processing

@@ -92,7 +92,7 @@ public:
 //    vector<Vector3f> dst;
 //    vector<Vector3f> dstNor;
 
-    float recalcError(vector< shared_ptr<PointCloud> >* frames);
+    float recalcError(vector< std::shared_ptr<PointCloud> >* frames);
 
     bool fixed=false;
 

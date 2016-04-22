@@ -51,18 +51,16 @@ include_directories(${GLUT_INCLUDE_DIRS})
 find_package(OpenGL)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
-include_directories(/usr/local/include/eigen3/)
+#Eigen is required by all         https://forum.kde.org/viewtopic.php?f=74&t=94166
+find_package(Eigen3 REQUIRED)
+IF( NOT EIGEN3_INCLUDE_DIR )
+    if(APPLE)
+        SET(EIGEN3_INCLUDE_DIR /usr/local/include/eigen3/) #'/usr/local is homebrews install prefix
+    endif()
+ENDIF()
+MESSAGE("EIGEN3_INCLUDE_DIR ${EIGEN3_INCLUDE_DIR}")
+INCLUDE_DIRECTORIES(${EIGEN3_INCLUDE_DIR}) #http://stackoverflow.com/questions/12249140/find-package-eigen3-for-cmake
 
-
-#Eigen     is required by all         https://forum.kde.org/viewtopic.php?f=74&t=94166
-#find_package(Eigen3 REQUIRED)
-include_directories(EIGEN3_INCLUDE_DIR)   # TODO check: is not set, but still works (because its in default location i guess)
-# http://stackoverflow.com/questions/12249140/find-package-eigen3-for-cmake
-#SET( EIGEN3_INCLUDE_DIR "$ENV{EIGEN3_INCLUDE_DIR}" )
-#IF( NOT EIGEN3_INCLUDE_DIR )
-#    MESSAGE( FATAL_ERROR "Please point the environment variable EIGEN3_INCLUDE_DIR to the include directory of your Eigen3 installation.")
-#ENDIF()
-#INCLUDE_DIRECTORIES ( "${EIGEN3_INCLUDE_DIR}" )
 
 include_directories(include/)
 include_directories(src/viz/)
@@ -116,6 +114,16 @@ set(VIZ
 #)
 #target_link_libraries(frameToModel-PPF-coarse ${GLUT_LIBRARIES} ${OPENGL_LIBRARIES} ${OpenCV_LIBS})
 #add_custom_command(TARGET frameToModel-PPF-coarse PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/samples $<TARGET_FILE_DIR:frameToModel-PPF-coarse>/samples)
+
+
+#g2o
+
+if(UNIX AND NOT APPLE)
+    if(EXISTS /opt/ros/indigo/include/g2o)  #and ros and ros-indigo-libg2o is installed
+        MESSAGE("using ROS g2o from package ros-indigo-libg2o")
+        link_directories(/opt/ros/indigo/lib/)
+    endif()
+endif()
 
 set(G2O_LIBRARIES
     g2o_core g2o_stuff g2o_types_slam3d g2o_types_icp g2o_solver_csparse g2o_csparse_extension
