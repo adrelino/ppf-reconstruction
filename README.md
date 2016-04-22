@@ -23,7 +23,7 @@ This refined registration of all the scans used may now be integrated and their 
 
 ### Dependencies
 
-CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o
+CMake, Eigen3, OpenCV, FreeGLUT, g2o
 
 ##### install on Mac OSX Yosemite using homebrew
 
@@ -34,40 +34,14 @@ brew doctor
 ```
 
 ```sh
-brew install cmake
-brew install eigen
-```
-opencv is needed to load the range images
-```sh
-brew tap homebrew/science
-brew install opencv
+brew install cmake eigen homebrew/science/opencv Caskroom/cask/xquartz homebrew/x11/freeglut homebrew/science/g2o
 ```
 
-We need xquartz for freeglut to run. For that we first need to accept a license:
+We needed the xquartz app for freeglut to run. For that we might need to accept a license if never done before:
 ```sh
 sudo xcodebuild -license   //accept license
 ```
-then we can install xquartz on the command line using cast (or alternatively downlaod and install from http://xquartz.macosforge.org/)
-```sh
-brew install Caskroom/cask/xquartz
-```
 
-Freeglut is needed for the visualizer. We might need a restart if a "cannot open display error" appears later on when running our code.
-```sh
-brew tap homebrew/x11
-brew install freeglut 
-```
-
-ready to build and install g2o
-```sh
-cd ~/projects
-git clone https://github.com/RainerKuemmerle/g2o.git
-cd g2o
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
 
 ##### install on Linux Ubuntu 14.04
 
@@ -101,7 +75,7 @@ git clone https://github.com/adrelino/ppf-reconstruction.git
 cd ppf-reconstruction
 mkdir build && cd build
 cmake ..
-make
+make -j4 -l4
 ```
 
 ##### Run with sample bunny sequences
