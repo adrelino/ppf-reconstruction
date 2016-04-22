@@ -22,11 +22,10 @@ This refined registration of all the scans used may now be integrated and their 
 
 
 ### Dependencies
+
 CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o
 
-### Installation 
-
-##### on Mac OSX Yosemite using homebrew
+##### install on Mac OSX Yosemite using homebrew
 
 make sure brew is installed correctly
 ```sh
@@ -38,18 +37,6 @@ brew doctor
 brew install cmake
 brew install eigen
 ```
-
-ready to install g2o
-```sh
-cd ~/projects
-git clone https://github.com/RainerKuemmerle/g2o.git
-cd g2o
-mkdir build && cd build
-cmake ..
-make
-sudo make install
-```
-
 opencv is needed to load the range images
 ```sh
 brew tap homebrew/science
@@ -71,29 +58,7 @@ brew tap homebrew/x11
 brew install freeglut 
 ```
 
-Now we are ready to build our code
-```sh
-cd ~/projects
-git clone https://github.com/adrelino/ppf-reconstruction.git
-cd ppf-reconstruction
-mkdir build && cd build
-cmake ..
-make
-```
-
-##### on Linux Ubuntu 14.04
-
-```sh
-sudo apt-get install cmake libeigen3-dev freeglut opencv
-```
-###### Install g2o
-
-* if you have ROS indigo installed (http://wiki.ros.org/indigo/Installation/Ubuntu), there is a package for g2o:
-```sh
-sudo apt-get install ros-indigo-libg2o
-```
-
-* otherwise manually download and build g2o:
+ready to build and install g2o
 ```sh
 cd ~/projects
 git clone https://github.com/RainerKuemmerle/g2o.git
@@ -104,8 +69,42 @@ make
 sudo make install
 ```
 
+##### install on Linux Ubuntu 14.04
 
-### Run with sample bunny sequences
+```sh
+sudo apt-get install cmake libeigen3-dev opencv freeglut 
+```
+###### Build and install g2o
+
+* if you have ROS indigo installed (http://wiki.ros.org/indigo/Installation/Ubuntu), there is a package for g2o:
+```sh
+sudo apt-get install ros-indigo-libg2o
+```
+
+* otherwise manually download and build and install g2o:
+```sh
+cd ~/projects
+git clone https://github.com/RainerKuemmerle/g2o.git
+cd g2o
+mkdir build && cd build
+cmake ..
+make
+sudo make install
+```
+
+### Build and run ppf-reconstruction
+
+Now we are ready to build our code
+```sh
+cd ~/projects
+git clone https://github.com/adrelino/ppf-reconstruction.git
+cd ppf-reconstruction
+mkdir build && cd build
+cmake ..
+make
+```
+
+##### Run with sample bunny sequences
 Real dataset aquired with a PrimeSense sensor:
 ```sh
 ./ppf-reconstruction
