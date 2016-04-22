@@ -51,11 +51,11 @@ void loadPointCloudFromDepthMap(const std::string& filename, const Matrix3f& K, 
     std::ifstream ifs(filename.c_str());
     if (!ifs.is_open()) cout<<"Cannot open file:"<<filename<<endl;
 
-    //cout<<"LoadingSaving::loadPointCloudFromDepthMap before cv::imread "<<filename<<endl;
+    cout<<"LoadingSaving::loadPointCloudFromDepthMap before cv::imread "<<filename<<endl;
     cv::Mat depth = cv::imread(filename,cv::IMREAD_UNCHANGED);
     int type=depth.type();
     int nc=depth.channels();
-    //cout<<"LoadingSaving::loadPointCloudFromDepthMap after cv::imread "<<filename<<" \t type: "<<OpenCVHelpers::getImageType(type)<<" channels:"<<nc<<endl;
+    cout<<"LoadingSaving::loadPointCloudFromDepthMap after cv::imread "<<filename<<" \t type: "<<OpenCVHelpers::getImageType(type)<<" channels:"<<nc<<endl;
 
     cv::Mat mask; //is 1 at the object, 0 outside
 
