@@ -59,7 +59,10 @@
 <p>CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o</p>
 
 <h3>
-<a id="installation-on-mac-yosemite-using-homebrew" class="anchor" href="#installation-on-mac-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation on Mac Yosemite using homebrew</h3>
+<a id="installation" class="anchor" href="#installation" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation</h3>
+
+<h5>
+<a id="on-mac-osx-yosemite-using-homebrew" class="anchor" href="#on-mac-osx-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>on Mac OSX Yosemite using homebrew</h5>
 
 <p>make sure brew is installed correctly</p>
 
@@ -106,11 +109,42 @@ mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> b
 cmake ..
 make</pre></div>
 
+<h5>
+<a id="on-linux-ubuntu-1404" class="anchor" href="#on-linux-ubuntu-1404" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>on Linux Ubuntu 14.04</h5>
+
+<div class="highlight highlight-source-shell"><pre>sudo apt-get install cmake libeigen3-dev freeglut opencv</pre></div>
+
+<h6>
+<a id="install-g2o" class="anchor" href="#install-g2o" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Install g2o</h6>
+
+<ul>
+<li>if you have ROS indigo installed (<a href="http://wiki.ros.org/indigo/Installation/Ubuntu">http://wiki.ros.org/indigo/Installation/Ubuntu</a>), there is a package for g2o:</li>
+</ul>
+
+<div class="highlight highlight-source-shell"><pre>sudo apt-get install ros-indigo-libg2o</pre></div>
+
+<ul>
+<li>otherwise manually download and build g2o:</li>
+</ul>
+
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
+git clone https://github.com/RainerKuemmerle/g2o.git
+<span class="pl-c1">cd</span> g2o
+mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
+cmake ..
+make
+sudo make install</pre></div>
+
 <h3>
 <a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run with sample bunny sequences</h3>
 
-<div class="highlight highlight-source-shell"><pre>./ppf-reconstruction
-./ppf_reconstruction -dir ../samples/Bunny_Sphere/ -knn 5 -nFrames 5</pre></div>
+<p>Real dataset aquired with a PrimeSense sensor:</p>
+
+<div class="highlight highlight-source-shell"><pre>./ppf-reconstruction</pre></div>
+
+<p>Synthetic dataset rendered using Blender:</p>
+
+<div class="highlight highlight-source-shell"><pre>./ppf_reconstruction -dir ../samples/Bunny_Sphere/ -knn 5 -nFrames 5</pre></div>
       </section>
     </div>
 
