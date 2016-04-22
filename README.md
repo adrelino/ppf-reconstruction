@@ -27,12 +27,7 @@ CMake, Eigen3, OpenCV, FreeGLUT, g2o
 
 ##### install on Mac OSX Yosemite using homebrew
 
-make sure brew is installed correctly
-```sh
-ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
-brew doctor
-```
-
+Install [brew](http://brew.sh/) and then all dependencies:
 ```sh
 brew install cmake eigen homebrew/science/opencv Caskroom/cask/xquartz homebrew/x11/freeglut homebrew/science/g2o
 ```
