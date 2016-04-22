@@ -1,26 +1,38 @@
 <!DOCTYPE html>
-<html lang="en-us">
-  <head>
-    <meta charset="UTF-8">
-    <title>ppf-reconstruction by adrelino</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
-    <link href='http://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
-    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
-  </head>
-  <body>
-    <section class="page-header">
-      <h1 class="project-name">ppf-reconstruction</h1>
-      <h2 class="project-tagline">3D Object Reconstruction using Point Pair Features</h2>
-      <a href="https://github.com/adrelino/ppf-reconstruction" class="btn">View on GitHub</a>
-      <a href="https://github.com/adrelino/ppf-reconstruction/zipball/master" class="btn">Download .zip</a>
-      <a href="https://github.com/adrelino/ppf-reconstruction/tarball/master" class="btn">Download .tar.gz</a>
-    </section>
+<html>
 
-    <section class="main-content">
-      <h1>
-<a id="ppf-reconstruction" class="anchor" href="#ppf-reconstruction" aria-hidden="true"><span class="octicon octicon-link"></span></a>ppf-reconstruction</h1>
+  <head>
+    <meta charset='utf-8'>
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <meta name="description" content="ppf-reconstruction : 3D Object Reconstruction using Point Pair Features">
+
+    <link rel="stylesheet" type="text/css" media="screen" href="stylesheets/stylesheet.css">
+
+    <title>ppf-reconstruction</title>
+  </head>
+
+  <body>
+
+    <!-- HEADER -->
+    <div id="header_wrap" class="outer">
+        <header class="inner">
+          <a id="forkme_banner" href="https://github.com/adrelino/ppf-reconstruction">View on GitHub</a>
+
+          <h1 id="project_title">ppf-reconstruction</h1>
+          <h2 id="project_tagline">3D Object Reconstruction using Point Pair Features</h2>
+
+            <section id="downloads">
+              <a class="zip_download_link" href="https://github.com/adrelino/ppf-reconstruction/zipball/master">Download this project as a .zip file</a>
+              <a class="tar_download_link" href="https://github.com/adrelino/ppf-reconstruction/tarball/master">Download this project as a tar.gz file</a>
+            </section>
+        </header>
+    </div>
+
+    <!-- MAIN CONTENT -->
+    <div id="main_content_wrap" class="outer">
+      <section id="main_content" class="inner">
+        <h1>
+<a id="ppf-reconstruction" class="anchor" href="#ppf-reconstruction" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>ppf-reconstruction</h1>
 
 <p>This work aims at reconstructing 3D objects by robustly and accurately registering multiple range images of an object from different viewpoints.</p>
 
@@ -31,7 +43,7 @@
 <p>This refined registration of all the scans used may now be integrated and their corresponding point clouds fused and then meshed to obtain the final reconstructed 3D object mesh.</p>
 
 <h3>
-<a id="references" class="anchor" href="#references" aria-hidden="true"><span class="octicon octicon-link"></span></a>References</h3>
+<a id="references" class="anchor" href="#references" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>References</h3>
 
 <ul>
 <li><p>Haarbach, Adrian <a href="http://adrian-haarbach.de/bscthesis_adrian.pdf">3D Object Reconstruction using Point Pair Features</a>. Bachelor's thesis, Technical University Munich, 2015.</p></li>
@@ -42,24 +54,24 @@
 </ul>
 
 <h3>
-<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span class="octicon octicon-link"></span></a>Dependencies</h3>
+<a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dependencies</h3>
 
 <p>CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o</p>
 
 <h3>
-<a id="installation-on-mac-yosemite-using-homebrew" class="anchor" href="#installation-on-mac-yosemite-using-homebrew" aria-hidden="true"><span class="octicon octicon-link"></span></a>Installation on Mac Yosemite using homebrew</h3>
+<a id="installation-on-mac-yosemite-using-homebrew" class="anchor" href="#installation-on-mac-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Installation on Mac Yosemite using homebrew</h3>
 
 <p>make sure brew is installed correctly</p>
 
-<div class="highlight highlight-sh"><pre>ruby -e <span class="pl-s"><span class="pl-pds">"</span><span class="pl-s"><span class="pl-pds">$(</span>curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install<span class="pl-pds">)</span></span><span class="pl-pds">"</span></span>
+<div class="highlight highlight-source-shell"><pre>ruby -e <span class="pl-s"><span class="pl-pds">"</span><span class="pl-s"><span class="pl-pds">$(</span>curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install<span class="pl-pds">)</span></span><span class="pl-pds">"</span></span>
 brew doctor</pre></div>
 
-<div class="highlight highlight-sh"><pre>brew install cmake
+<div class="highlight highlight-source-shell"><pre>brew install cmake
 brew install eigen</pre></div>
 
 <p>ready to install g2o</p>
 
-<div class="highlight highlight-sh"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
 git clone https://github.com/RainerKuemmerle/g2o.git
 <span class="pl-c1">cd</span> g2o
 mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
@@ -69,25 +81,25 @@ sudo make install</pre></div>
 
 <p>opencv is needed to load the range images</p>
 
-<div class="highlight highlight-sh"><pre>brew tap homebrew/science
+<div class="highlight highlight-source-shell"><pre>brew tap homebrew/science
 brew install opencv</pre></div>
 
 <p>We need xquartz for freeglut to run. For that we first need to accept a license:</p>
 
-<div class="highlight highlight-sh"><pre>sudo xcodebuild -license   //accept license</pre></div>
+<div class="highlight highlight-source-shell"><pre>sudo xcodebuild -license   //accept license</pre></div>
 
 <p>then we can install xquartz on the command line using cast (or alternatively downlaod and install from <a href="http://xquartz.macosforge.org/">http://xquartz.macosforge.org/</a>)</p>
 
-<div class="highlight highlight-sh"><pre>brew install Caskroom/cask/xquartz</pre></div>
+<div class="highlight highlight-source-shell"><pre>brew install Caskroom/cask/xquartz</pre></div>
 
 <p>Freeglut is needed for the visualizer. We might need a restart if a "cannot open display error" appears later on when running our code.</p>
 
-<div class="highlight highlight-sh"><pre>brew tap homebrew/x11
+<div class="highlight highlight-source-shell"><pre>brew tap homebrew/x11
 brew install freeglut </pre></div>
 
 <p>Now we are ready to build our code</p>
 
-<div class="highlight highlight-sh"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
+<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
 git clone https://github.com/adrelino/ppf-reconstruction.git
 <span class="pl-c1">cd</span> ppf-reconstruction
 mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
@@ -95,20 +107,32 @@ cmake ..
 make</pre></div>
 
 <h3>
-<a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span class="octicon octicon-link"></span></a>Run with sample bunny sequences</h3>
+<a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run with sample bunny sequences</h3>
 
-<div class="highlight highlight-sh"><pre>./ppf-reconstruction
+<div class="highlight highlight-source-shell"><pre>./ppf-reconstruction
 ./ppf_reconstruction -dir ../samples/Bunny_Sphere/ -knn 5 -nFrames 5</pre></div>
+      </section>
+    </div>
 
-      <footer class="site-footer">
-        <span class="site-footer-owner"><a href="https://github.com/adrelino/ppf-reconstruction">ppf-reconstruction</a> is maintained by <a href="https://github.com/adrelino">adrelino</a>.</span>
-
-        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+    <!-- FOOTER  -->
+    <div id="footer_wrap" class="outer">
+      <footer class="inner">
+        <p class="copyright">ppf-reconstruction maintained by <a href="https://github.com/adrelino">adrelino</a></p>
+        <p>Published with <a href="https://pages.github.com">GitHub Pages</a></p>
       </footer>
+    </div>
 
-    </section>
+              <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-76776232-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
 
-  
+
   </body>
 </html>
-
