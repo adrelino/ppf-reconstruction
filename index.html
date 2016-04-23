@@ -56,46 +56,26 @@
 <h3>
 <a id="dependencies" class="anchor" href="#dependencies" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Dependencies</h3>
 
-<p>CMake, Eigen3, OpenCV, OpenGL, FreeGLUT, C++11, g2o</p>
+<p>CMake, Eigen3, OpenCV, FreeGLUT, g2o</p>
 
 <h5>
 <a id="install-on-mac-osx-yosemite-using-homebrew" class="anchor" href="#install-on-mac-osx-yosemite-using-homebrew" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install on Mac OSX Yosemite using homebrew</h5>
 
-<p>make sure brew is installed correctly</p>
+<p>Install <a href="http://brew.sh/">brew</a> and then all dependencies:</p>
 
-<div class="highlight highlight-source-shell"><pre>ruby -e <span class="pl-s"><span class="pl-pds">"</span><span class="pl-s"><span class="pl-pds">$(</span>curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install<span class="pl-pds">)</span></span><span class="pl-pds">"</span></span>
-brew doctor</pre></div>
+<div class="highlight highlight-source-shell"><pre>brew install cmake eigen homebrew/science/opencv Caskroom/cask/xquartz homebrew/x11/freeglut</pre></div>
 
-<div class="highlight highlight-source-shell"><pre>brew install cmake
-brew install eigen</pre></div>
+<div class="highlight highlight-source-shell"><pre>brew install https://github.com/adrelino/homebrew-science/raw/master/g2o.rb  </pre></div>
 
-<p>opencv is needed to load the range images</p>
+<p>or</p>
 
-<div class="highlight highlight-source-shell"><pre>brew tap homebrew/science
-brew install opencv</pre></div>
+<div class="highlight highlight-source-shell"><pre>brew install homebrew/science/g2o</pre></div>
 
-<p>We need xquartz for freeglut to run. For that we first need to accept a license:</p>
+<p>once pull request gets trough</p>
+
+<p>We needed the xquartz app for freeglut to run. For that we might need to accept a license if never done before:</p>
 
 <div class="highlight highlight-source-shell"><pre>sudo xcodebuild -license   //accept license</pre></div>
-
-<p>then we can install xquartz on the command line using cast (or alternatively downlaod and install from <a href="http://xquartz.macosforge.org/">http://xquartz.macosforge.org/</a>)</p>
-
-<div class="highlight highlight-source-shell"><pre>brew install Caskroom/cask/xquartz</pre></div>
-
-<p>Freeglut is needed for the visualizer. We might need a restart if a "cannot open display error" appears later on when running our code.</p>
-
-<div class="highlight highlight-source-shell"><pre>brew tap homebrew/x11
-brew install freeglut </pre></div>
-
-<p>ready to build and install g2o</p>
-
-<div class="highlight highlight-source-shell"><pre><span class="pl-c1">cd</span> <span class="pl-k">~</span>/projects
-git clone https://github.com/RainerKuemmerle/g2o.git
-<span class="pl-c1">cd</span> g2o
-mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
-cmake ..
-make
-sudo make install</pre></div>
 
 <h5>
 <a id="install-on-linux-ubuntu-1404" class="anchor" href="#install-on-linux-ubuntu-1404" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>install on Linux Ubuntu 14.04</h5>
@@ -133,7 +113,7 @@ git clone https://github.com/adrelino/ppf-reconstruction.git
 <span class="pl-c1">cd</span> ppf-reconstruction
 mkdir build <span class="pl-k">&amp;&amp;</span> <span class="pl-c1">cd</span> build
 cmake ..
-make</pre></div>
+make -j4 -l4</pre></div>
 
 <h5>
 <a id="run-with-sample-bunny-sequences" class="anchor" href="#run-with-sample-bunny-sequences" aria-hidden="true"><span aria-hidden="true" class="octicon octicon-link"></span></a>Run with sample bunny sequences</h5>
