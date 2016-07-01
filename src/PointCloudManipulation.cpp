@@ -24,10 +24,19 @@ Isometry3f pointToPoint(vector<Vector3f>&src,vector<Vector3f>&dst){
     Matrix3Xf qs_centered = qs.colwise() - q_dash;
     Matrix3f K = qs_centered * ps_centered.transpose();
     JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
-    Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
+    
+    //this flipping scheme (to make sure we have rotation, not mirroring) is wrong / not always correct!!!!
+    /*Matrix3d R = svd.matrixU()*svd.matrixV().transpose();
     if(R.determinant()<0){
         R.col(2) *= -1;
+    }*/
+
+    //this is the correct way!!!
+    Matrix3d S = Matrix3d::Identity();
+    if(svd.matrixU().determinant() * svd.matrixV().transpose().determinant()<0){
+        S(2,2)= -1;
     }
+    
     Isometry3f T = Isometry3f::Identity();
     T.linear() = R;
     T.translation() = q_dash - R*p_dash; return T;
