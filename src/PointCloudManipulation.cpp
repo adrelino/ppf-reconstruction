@@ -26,13 +26,13 @@ Isometry3f pointToPoint(vector<Vector3f>&src,vector<Vector3f>&dst){
     JacobiSVD<Matrix3f> svd(K, ComputeFullU | ComputeFullV);
     
     //this flipping scheme (to make sure we have rotation, not mirroring) is wrong / not always correct!!!!
-    /*Matrix3d R = svd.matrixU()*svd.matrixV().transpose();
+    /*Matrix3f R = svd.matrixU()*svd.matrixV().transpose();
     if(R.determinant()<0){
         R.col(2) *= -1;
     }*/
 
     //this is the correct way!!!
-    Matrix3d S = Matrix3d::Identity();
+    Matrix3f S = Matrix3f::Identity();
     if(svd.matrixU().determinant() * svd.matrixV().transpose().determinant()<0){
         S(2,2)= -1;
     }
