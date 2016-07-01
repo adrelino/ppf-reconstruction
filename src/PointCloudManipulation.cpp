@@ -37,6 +37,9 @@ Isometry3f pointToPoint(vector<Vector3f>&src,vector<Vector3f>&dst){
         S(2,2)= -1;
     }
     
+    Matrix3f R = svd.matrixU()*S*svd.matrixV().transpose();
+
+    
     Isometry3f T = Isometry3f::Identity();
     T.linear() = R;
     T.translation() = q_dash - R*p_dash; return T;
