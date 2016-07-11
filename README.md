@@ -29,18 +29,8 @@ CMake, Eigen3, OpenCV, FreeGLUT, g2o
 
 Install [brew](http://brew.sh/) and then all dependencies:
 ```sh
-brew install cmake eigen homebrew/science/opencv Caskroom/cask/xquartz homebrew/x11/freeglut
+brew install cmake eigen homebrew/science/opencv homebrew/science/g2o Caskroom/cask/xquartz homebrew/x11/freeglut
 ```
-
-```sh
-brew install https://github.com/adrelino/homebrew-science/raw/master/g2o.rb  
-```
-or
-```sh
-brew install homebrew/science/g2o
-```
-once pull request gets trough
-
 
 We needed the xquartz app for freeglut to run. For that we might need to accept a license if never done before:
 ```sh
