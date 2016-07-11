@@ -10,7 +10,7 @@ The result of this step is a tree of relative pose constraints. In a subsequent 
 This refined registration of all the scans used may now be integrated and their corresponding point clouds fused and then meshed to obtain the final reconstructed 3D object mesh.
 
 ### References
-* Haarbach, Adrian [3D Object Reconstruction using Point Pair Features](http://adrian-haarbach.de/bscthesis_adrian.pdf). Bachelor's thesis, Technical University Munich, 2015.
+* Haarbach, Adrian [3D Object Reconstruction using Point Pair Features](http://static.adrian-haarbach.de/bscthesis_adrian.pdf). Bachelor's thesis, Technical University Munich, 2015.
 
 * Drost, B., Ulrich, M., Navab, N., & Ilic, S. (2010). [Model globally, match locally: Efficient and robust 3D object recognition](http://campar.cs.tum.edu/pub/drost2010CVPR/drost2010CVPR.pdf). In Computer Vision and Pattern Recognition (CVPR), 2010 IEEE Conference on (pp. 998-1005). IEEE
 
